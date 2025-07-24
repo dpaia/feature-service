@@ -13,6 +13,7 @@ public record FeatureUpdatedEvent(
         String releaseCode,
         String assignedTo,
         List<String> tags,
+        String category,
         String createdBy,
         Instant createdAt,
         String updatedBy,

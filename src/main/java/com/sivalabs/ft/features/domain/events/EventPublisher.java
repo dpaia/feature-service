@@ -28,6 +28,7 @@ public class EventPublisher {
                 feature.getRelease() == null ? null : feature.getRelease().getCode(),
                 feature.getAssignedTo(),
                 getTags(feature),
+                feature.getCategory() == null ? null : feature.getCategory().getName(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt());
         kafkaTemplate.send(properties.events().newFeatures(), event);
@@ -43,6 +44,7 @@ public class EventPublisher {
                 feature.getRelease() == null ? null : feature.getRelease().getCode(),
                 feature.getAssignedTo(),
                 getTags(feature),
+                feature.getCategory() == null ? null : feature.getCategory().getName(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt(),
                 feature.getUpdatedBy(),
@@ -60,6 +62,7 @@ public class EventPublisher {
                 feature.getRelease() == null ? null : feature.getRelease().getCode(),
                 feature.getAssignedTo(),
                 getTags(feature),
+                feature.getCategory() == null ? null : feature.getCategory().getName(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt(),
                 feature.getUpdatedBy(),

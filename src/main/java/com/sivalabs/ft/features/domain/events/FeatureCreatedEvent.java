@@ -13,5 +13,6 @@ public record FeatureCreatedEvent(
         String releaseCode,
         String assignedTo,
         List<String> tags,
+        String category,
         String createdBy,
         Instant createdAt) {}
