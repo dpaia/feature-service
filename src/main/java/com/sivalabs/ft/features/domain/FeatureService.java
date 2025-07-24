@@ -79,8 +79,8 @@ public class FeatureService {
     }
 
     @Transactional(readOnly = true)
-    public List<FeatureDto> findFeaturesByTags(String username, List<Long> tagIds) {
-        List<Feature> features = featureRepository.findByTagIds(tagIds);
+    public List<FeatureDto> findFeaturesByTags(String username, List<Long> categoryIds, List<Long> tagIds) {
+        List<Feature> features = featureRepository.findByCategoryIdsOrTagIds(categoryIds, tagIds);
         return updateFavoriteStatus(features, username);
     }
 

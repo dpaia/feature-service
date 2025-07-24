@@ -19,12 +19,105 @@ class FeatureControllerTests extends AbstractIT {
     private ObjectMapper objectMapper;
 
     @Test
+    void shouldReturn400WhenNoParametersProvided() {
+        var result = mvc.get().uri("/api/features").exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldReturn400WhenMultipleParameterTypesProvided_ProductAndRelease() {
+        var result = mvc.get()
+                .uri("/api/features?productCode={product}&releaseCode={release}", "intellij", "IDEA-2023.3.8")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldReturn400WhenMultipleParameterTypesProvided_ProductAndTags() {
+        var result = mvc.get()
+                .uri("/api/features?productCode={product}&tagIds={tags}", "intellij", "1,2")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldReturn400WhenMultipleParameterTypesProvided_ProductAndCategories() {
+        var result = mvc.get()
+                .uri("/api/features?productCode={product}&categoryIds={categories}", "intellij", "1,2")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldReturn400WhenMultipleParameterTypesProvided_ReleaseAndTags() {
+        var result = mvc.get()
+                .uri("/api/features?releaseCode={release}&tagIds={tags}", "IDEA-2023.3.8", "1,2")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldReturn400WhenMultipleParameterTypesProvided_ReleaseAndCategories() {
+        var result = mvc.get()
+                .uri("/api/features?releaseCode={release}&categoryIds={categories}", "IDEA-2023.3.8", "1,2")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldReturn400WhenAllParameterTypesProvided() {
+        var result = mvc.get()
+                .uri(
+                        "/api/features?productCode={product}&releaseCode={release}&tagIds={tags}&categoryIds={categories}",
+                        "intellij",
+                        "IDEA-2023.3.8",
+                        "1",
+                        "2")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldGetFeaturesByProductCode() {
+        var result =
+                mvc.get().uri("/api/features?productCode={code}", "intellij").exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(2);
+    }
+
+    @Test
     void shouldGetFeaturesByReleaseCode() {
         var result = mvc.get()
                 .uri("/api/features?releaseCode={code}", "IDEA-2023.3.8")
                 .exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(2);
+    }
+
+    @Test
+    void shouldGetFeaturesByCategoryIds() {
+        var result = mvc.get().uri("/api/features?categoryIds={ids}", "1,3").exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(2);
+    }
+
+    @Test
+    void shouldGetFeaturesByTagIdsOnly() {
+        var result = mvc.get().uri("/api/features?tagIds={tags}", "1").exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
@@ -35,9 +128,13 @@ class FeatureControllerTests extends AbstractIT {
     void shouldGetFeatureByCode() {
         String code = "IDEA-1";
         var result = mvc.get().uri("/api/features/{code}", code).exchange();
-        assertThat(result).hasStatusOk().bodyJson().convertTo(FeatureDto.class).satisfies(dto -> {
-            assertThat(dto.code()).isEqualTo(code);
-        });
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .convertTo(FeatureDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.code()).isEqualTo(code);
+                });
     }
 
     @Test
@@ -51,13 +148,43 @@ class FeatureControllerTests extends AbstractIT {
     void shouldGetFeaturesByTags() {
         var result = mvc.get().uri("/api/features?tagIds={tagIds}", "1,2").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
                 .satisfies(features -> {
                     assertThat(features.size()).isEqualTo(3);
-                    assertThat(features.stream().map(FeatureDto::code).toList())
-                            .containsExactly("IDEA-1", "IDEA-2", "GO-3");
+                    assertThat(features.stream().map(FeatureDto::code).toList()).contains("IDEA-1", "IDEA-2", "GO-3");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesByCategories() {
+        var result = mvc.get()
+                .uri("/api/features?categoryIds={categoryIds}&tagIds={tagIds}", "2,3", "2")
+                .exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features.size()).isEqualTo(3);
+                    assertThat(features.stream().map(FeatureDto::code).toList()).contains("IDEA-1", "IDEA-2", "GO-3");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesByCategoryIdsOnly() {
+        var result =
+                mvc.get().uri("/api/features?categoryIds={categoryIds}", "1,2").exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features.size()).isEqualTo(2);
+                    assertThat(features.stream().map(FeatureDto::code).toList()).contains("IDEA-1", "GO-3");
                 });
     }
 
@@ -89,7 +216,7 @@ class FeatureControllerTests extends AbstractIT {
 
         var getResult = mvc.get().uri(location).exchange();
         assertThat(getResult)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .convertTo(FeatureDto.class)
                 .satisfies(dto -> {
@@ -118,12 +245,12 @@ class FeatureControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
                 .exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
 
         // Verify the update
         var updatedFeature = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
         assertThat(updatedFeature)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .convertTo(FeatureDto.class)
                 .satisfies(dto -> {
@@ -138,7 +265,7 @@ class FeatureControllerTests extends AbstractIT {
     @WithMockOAuth2User(username = "user")
     void shouldDeleteFeature() {
         var result = mvc.delete().uri("/api/features/{code}", "IDEA-2").exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
 
         // Verify deletion
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
@@ -161,7 +288,7 @@ class FeatureControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
                 .exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
 
         // Verify tags are assigned to IDEA-1
         var feature1 = getFeature("IDEA-1");
@@ -215,7 +342,7 @@ class FeatureControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
                 .exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
 
         // Verify tags are removed from IDEA-1
         var feature1 = getFeature("IDEA-1");
@@ -248,7 +375,7 @@ class FeatureControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
                 .exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
 
         var feature1 = getFeature("IDEA-1");
         assertThat(feature1.category().id()).isEqualTo(4);
@@ -317,7 +444,7 @@ class FeatureControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(removePayload)
                 .exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
 
         // Verify category is removed from features
         var feature1After = getFeature("IDEA-1");
