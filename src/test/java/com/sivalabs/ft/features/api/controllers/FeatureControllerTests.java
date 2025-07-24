@@ -295,6 +295,55 @@ class FeatureControllerTests extends AbstractIT {
         assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldRemoveCategoryFromFeatures() {
+        // Verify category is assigned
+        var feature1Before = getFeature("IDEA-1");
+        assertThat(feature1Before.category()).isNotNull();
+        var feature2Before = getFeature("GO-3");
+        assertThat(feature2Before.category()).isNotNull();
+
+        // Now remove the category
+        var removePayload =
+                """
+            {
+                "featureCodes": ["IDEA-1", "GO-3"]
+            }
+            """;
+
+        var result = mvc.delete()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(removePayload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        // Verify category is removed from features
+        var feature1After = getFeature("IDEA-1");
+        assertThat(feature1After.category()).isNull();
+
+        var feature2After = getFeature("GO-3");
+        assertThat(feature2After.category()).isNull();
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenRemovingCategoryFromNonExistentFeature() {
+        var payload = """
+            {
+                "featureCodes": ["IDEA-999"]
+            }
+            """;
+
+        var result = mvc.delete()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
     private FeatureDto getFeature(String featureCode) {
         try {
             var json = mvc.get()
