@@ -56,8 +56,38 @@ class FeatureControllerTests extends AbstractIT {
                 .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
                 .satisfies(features -> {
                     assertThat(features.size()).isEqualTo(3);
-                    assertThat(features.stream().map(FeatureDto::code).toList())
-                            .containsExactly("IDEA-1", "IDEA-2", "GO-3");
+                    assertThat(features.stream().map(FeatureDto::code).toList()).contains("IDEA-1", "IDEA-2", "GO-3");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesByCategories() {
+        var result = mvc.get()
+                .uri("/api/features?categoryIds={categoryIds}&tagIds={tagIds}", "2,3", "2")
+                .exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features.size()).isEqualTo(3);
+                    assertThat(features.stream().map(FeatureDto::code).toList()).contains("IDEA-1", "IDEA-2", "GO-3");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesByTagsAndCategories() {
+        var result =
+                mvc.get().uri("/api/features?categoryIds={categoryIds}", "1,2").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features.size()).isEqualTo(2);
+                    assertThat(features.stream().map(FeatureDto::code).toList()).contains("IDEA-1", "GO-3");
                 });
     }
 

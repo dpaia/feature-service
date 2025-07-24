@@ -53,9 +53,8 @@ class FeatureController {
 
     @GetMapping("")
     @Operation(
-            summary = "Find features by product, release, or tags",
-            description =
-                    "Find features by product, release, or tags. If tagIds is provided, returns all features matching any of the given tags. Otherwise, returns features by product or release.",
+            summary = "Find features by product, release, category, or tags",
+            description = "Find features by product, release, category, or tags.",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -68,17 +67,19 @@ class FeatureController {
     List<FeatureDto> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
             @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
             @RequestParam(value = "tagIds", required = false) List<Long> tagIds) {
         String username = SecurityUtils.getCurrentUsername();
 
-        // Only one of productCode or releaseCode or tagIds should be provided
+        // Only one of productCode or releaseCode or (categoryIds and/or tagIds) should be provided
         if ((StringUtils.isBlank(productCode)
                         && StringUtils.isBlank(releaseCode)
-                        && (tagIds == null || tagIds.isEmpty()))
+                        && (tagIds == null || tagIds.isEmpty())
+                        && (categoryIds == null || categoryIds.isEmpty()))
                 || (StringUtils.isNotBlank(productCode)
                         && StringUtils.isNotBlank(releaseCode)
-                        && tagIds != null
-                        && !tagIds.isEmpty())) {
+                        && ((tagIds != null && !tagIds.isEmpty())
+                                || (categoryIds != null && !categoryIds.isEmpty())))) {
             // TODO: Return 400 Bad Request
             return List.of();
         }
@@ -89,8 +90,8 @@ class FeatureController {
         if (StringUtils.isNotBlank(releaseCode)) {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
         }
-        if (tagIds != null && !tagIds.isEmpty()) {
-            featureDtos = featureService.findFeaturesByTags(username, tagIds);
+        if ((tagIds != null && !tagIds.isEmpty()) || (categoryIds != null && !categoryIds.isEmpty())) {
+            featureDtos = featureService.findFeaturesByTags(username, categoryIds, tagIds);
         }
 
         if (username != null && !featureDtos.isEmpty()) {
