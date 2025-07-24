@@ -31,4 +31,8 @@ interface FeatureRepository extends ListCrudRepository<Feature, Long> {
 
     @Query(value = "select nextval('feature_code_seq')", nativeQuery = true)
     long getNextFeatureId();
+
+    @Modifying
+    @Query("update Feature f set f.category = null where f.category.id = :id")
+    void unlinkCategory(Long id);
 }

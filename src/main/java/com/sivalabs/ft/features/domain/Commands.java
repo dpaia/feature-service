@@ -55,4 +55,12 @@ public class Commands {
     public record AssignTagsToFeaturesCommand(List<String> featureCodes, List<Long> tagIds, String updatedBy) {}
 
     public record RemoveTagsFromFeaturesCommand(List<String> featureCodes, List<Long> tagIds, String updatedBy) {}
+
+    /* Category Commands */
+    public record CreateCategoryCommand(String name, String description, Long parentCategoryId, String createdBy) {}
+
+    public record UpdateCategoryCommand(
+            Long id, String name, String description, Long parentCategoryId, String updatedBy) {}
+
+    public record DeleteCategoryCommand(Long id, String deletedBy) {}
 }

@@ -24,13 +24,11 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 (6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16')
 ;
 
-insert into categories(id, created_by, created_at, name, description)
-values (1, 'test', now(), 'New Feature', 'New feature added to the product'),
-       (2, 'test', now(), 'Improvement', 'Improvement to the product'),
-       (3, 'test', now(), 'Bug Fix', 'Bug fix to the product'),
-       (4, 'test', now(), 'Documentation', 'Documentation update to the product'),
-       (5, 'test', now(), 'Performance', 'Performance improvement to the product'),
-       (6, 'test', now(), 'Other', 'Other changes to the product');
+insert into categories (id, name, description, parent_category_id, created_by, created_at) values
+(1, 'SpringBoot', 'Spring Boot framework', null, 'admin', '2024-03-01 00:00:00'),
+(2, 'Quarkus', 'Quarkus framework', null, 'admin', '2024-03-01 00:00:00'),
+(3, 'CICD', 'CI/CD', null, 'admin', '2024-03-01 00:00:00'),
+(4, 'Angular', 'Angular framework', null, 'admin', '2024-03-01 00:00:00');
 
 insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at, category_id) values
 (1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24', 1),
@@ -58,3 +56,13 @@ insert into feature_tags (feature_id, tag_id) values
 (1, 4),
 (3, 1),
 (2, 1);
+
+insert into categories (id, name, description, parent_category_id, created_by, created_at) values
+(1, 'SpringBoot', 'Spring Boot framework', null, 'admin', '2024-03-01 00:00:00'),
+(2, 'Quarkus', 'Quarkus framework', null, 'admin', '2024-03-01 00:00:00'),
+(3, 'CICD', 'CI/CD', null, 'admin', '2024-03-01 00:00:00'),
+(4, 'Angular', 'Angular framework', null, 'admin', '2024-03-01 00:00:00');
+
+update features set category_id = 1 where id = 1;
+update features set category_id = 3 where id = 2;
+update features set category_id = 2 where id = 3;
