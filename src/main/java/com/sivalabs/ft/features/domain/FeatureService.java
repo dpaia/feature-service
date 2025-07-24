@@ -6,10 +6,7 @@ import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.RemoveTagsFromFeaturesCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
-import com.sivalabs.ft.features.domain.entities.Feature;
-import com.sivalabs.ft.features.domain.entities.Product;
-import com.sivalabs.ft.features.domain.entities.Release;
-import com.sivalabs.ft.features.domain.entities.Tag;
+import com.sivalabs.ft.features.domain.entities.*;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
@@ -35,6 +32,7 @@ public class FeatureService {
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
     private final FeatureMapper featureMapper;
+    private final CategoryRepository categoryRepository;
 
     FeatureService(
             FavoriteFeatureService favoriteFeatureService,
@@ -44,7 +42,8 @@ public class FeatureService {
             TagRepository tagRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
             EventPublisher eventPublisher,
-            FeatureMapper featureMapper) {
+            FeatureMapper featureMapper,
+            CategoryRepository categoryRepository) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
@@ -53,6 +52,7 @@ public class FeatureService {
         this.eventPublisher = eventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
         this.featureMapper = featureMapper;
+        this.categoryRepository = categoryRepository;
     }
 
     @Transactional(readOnly = true)
@@ -177,6 +177,25 @@ public class FeatureService {
             feature.setUpdatedAt(Instant.now());
             featureRepository.save(feature);
             eventPublisher.publishFeatureUpdatedEvent(feature);
+        }
+    }
+
+    @Transactional
+    public void assignCategoryToFeatures(Commands.AssignCategoryToFeaturesCommand cmd) {
+        // Get the category
+        Category category = categoryRepository
+                .findById(cmd.categoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + cmd.categoryId()));
+
+        // Get the features
+        List<Feature> features = getFeatures(cmd.featureCodes());
+
+        // Assign category to each feature
+        for (Feature feature : features) {
+            feature.setCategory(category);
+            feature.setUpdatedBy(cmd.updatedBy());
+            feature.setUpdatedAt(Instant.now());
+            featureRepository.save(feature);
         }
     }
 

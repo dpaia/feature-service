@@ -20,7 +20,7 @@ class CategoryControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
-                .isEqualTo(4);
+                .isEqualTo(10);
     }
 
     @Test
@@ -45,9 +45,9 @@ class CategoryControllerTests extends AbstractIT {
     @Test
     @WithMockOAuth2User(username = "user")
     void shouldGetCategoryById() {
-        var result = mvc.get().uri("/api/categories/{id}", 1).exchange();
+        var result = mvc.get().uri("/api/categories/{id}", 7).exchange();
         assertThat(result).hasStatusOk().bodyJson().convertTo(CategoryDto.class).satisfies(dto -> {
-            assertThat(dto.id()).isEqualTo(1);
+            assertThat(dto.id()).isEqualTo(7);
             assertThat(dto.name()).isEqualTo("SpringBoot");
             assertThat(dto.description()).isEqualTo("Spring Boot framework");
         });
@@ -99,7 +99,7 @@ class CategoryControllerTests extends AbstractIT {
     @WithMockOAuth2User(username = "user")
     void shouldCreateCategoryWithParent() {
         // Create parent category
-        Long parentId = 1L;
+        Long parentId = 7L;
 
         var payload = String.format(
                 """
@@ -138,7 +138,7 @@ class CategoryControllerTests extends AbstractIT {
     @Test
     @WithMockOAuth2User(username = "user")
     void shouldUpdateCategory() {
-        Long id = 1L;
+        Long id = 7L;
 
         var payload =
                 """
@@ -171,11 +171,11 @@ class CategoryControllerTests extends AbstractIT {
     @Test
     @WithMockOAuth2User(username = "user")
     void shouldDeleteCategory() {
-        var result = mvc.delete().uri("/api/categories/{id}", 1).exchange();
+        var result = mvc.delete().uri("/api/categories/{id}", 7).exchange();
         assertThat(result).hasStatusOk();
 
         // Verify deletion
-        var getResult = mvc.get().uri("/api/categories/{id}", 1).exchange();
+        var getResult = mvc.get().uri("/api/categories/{id}", 7).exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
 }

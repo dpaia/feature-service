@@ -63,4 +63,6 @@ public class Commands {
             Long id, String name, String description, Long parentCategoryId, String updatedBy) {}
 
     public record DeleteCategoryCommand(Long id, String deletedBy) {}
+
+    public record AssignCategoryToFeaturesCommand(List<String> featureCodes, Long categoryId, String updatedBy) {}
 }

@@ -1,9 +1,6 @@
 package com.sivalabs.ft.features.api.controllers;
 
-import com.sivalabs.ft.features.api.models.AssignTagsToFeaturesPayload;
-import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
-import com.sivalabs.ft.features.api.models.RemoveTagsFromFeaturesPayload;
-import com.sivalabs.ft.features.api.models.UpdateFeaturePayload;
+import com.sivalabs.ft.features.api.models.*;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.*;
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
@@ -251,6 +248,28 @@ class FeatureController {
         var cmd = new Commands.RemoveTagsFromFeaturesCommand(payload.featureCodes(), payload.tagIds(), username);
         try {
             featureService.removeTagsFromFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/category")
+    @Operation(
+            summary = "Assign category to multiple features",
+            description = "Assign a category to multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Category or Feature not found")
+            })
+    ResponseEntity<Void> assignCategoryToFeatures(@RequestBody @Valid AssignCategoryToFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new Commands.AssignCategoryToFeaturesCommand(payload.featureCodes(), payload.categoryId(), username);
+        try {
+            featureService.assignCategoryToFeatures(cmd);
             return ResponseEntity.ok().build();
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.notFound().build();
