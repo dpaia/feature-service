@@ -3,6 +3,7 @@ package com.sivalabs.ft.features.domain;
 import com.sivalabs.ft.features.domain.Commands.AssignTagsToFeaturesCommand;
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
+import com.sivalabs.ft.features.domain.Commands.RemoveCategoryFromFeaturesCommand;
 import com.sivalabs.ft.features.domain.Commands.RemoveTagsFromFeaturesCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
@@ -196,6 +197,22 @@ public class FeatureService {
             feature.setUpdatedBy(cmd.updatedBy());
             feature.setUpdatedAt(Instant.now());
             featureRepository.save(feature);
+            eventPublisher.publishFeatureUpdatedEvent(feature);
+        }
+    }
+
+    @Transactional
+    public void removeCategoryFromFeatures(RemoveCategoryFromFeaturesCommand cmd) {
+        // Get the features
+        List<Feature> features = getFeatures(cmd.featureCodes());
+
+        // Remove category from each feature
+        for (Feature feature : features) {
+            feature.setCategory(null);
+            feature.setUpdatedBy(cmd.updatedBy());
+            feature.setUpdatedAt(Instant.now());
+            featureRepository.save(feature);
+            eventPublisher.publishFeatureUpdatedEvent(feature);
         }
     }
 
