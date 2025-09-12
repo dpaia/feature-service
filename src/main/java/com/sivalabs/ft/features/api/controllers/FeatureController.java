@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -139,7 +140,11 @@ class FeatureController {
             })
     ResponseEntity<Void> createFeature(@RequestBody @Valid CreateFeaturePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
+        String eventId = payload.eventId() != null
+                ? payload.eventId()
+                : UUID.randomUUID().toString();
         var cmd = new CreateFeatureCommand(
+                eventId,
                 payload.productCode(),
                 payload.releaseCode(),
                 payload.title(),
@@ -167,7 +172,11 @@ class FeatureController {
             })
     void updateFeature(@PathVariable String code, @RequestBody UpdateFeaturePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
+        String eventId = payload.eventId() != null
+                ? payload.eventId()
+                : UUID.randomUUID().toString();
         var cmd = new UpdateFeatureCommand(
+                eventId,
                 code,
                 payload.title(),
                 payload.description(),
@@ -188,12 +197,11 @@ class FeatureController {
                 @ApiResponse(responseCode = "401", description = "Unauthorized"),
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
-    ResponseEntity<Void> deleteFeature(@PathVariable String code) {
+    ResponseEntity<Void> deleteFeature(
+            @PathVariable String code, @RequestParam(value = "eventId", required = false) String eventId) {
         var username = SecurityUtils.getCurrentUsername();
-        if (!featureService.isFeatureExists(code)) {
-            return ResponseEntity.notFound().build();
-        }
-        var cmd = new DeleteFeatureCommand(code, username);
+        String finalEventId = eventId != null ? eventId : UUID.randomUUID().toString();
+        var cmd = new DeleteFeatureCommand(finalEventId, code, username);
         featureService.deleteFeature(cmd);
         return ResponseEntity.ok().build();
     }
