@@ -7,10 +7,15 @@ import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 class FeatureControllerTests extends AbstractIT {
+
+    @Autowired
+    protected MockMvcTester mvc;
 
     @Test
     void shouldGetFeaturesByReleaseCode() {
@@ -50,7 +55,8 @@ class FeatureControllerTests extends AbstractIT {
                 "releaseCode": "IDEA-2023.3.8",
                 "title": "New Feature",
                 "description": "New feature description",
-                "assignedTo": "john.doe"
+                "assignedTo": "john.doe",
+                "eventId": "test-event-create-123"
             }
             """;
 
@@ -88,7 +94,8 @@ class FeatureControllerTests extends AbstractIT {
                 "title": "Updated Feature",
                 "description": "Updated description",
                 "assignedTo": "jane.doe",
-                "status": "IN_PROGRESS"
+                "status": "IN_PROGRESS",
+                "eventId": "test-event-update-123"
             }
             """;
 
