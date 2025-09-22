@@ -123,4 +123,84 @@ class FeatureControllerTests extends AbstractIT {
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldCreateFeatureDependency() {
+        var payload =
+                """
+            {
+                "dependsOnFeatureCode": "IDEA-2",
+                "dependencyType": "HARD",
+                "notes": "Critical dependency"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/{featureCode}/dependencies", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldUpdateFeatureDependency() {
+        // First create a dependency
+        var createPayload =
+                """
+            {
+                "dependsOnFeatureCode": "IDEA-2",
+                "dependencyType": "SOFT",
+                "notes": "Initial notes"
+            }
+            """;
+        mvc.post()
+                .uri("/api/features/{featureCode}/dependencies", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createPayload)
+                .exchange();
+
+        // Then update it
+        var updatePayload =
+                """
+            {
+                "dependencyType": "HARD",
+                "notes": "Updated notes"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{featureCode}/dependencies/{dependsOnFeatureCode}", "IDEA-1", "IDEA-2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updatePayload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldDeleteFeatureDependency() {
+        // First create a dependency
+        var createPayload =
+                """
+            {
+                "dependsOnFeatureCode": "IDEA-2",
+                "dependencyType": "HARD",
+                "notes": "Test dependency"
+            }
+            """;
+        mvc.post()
+                .uri("/api/features/{featureCode}/dependencies", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createPayload)
+                .exchange();
+
+        // Then delete it
+        var result = mvc.delete()
+                .uri("/api/features/{featureCode}/dependencies/{dependsOnFeatureCode}", "IDEA-1", "IDEA-2")
+                .exchange();
+        assertThat(result).hasStatusOk();
+    }
 }
