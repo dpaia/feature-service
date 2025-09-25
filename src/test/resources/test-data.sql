@@ -1,5 +1,6 @@
 delete from favorite_features;
 delete from comments;
+delete from feature_dependencies;
 delete from features;
 delete from releases;
 delete from products;
