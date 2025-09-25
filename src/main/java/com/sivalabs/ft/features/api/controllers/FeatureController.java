@@ -1,12 +1,17 @@
 package com.sivalabs.ft.features.api.controllers;
 
+import com.sivalabs.ft.features.api.models.CreateFeatureDependencyPayload;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
+import com.sivalabs.ft.features.api.models.UpdateFeatureDependencyPayload;
 import com.sivalabs.ft.features.api.models.UpdateFeaturePayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.*;
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
+import com.sivalabs.ft.features.domain.Commands.CreateFeatureDependencyCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
+import com.sivalabs.ft.features.domain.Commands.DeleteFeatureDependencyCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
+import com.sivalabs.ft.features.domain.Commands.UpdateFeatureDependencyCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -44,10 +49,15 @@ class FeatureController {
     private static final Logger log = LoggerFactory.getLogger(FeatureController.class);
     private final FeatureService featureService;
     private final FavoriteFeatureService favoriteFeatureService;
+    private final FeatureDependencyService featureDependencyService;
 
-    FeatureController(FeatureService featureService, FavoriteFeatureService favoriteFeatureService) {
+    FeatureController(
+            FeatureService featureService,
+            FavoriteFeatureService favoriteFeatureService,
+            FeatureDependencyService featureDependencyService) {
         this.featureService = featureService;
         this.favoriteFeatureService = favoriteFeatureService;
+        this.featureDependencyService = featureDependencyService;
     }
 
     @GetMapping("")
@@ -196,5 +206,88 @@ class FeatureController {
         var cmd = new DeleteFeatureCommand(code, username);
         featureService.deleteFeature(cmd);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{featureCode}/dependencies")
+    @Operation(
+            summary = "Create a new dependency for a feature",
+            description = "Create a new dependency for a feature",
+            responses = {
+                @ApiResponse(responseCode = "201", description = "Dependency created successfully"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Feature not found"),
+            })
+    ResponseEntity<Void> createFeatureDependency(
+            @PathVariable String featureCode, @RequestBody @Valid CreateFeatureDependencyPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        if (!featureService.isFeatureExists(featureCode)
+                || !featureService.isFeatureExists(payload.dependsOnFeatureCode())) {
+            return ResponseEntity.notFound().build();
+        }
+        var cmd = new CreateFeatureDependencyCommand(
+                featureCode, payload.dependsOnFeatureCode(), payload.dependencyType(), payload.notes(), username);
+        featureDependencyService.createFeatureDependency(cmd);
+        log.info("Created dependency for feature {} on {}", featureCode, payload.dependsOnFeatureCode());
+        return ResponseEntity.created(null).build(); // Could return location if needed
+    }
+
+    @PutMapping("/{featureCode}/dependencies/{dependsOnFeatureCode}")
+    @Operation(
+            summary = "Update an existing dependency",
+            description = "Update an existing dependency",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Dependency updated successfully"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Dependency not found"),
+            })
+    ResponseEntity<Void> updateFeatureDependency(
+            @PathVariable String featureCode,
+            @PathVariable String dependsOnFeatureCode,
+            @RequestBody @Valid UpdateFeatureDependencyPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        // Check if dependency exists
+        if (!featureService.isFeatureExists(featureCode) || !featureService.isFeatureExists(dependsOnFeatureCode)) {
+            return ResponseEntity.notFound().build();
+        }
+        var cmd = new UpdateFeatureDependencyCommand(
+                featureCode, dependsOnFeatureCode, payload.dependencyType(), payload.notes(), username);
+        try {
+            featureDependencyService.updateFeatureDependency(cmd);
+            log.info("Updated dependency for feature {} on {}", featureCode, dependsOnFeatureCode);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{featureCode}/dependencies/{dependsOnFeatureCode}")
+    @Operation(
+            summary = "Delete an existing dependency",
+            description = "Delete an existing dependency",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Dependency deleted successfully"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Dependency not found"),
+            })
+    ResponseEntity<Void> deleteFeatureDependency(
+            @PathVariable String featureCode, @PathVariable String dependsOnFeatureCode) {
+        var username = SecurityUtils.getCurrentUsername();
+        if (!featureService.isFeatureExists(featureCode) || !featureService.isFeatureExists(dependsOnFeatureCode)) {
+            return ResponseEntity.notFound().build();
+        }
+        var cmd = new DeleteFeatureDependencyCommand(featureCode, dependsOnFeatureCode, username);
+        try {
+            featureDependencyService.deleteFeatureDependency(cmd);
+            log.info("Deleted dependency for feature {} on {}", featureCode, dependsOnFeatureCode);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
