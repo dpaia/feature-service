@@ -13,6 +13,7 @@ import com.sivalabs.ft.features.domain.Commands.DeleteFeatureDependencyCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureDependencyCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
+import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -288,6 +289,131 @@ class FeatureController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{featureCode}/dependencies")
+    @Operation(
+            summary = "Get all dependencies for a feature",
+            description = "List all features that the specified feature depends on",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class)))),
+                @ApiResponse(responseCode = "404", description = "Feature not found")
+            })
+    ResponseEntity<List<FeatureDto>> getFeatureDependencies(
+            @PathVariable String featureCode,
+            @RequestParam(value = "productCode", required = false) String productCode,
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "status", required = false) String status) {
+        FeatureStatus featureStatus = null;
+        if (StringUtils.isNotBlank(status)) {
+            try {
+                featureStatus = FeatureStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid status parameter: {}", status);
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        if (!featureService.isFeatureExists(featureCode)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<FeatureDto> dependencies =
+                featureDependencyService.getDependencies(featureCode, productCode, releaseCode, featureStatus);
+        return ResponseEntity.ok(dependencies);
+    }
+
+    @GetMapping("/{featureCode}/dependents")
+    @Operation(
+            summary = "Get all dependents for a feature",
+            description = "List all features that depend on the specified feature",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class)))),
+                @ApiResponse(responseCode = "404", description = "Feature not found")
+            })
+    ResponseEntity<List<FeatureDto>> getFeatureDependents(
+            @PathVariable String featureCode,
+            @RequestParam(value = "productCode", required = false) String productCode,
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "status", required = false) String status) {
+        try {
+            FeatureStatus featureStatus = null;
+            if (StringUtils.isNotBlank(status)) {
+                try {
+                    featureStatus = FeatureStatus.valueOf(status.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid status parameter: {}", status);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            if (!featureService.isFeatureExists(featureCode)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            List<FeatureDto> dependents =
+                    featureDependencyService.getDependents(featureCode, productCode, releaseCode, featureStatus);
+            return ResponseEntity.ok(dependents);
+        } catch (Exception e) {
+            log.error("Error getting dependents for feature {}: {}", featureCode, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{featureCode}/impact")
+    @Operation(
+            summary = "Get comprehensive impact analysis for a feature",
+            description =
+                    "Provide a comprehensive list of all affected features, including both direct and indirect dependents",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class)))),
+                @ApiResponse(responseCode = "404", description = "Feature not found")
+            })
+    ResponseEntity<List<FeatureDto>> getFeatureImpactAnalysis(
+            @PathVariable String featureCode,
+            @RequestParam(value = "productCode", required = false) String productCode,
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "status", required = false) String status) {
+        try {
+            FeatureStatus featureStatus = null;
+            if (StringUtils.isNotBlank(status)) {
+                try {
+                    featureStatus = FeatureStatus.valueOf(status.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid status parameter: {}", status);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            if (!featureService.isFeatureExists(featureCode)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            List<FeatureDto> impactAnalysis =
+                    featureDependencyService.getImpactAnalysis(featureCode, productCode, releaseCode, featureStatus);
+            return ResponseEntity.ok(impactAnalysis);
+        } catch (Exception e) {
+            log.error("Error performing impact analysis for feature {}: {}", featureCode, e.getMessage());
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
