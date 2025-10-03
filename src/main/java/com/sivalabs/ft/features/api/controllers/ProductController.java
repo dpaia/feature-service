@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -75,15 +76,25 @@ class ProductController {
                                         schema = @Schema(implementation = ProductDto.class))),
                 @ApiResponse(responseCode = "404", description = "Product not found")
             })
-    ResponseEntity<ProductDto> getProduct(@PathVariable String code) {
+    ResponseEntity<ProductDto> getProduct(@PathVariable String code, HttpServletRequest request) {
         var username = SecurityUtils.getCurrentUsername();
         var result = productService
                 .findProductByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
 
-        if (username != null && result.getStatusCode().is2xxSuccessful()) {
-            featureUsageService.logUsage(username, null, code, ActionType.PRODUCT_VIEWED);
+        // Log for both authorized and anonymous users
+        if (result.getStatusCode().is2xxSuccessful()) {
+            String userId = username != null ? username : "anonymous";
+            featureUsageService.logUsage(
+                    userId,
+                    null,
+                    code,
+                    null,
+                    ActionType.PRODUCT_VIEWED,
+                    null,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         return result;

@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -71,7 +72,8 @@ class FeatureController {
             })
     List<FeatureDto> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
-            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            HttpServletRequest request) {
         // Only one of productCode or releaseCode should be provided
         if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
                 || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
@@ -82,14 +84,30 @@ class FeatureController {
         List<FeatureDto> featureDtos;
         if (StringUtils.isNotBlank(productCode)) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-            if (username != null) {
-                featureUsageService.logUsage(username, null, productCode, ActionType.FEATURES_LISTED);
-            }
+            // Log for both authorized and anonymous users
+            String userId = username != null ? username : "anonymous";
+            featureUsageService.logUsage(
+                    userId,
+                    null,
+                    productCode,
+                    null,
+                    ActionType.FEATURES_LISTED,
+                    null,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         } else {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
-            if (username != null) {
-                featureUsageService.logUsage(username, null, null, ActionType.FEATURES_LISTED);
-            }
+            // Log for both authorized and anonymous users
+            String userId = username != null ? username : "anonymous";
+            featureUsageService.logUsage(
+                    userId,
+                    null,
+                    null,
+                    null,
+                    ActionType.FEATURES_LISTED,
+                    null,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         if (username != null && !featureDtos.isEmpty()) {
@@ -117,7 +135,7 @@ class FeatureController {
                                         schema = @Schema(implementation = FeatureDto.class))),
                 @ApiResponse(responseCode = "404", description = "Feature not found")
             })
-    ResponseEntity<FeatureDto> getFeature(@PathVariable String code) {
+    ResponseEntity<FeatureDto> getFeature(@PathVariable String code, HttpServletRequest request) {
         String username = SecurityUtils.getCurrentUsername();
         Optional<FeatureDto> featureDtoOptional = featureService.findFeatureByCode(username, code);
         if (username != null && featureDtoOptional.isPresent()) {
@@ -128,9 +146,19 @@ class FeatureController {
             featureDtoOptional = Optional.of(featureDto);
         }
 
-        if (username != null && featureDtoOptional.isPresent()) {
+        // Log for both authorized and anonymous users
+        if (featureDtoOptional.isPresent()) {
             FeatureDto dto = featureDtoOptional.get();
-            featureUsageService.logUsage(username, dto.code(), null, ActionType.FEATURE_VIEWED);
+            String userId = username != null ? username : "anonymous";
+            featureUsageService.logUsage(
+                    userId,
+                    dto.code(),
+                    null,
+                    null,
+                    ActionType.FEATURE_VIEWED,
+                    null,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         return featureDtoOptional
