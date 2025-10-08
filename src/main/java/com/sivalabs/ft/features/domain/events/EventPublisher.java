@@ -14,7 +14,7 @@ public class EventPublisher {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public EventPublisher(
-            KafkaTemplate<String, Object> kafkaTemplate, 
+            KafkaTemplate<String, Object> kafkaTemplate,
             ApplicationProperties properties,
             ApplicationEventPublisher applicationEventPublisher) {
         this.kafkaTemplate = kafkaTemplate;
@@ -42,7 +42,7 @@ public class EventPublisher {
                 feature.getCreatedBy(),
                 feature.getCreatedAt());
         kafkaTemplate.send(properties.events().newFeatures(), event);
-        
+
         // Publish Spring ApplicationEvent for synchronous handling within the application
         applicationEventPublisher.publishEvent(new FeatureCreatedApplicationEvent(this, feature));
     }
