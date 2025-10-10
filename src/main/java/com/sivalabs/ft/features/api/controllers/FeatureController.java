@@ -197,11 +197,12 @@ class FeatureController {
         featureService.deleteFeature(cmd);
         return ResponseEntity.ok().build();
     }
-    
+
     @GetMapping("/all-features")
     @Operation(
             summary = "Find features by release including parent releases",
-            description = "Find features by release including all parent releases, with optional parent release restriction",
+            description =
+                    "Find features by release including all parent releases, with optional parent release restriction",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -214,15 +215,16 @@ class FeatureController {
     List<FeatureDto> getAllFeatures(
             @RequestParam(value = "releaseCode", required = true) String releaseCode,
             @RequestParam(value = "fromParentRelease", required = false) String fromParentRelease) {
-        
+
         if (StringUtils.isBlank(releaseCode)) {
             // Return empty list if releaseCode is not provided
             return List.of();
         }
-        
+
         String username = SecurityUtils.getCurrentUsername();
-        List<FeatureDto> featureDtos = featureService.findFeaturesByReleaseAndParents(username, releaseCode, fromParentRelease);
-        
+        List<FeatureDto> featureDtos =
+                featureService.findFeaturesByReleaseAndParents(username, releaseCode, fromParentRelease);
+
         if (username != null && !featureDtos.isEmpty()) {
             Set<String> featureCodes =
                     featureDtos.stream().map(FeatureDto::code).collect(Collectors.toSet());
@@ -231,7 +233,7 @@ class FeatureController {
                     .map(featureDto -> featureDto.makeFavorite(favoriteFeatures.get(featureDto.code())))
                     .toList();
         }
-        
+
         return featureDtos;
     }
 }

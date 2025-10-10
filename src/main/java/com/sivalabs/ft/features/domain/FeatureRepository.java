@@ -28,4 +28,24 @@ interface FeatureRepository extends ListCrudRepository<Feature, Long> {
 
     @Query(value = "select nextval('feature_code_seq')", nativeQuery = true)
     long getNextFeatureId();
+
+    @Query(
+            value =
+                    """
+            WITH RECURSIVE release_hierarchy AS (
+                SELECT id, code, parent_id
+                FROM releases
+                WHERE code = :releaseCode
+                UNION ALL
+                SELECT r.id, r.code, r.parent_id
+                FROM releases r
+                INNER JOIN release_hierarchy rh ON r.id = rh.parent_id
+            )
+            SELECT f.*
+            FROM features f
+            INNER JOIN release_hierarchy rh ON f.release_id = rh.id
+            ORDER BY f.id
+            """,
+            nativeQuery = true)
+    List<Feature> findByReleaseCodeWithParents(String releaseCode);
 }

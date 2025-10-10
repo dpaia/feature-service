@@ -4,14 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
+import com.sivalabs.ft.features.domain.FeatureService;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 class FeatureControllerTests extends AbstractIT {
+
+    @Autowired
+    FeatureService featureService;
 
     @Test
     void shouldGetFeaturesByReleaseCode() {
@@ -141,21 +146,42 @@ class FeatureControllerTests extends AbstractIT {
                 .uri("/api/features/all-features?releaseCode={code}", "IDEA-2025.2.1")
                 .exchange();
 
-        assertThat(allFeaturesResult).hasStatusOk().bodyJson().extractingPath("$.size()").asNumber()
+        assertThat(allFeaturesResult)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
                 .isEqualTo(featuresCount + childFeaturesCount);
 
         // Test with fromParentRelease parameter
         var limitedFeaturesResult = mvc.get()
-                .uri("/api/features/all-features?releaseCode={code}&fromParentRelease={parentCode}",
-                        "IDEA-2025.2", "IDEA-2025.2")
+                .uri(
+                        "/api/features/all-features?releaseCode={code}&fromParentRelease={parentCode}",
+                        "IDEA-2025.2",
+                        "IDEA-2025.2")
                 .exchange();
 
-        assertThat(limitedFeaturesResult).hasStatusOk().bodyJson().extractingPath("$.size()").asNumber()
+        assertThat(limitedFeaturesResult)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
                 .isEqualTo(featuresCount);
     }
 
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesFromReleaseAndParentReleasesWithNativeQuery() {
+        final var featuresCount = createParentReleaseWithFeatures();
+        final int childFeaturesCount = createChildReleaseWithFeatures();
+
+        assertThat(featureService.findFeaturesByReleaseAndParents("user", "IDEA-2025.2.1", null))
+                .hasSize(featuresCount + childFeaturesCount);
+    }
+
     private int createParentReleaseWithFeatures() {
-        var releasePayload = """
+        var releasePayload =
+                """
                 {
                     "productCode": "intellij",
                     "code": "IDEA-2025.2",
@@ -166,7 +192,8 @@ class FeatureControllerTests extends AbstractIT {
     }
 
     private int createChildReleaseWithFeatures() {
-        var releasePayload = """
+        var releasePayload =
+                """
                 {
                     "productCode": "intellij",
                     "code": "IDEA-2025.2.1",
@@ -185,7 +212,8 @@ class FeatureControllerTests extends AbstractIT {
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
 
-        var featurePayload = String.format("""
+        var featurePayload = String.format(
+                """
                 {
                     "productCode": "intellij",
                     "releaseCode": "%s",
@@ -193,7 +221,8 @@ class FeatureControllerTests extends AbstractIT {
                     "description": "%s New feature description",
                     "assignedTo": "s.v"
                 }
-                """, releaseCode, releaseCode, releaseCode);
+                """,
+                releaseCode, releaseCode, releaseCode);
 
         final MvcTestResult featureCreationResponse = mvc.post()
                 .uri("/api/features")
@@ -202,12 +231,15 @@ class FeatureControllerTests extends AbstractIT {
                 .exchange();
         assertThat(featureCreationResponse).hasStatus(HttpStatus.CREATED);
 
-        var featuresResult = mvc.get()
-                .uri("/api/features?releaseCode={code}", releaseCode)
-                .exchange();
+        var featuresResult =
+                mvc.get().uri("/api/features?releaseCode={code}", releaseCode).exchange();
 
         assertThat(featuresResult)
-                .hasStatusOk().bodyJson().extractingPath("$.size()").asNumber().isEqualTo(1);
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(1);
 
         return 1;
     }
