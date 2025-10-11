@@ -1,8 +1,10 @@
 package com.sivalabs.ft.features.domain.dtos;
 
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDate;
 
 public record FeatureDto(
         Long id,
@@ -16,7 +18,12 @@ public record FeatureDto(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt)
+        Instant updatedAt,
+        LocalDate plannedCompletionDate,
+        LocalDate actualCompletionDate,
+        FeaturePlanningStatus featurePlanningStatus,
+        String featureOwner,
+        String blockageReason)
         implements Serializable {
 
     public FeatureDto makeFavorite(boolean favorite) {
@@ -32,6 +39,11 @@ public record FeatureDto(
                 createdBy,
                 createdAt,
                 updatedBy,
-                updatedAt);
+                updatedAt,
+                plannedCompletionDate,
+                actualCompletionDate,
+                featurePlanningStatus,
+                featureOwner,
+                blockageReason);
     }
 }

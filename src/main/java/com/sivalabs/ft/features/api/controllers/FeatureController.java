@@ -174,6 +174,11 @@ class FeatureController {
                 payload.status(),
                 payload.releaseCode(),
                 payload.assignedTo(),
+                payload.plannedCompletionDate(),
+                payload.actualCompletionDate(),
+                payload.featurePlanningStatus(),
+                payload.featureOwner(),
+                payload.blockageReason(),
                 username);
         featureService.updateFeature(cmd);
     }

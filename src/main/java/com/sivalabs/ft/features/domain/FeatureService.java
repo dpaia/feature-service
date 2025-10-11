@@ -122,6 +122,11 @@ public class FeatureService {
         }
         feature.setAssignedTo(cmd.assignedTo());
         feature.setStatus(cmd.status());
+        feature.setPlannedCompletionDate(cmd.plannedCompletionDate());
+        feature.setActualCompletionDate(cmd.actualCompletionDate());
+        feature.setFeaturePlanningStatus(cmd.featurePlanningStatus());
+        feature.setFeatureOwner(cmd.featureOwner());
+        feature.setBlockageReason(cmd.blockageReason());
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);

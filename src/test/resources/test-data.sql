@@ -21,10 +21,11 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 (6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16')
 ;
 
-insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values
-(1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24'),
-(2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14'),
-(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14')
+insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at, planned_completion_date, actual_completion_date, feature_planning_status, feature_owner, blockage_reason) values
+(1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24', '2024-04-15', null, 'IN_PROGRESS', 'marcobehler', null),
+(2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14', '2024-05-01', null, 'NOT_STARTED', 'siva', null),
+(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14', '2024-03-30', null, 'BLOCKED', 'andreybelyaev', 'Waiting for API changes'),
+(4, 1, 2, 'IDEA-3', 'Enhanced Code Completion', 'Enhanced Code Completion for Spring Framework', 'NEW', 'admin', 'developer', '2024-03-01', '2024-12-01', null, 'NOT_STARTED', 'developer', null)
 ;
 
 insert into favorite_features (id, feature_id, user_id) values
