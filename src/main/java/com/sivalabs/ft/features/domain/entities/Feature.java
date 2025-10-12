@@ -1,10 +1,12 @@
 package com.sivalabs.ft.features.domain.entities;
 
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.time.LocalDate;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
@@ -52,6 +54,22 @@ public class Feature {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "planned_completion_date")
+    private LocalDate plannedCompletionDate;
+
+    @Column(name = "actual_completion_date")
+    private LocalDate actualCompletionDate;
+
+    @Column(name = "feature_planning_status", length = 50)
+    @Enumerated(EnumType.STRING)
+    private FeaturePlanningStatus featurePlanningStatus;
+
+    @Size(max = 255) @Column(name = "feature_owner")
+    private String featureOwner;
+
+    @Column(name = "blockage_reason", length = Integer.MAX_VALUE)
+    private String blockageReason;
 
     public Long getId() {
         return id;
@@ -147,5 +165,45 @@ public class Feature {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public LocalDate getPlannedCompletionDate() {
+        return plannedCompletionDate;
+    }
+
+    public void setPlannedCompletionDate(LocalDate plannedCompletionDate) {
+        this.plannedCompletionDate = plannedCompletionDate;
+    }
+
+    public LocalDate getActualCompletionDate() {
+        return actualCompletionDate;
+    }
+
+    public void setActualCompletionDate(LocalDate actualCompletionDate) {
+        this.actualCompletionDate = actualCompletionDate;
+    }
+
+    public FeaturePlanningStatus getFeaturePlanningStatus() {
+        return featurePlanningStatus;
+    }
+
+    public void setFeaturePlanningStatus(FeaturePlanningStatus featurePlanningStatus) {
+        this.featurePlanningStatus = featurePlanningStatus;
+    }
+
+    public String getFeatureOwner() {
+        return featureOwner;
+    }
+
+    public void setFeatureOwner(String featureOwner) {
+        this.featureOwner = featureOwner;
+    }
+
+    public String getBlockageReason() {
+        return blockageReason;
+    }
+
+    public void setBlockageReason(String blockageReason) {
+        this.blockageReason = blockageReason;
     }
 }
