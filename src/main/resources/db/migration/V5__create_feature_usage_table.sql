@@ -10,6 +10,8 @@ create table feature_usage
     action_type  varchar(50)  not null,
     timestamp    timestamp    not null default current_timestamp,
     context      text,
+    ip_address   varchar(45),
+    user_agent   varchar(500),
     primary key (id)
 );
 

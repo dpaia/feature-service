@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -78,25 +77,15 @@ class ReleaseController {
                                         schema = @Schema(implementation = ReleaseDto.class))),
                 @ApiResponse(responseCode = "404", description = "Release not found")
             })
-    ResponseEntity<ReleaseDto> getRelease(@PathVariable String code, HttpServletRequest request) {
+    ResponseEntity<ReleaseDto> getRelease(@PathVariable String code) {
         var username = SecurityUtils.getCurrentUsername();
         var result = releaseService
                 .findReleaseByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
 
-        // Log for both authorized and anonymous users
-        if (result.getStatusCode().is2xxSuccessful()) {
-            String userId = username != null ? username : "anonymous";
-            featureUsageService.logUsage(
-                    userId,
-                    null,
-                    null,
-                    code,
-                    ActionType.RELEASE_VIEWED,
-                    null,
-                    request.getRemoteAddr(),
-                    request.getHeader("User-Agent"));
+        if (username != null && result.getStatusCode().is2xxSuccessful()) {
+            featureUsageService.logUsage(username, null, null, code, ActionType.RELEASE_VIEWED);
         }
 
         return result;
