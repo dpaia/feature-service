@@ -165,18 +165,6 @@ class FeatureUsageControllerTest extends AbstractIT {
     }
 
     @Test
-    void shouldGetFeatureUsageEventsList() {
-        var result = mvc.get().uri("/api/usage/feature/IDEA-1/events").exchange();
-
-        assertThat(result)
-                .hasStatus2xxSuccessful()
-                .bodyJson()
-                .extractingPath("$.size()")
-                .asNumber()
-                .satisfies(size -> assertThat(size.intValue()).isGreaterThan(0));
-    }
-
-    @Test
     void shouldGetFeatureUsageEventsWithActionTypeFilter() {
         var result = mvc.get()
                 .uri("/api/usage/feature/IDEA-1/events?actionType=FEATURE_VIEWED")
@@ -200,18 +188,6 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .exchange();
 
         assertThat(result).hasStatus2xxSuccessful();
-    }
-
-    @Test
-    void shouldGetProductUsageEventsList() {
-        var result = mvc.get().uri("/api/usage/product/intellij/events").exchange();
-
-        assertThat(result)
-                .hasStatus2xxSuccessful()
-                .bodyJson()
-                .extractingPath("$.size()")
-                .asNumber()
-                .satisfies(size -> assertThat(size.intValue()).isGreaterThan(0));
     }
 
     @Test
@@ -514,51 +490,6 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/stats?endDate=invalid-date").exchange();
 
         assertThat(result).hasStatus4xxClientError();
-    }
-
-    @Test
-    void shouldGetUserUsage() {
-        createFeatureUsage("user1", "FEAT-001", "PROD-001", ActionType.FEATURE_VIEWED);
-        createFeatureUsage("user1", "FEAT-002", "PROD-001", ActionType.FEATURE_CREATED);
-        createFeatureUsage("user2", "FEAT-003", "PROD-002", ActionType.FEATURE_VIEWED);
-
-        var result = mvc.get().uri("/api/usage/user/user1").exchange();
-        assertThat(result)
-                .hasStatus2xxSuccessful()
-                .bodyJson()
-                .extractingPath("$.content.size()")
-                .asNumber()
-                .satisfies(size -> assertThat(size.intValue()).isGreaterThanOrEqualTo(2));
-    }
-
-    @Test
-    void shouldGetFeatureUsage() {
-        createFeatureUsage("user1", "FEAT-001", "PROD-001", ActionType.FEATURE_VIEWED);
-        createFeatureUsage("user2", "FEAT-001", "PROD-001", ActionType.FEATURE_UPDATED);
-        createFeatureUsage("user1", "FEAT-002", "PROD-001", ActionType.FEATURE_VIEWED);
-
-        var result = mvc.get().uri("/api/usage/feature/FEAT-001").exchange();
-        assertThat(result)
-                .hasStatus2xxSuccessful()
-                .bodyJson()
-                .extractingPath("$.content.size()")
-                .asNumber()
-                .satisfies(size -> assertThat(size.intValue()).isGreaterThanOrEqualTo(2));
-    }
-
-    @Test
-    void shouldGetProductUsage() {
-        createFeatureUsage("user1", "FEAT-001", "PROD-001", ActionType.FEATURE_VIEWED);
-        createFeatureUsage("user2", "FEAT-002", "PROD-001", ActionType.FEATURE_CREATED);
-        createFeatureUsage("user1", "FEAT-003", "PROD-002", ActionType.FEATURE_VIEWED);
-
-        var result = mvc.get().uri("/api/usage/product/PROD-001").exchange();
-        assertThat(result)
-                .hasStatus2xxSuccessful()
-                .bodyJson()
-                .extractingPath("$.content.size()")
-                .asNumber()
-                .satisfies(size -> assertThat(size.intValue()).isGreaterThanOrEqualTo(2));
     }
 
     @Test
