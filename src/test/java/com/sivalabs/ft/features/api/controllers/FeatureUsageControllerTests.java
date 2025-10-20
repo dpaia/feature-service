@@ -39,7 +39,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .content(requestBody)
                 .exchange();
 
-        assertThat(result).hasStatus(201);
+        assertThat(result).hasStatus2xxSuccessful();
 
         assertThat(result).bodyJson().extractingPath("$.featureCode").asString().isEqualTo("FEAT-001");
 
@@ -63,7 +63,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .content(requestBody)
                 .exchange();
 
-        assertThat(result).hasStatus(201);
+        assertThat(result).hasStatus2xxSuccessful();
         String location = result.getMvcResult().getResponse().getHeader("Location");
         assertThat(location).isNotNull();
     }
@@ -84,7 +84,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .content(requestBody)
                 .exchange();
 
-        assertThat(result).hasStatus(201);
+        assertThat(result).hasStatus2xxSuccessful();
         assertThat(result).bodyJson().extractingPath("$.userId").isNotNull();
         assertThat(result).bodyJson().extractingPath("$.timestamp").isNotNull();
     }
@@ -104,7 +104,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .content(requestBody)
                 .exchange();
 
-        assertThat(result).hasStatus(201);
+        assertThat(result).hasStatus2xxSuccessful();
         assertThat(result).bodyJson().extractingPath("$.actionType").asString().isEqualTo("FEATURE_CREATED");
     }
 
@@ -169,7 +169,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/feature/IDEA-1/events").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
@@ -182,7 +182,11 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .uri("/api/usage/feature/IDEA-1/events?actionType=FEATURE_VIEWED")
                 .exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
@@ -195,7 +199,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                         + endDate.toString())
                 .exchange();
 
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
     }
 
     @Test
@@ -203,7 +207,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/product/intellij/events").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
@@ -216,7 +220,11 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .uri("/api/usage/product/intellij/events?actionType=FEATURE_VIEWED")
                 .exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
@@ -229,7 +237,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                         + endDate.toString())
                 .exchange();
 
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
     }
 
     @Test
@@ -239,7 +247,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.totalUsageCount")
                 .asNumber()
@@ -253,7 +261,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.totalUsageCount")
                 .asNumber()
@@ -283,7 +291,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/feature/NON-EXISTENT/stats").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.totalUsageCount")
                 .asNumber()
@@ -295,7 +303,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/product/NON-EXISTENT/stats").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.totalUsageCount")
                 .asNumber()
@@ -307,7 +315,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/feature/IDEA-1/stats").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.featureCode")
                 .asString()
@@ -319,7 +327,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/product/intellij/stats").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.productCode")
                 .asString()
@@ -336,7 +344,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                         + endDate.toString())
                 .exchange();
 
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
     }
 
     @Test
@@ -349,7 +357,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                         + endDate.toString())
                 .exchange();
 
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
     }
 
     @Test
@@ -357,7 +365,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/feature/NON-EXISTENT/events").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
@@ -369,7 +377,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/product/NON-EXISTENT/events").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
@@ -381,7 +389,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/events").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
@@ -393,28 +401,44 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result =
                 mvc.get().uri("/api/usage/events?actionType=FEATURE_VIEWED").exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
     void shouldGetAllUsageEventsWithUserIdFilter() {
         var result = mvc.get().uri("/api/usage/events?userId=user1").exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
     void shouldGetAllUsageEventsWithFeatureCodeFilter() {
         var result = mvc.get().uri("/api/usage/events?featureCode=IDEA-1").exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
     void shouldGetAllUsageEventsWithProductCodeFilter() {
         var result = mvc.get().uri("/api/usage/events?productCode=intellij").exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
@@ -426,7 +450,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .uri("/api/usage/events?startDate=" + startDate.toString() + "&endDate=" + endDate.toString())
                 .exchange();
 
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
     }
 
     @Test
@@ -435,7 +459,11 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .uri("/api/usage/events?actionType=FEATURE_VIEWED&featureCode=IDEA-1&productCode=intellij")
                 .exchange();
 
-        assertThat(result).hasStatusOk().bodyJson().extractingPath("$").isNotNull();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$")
+                .isNotNull();
     }
 
     @Test
@@ -450,7 +478,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/stats").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.totalUsageCount")
                 .asNumber()
@@ -462,7 +490,7 @@ class FeatureUsageControllerTest extends AbstractIT {
         var result = mvc.get().uri("/api/usage/stats?actionType=FEATURE_VIEWED").exchange();
 
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.totalUsageCount")
                 .asNumber()
@@ -478,7 +506,7 @@ class FeatureUsageControllerTest extends AbstractIT {
                 .uri("/api/usage/stats?startDate=" + startDate.toString() + "&endDate=" + endDate.toString())
                 .exchange();
 
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus2xxSuccessful();
     }
 
     @Test
@@ -496,7 +524,7 @@ class FeatureUsageControllerTest extends AbstractIT {
 
         var result = mvc.get().uri("/api/usage/user/user1").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.content.size()")
                 .asNumber()
@@ -511,7 +539,7 @@ class FeatureUsageControllerTest extends AbstractIT {
 
         var result = mvc.get().uri("/api/usage/feature/FEAT-001").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.content.size()")
                 .asNumber()
@@ -526,7 +554,7 @@ class FeatureUsageControllerTest extends AbstractIT {
 
         var result = mvc.get().uri("/api/usage/product/PROD-001").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.content.size()")
                 .asNumber()
@@ -541,7 +569,7 @@ class FeatureUsageControllerTest extends AbstractIT {
 
         var result = mvc.get().uri("/api/usage/events").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()

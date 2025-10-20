@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -71,7 +73,8 @@ class FeatureController {
             })
     List<FeatureDto> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
-            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            HttpServletRequest request) {
         // Only one of productCode or releaseCode should be provided
         if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
                 || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
@@ -79,17 +82,40 @@ class FeatureController {
             return List.of();
         }
         String username = SecurityUtils.getCurrentUsername();
+        String userId = SecurityUtils.getCurrentUserId();
         List<FeatureDto> featureDtos;
         if (StringUtils.isNotBlank(productCode)) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-            if (username != null) {
-                featureUsageService.logUsage(username, null, productCode, ActionType.FEATURES_LISTED);
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
             }
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    productCode,
+                    null, // releaseCode
+                    ActionType.FEATURES_LISTED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         } else {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
-            if (username != null) {
-                featureUsageService.logUsage(username, null, null, ActionType.FEATURES_LISTED);
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
             }
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    null, // productCode
+                    releaseCode,
+                    ActionType.FEATURES_LISTED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         if (username != null && !featureDtos.isEmpty()) {
@@ -117,20 +143,37 @@ class FeatureController {
                                         schema = @Schema(implementation = FeatureDto.class))),
                 @ApiResponse(responseCode = "404", description = "Feature not found")
             })
-    ResponseEntity<FeatureDto> getFeature(@PathVariable String code) {
+    ResponseEntity<FeatureDto> getFeature(@PathVariable String code, HttpServletRequest request) {
         String username = SecurityUtils.getCurrentUsername();
+        String userId = SecurityUtils.getCurrentUserId();
         Optional<FeatureDto> featureDtoOptional = featureService.findFeatureByCode(username, code);
-        if (username != null && featureDtoOptional.isPresent()) {
+        if (featureDtoOptional.isPresent()) {
             FeatureDto featureDto = featureDtoOptional.get();
-            Set<String> featureCodes = Set.of(featureDto.code());
-            Map<String, Boolean> favoriteFeatures = favoriteFeatureService.getFavoriteFeatures(username, featureCodes);
-            featureDto = featureDto.makeFavorite(favoriteFeatures.get(featureDto.code()));
-            featureDtoOptional = Optional.of(featureDto);
+            if (username != null) {
+                Set<String> featureCodes = Set.of(featureDto.code());
+                Map<String, Boolean> favoriteFeatures =
+                        favoriteFeatureService.getFavoriteFeatures(username, featureCodes);
+                featureDto = featureDto.makeFavorite(favoriteFeatures.get(featureDto.code()));
+                featureDtoOptional = Optional.of(featureDto);
+            }
         }
 
-        if (username != null && featureDtoOptional.isPresent()) {
+        if (featureDtoOptional.isPresent()) {
             FeatureDto dto = featureDtoOptional.get();
-            featureUsageService.logUsage(username, dto.code(), null, ActionType.FEATURE_VIEWED);
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+            featureUsageService.logUsage(
+                    userId,
+                    dto.code(),
+                    null, // productCode
+                    null, // releaseCode
+                    ActionType.FEATURE_VIEWED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         return featureDtoOptional
@@ -156,7 +199,10 @@ class FeatureController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> createFeature(@RequestBody @Valid CreateFeaturePayload payload) {
-        var username = SecurityUtils.getCurrentUsername();
+        String username = SecurityUtils.getCurrentUsername();
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         var cmd = new CreateFeatureCommand(
                 payload.productCode(),
                 payload.releaseCode(),
@@ -167,9 +213,7 @@ class FeatureController {
         String code = featureService.createFeature(cmd);
         log.info("Created feature with code {}", code);
 
-        if (username != null) {
-            featureUsageService.logUsage(username, code, payload.productCode(), ActionType.FEATURE_CREATED);
-        }
+        featureUsageService.logUsage(username, code, payload.productCode(), ActionType.FEATURE_CREATED);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{code}")

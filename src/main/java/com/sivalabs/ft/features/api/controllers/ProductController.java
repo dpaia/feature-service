@@ -16,9 +16,11 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -75,15 +77,30 @@ class ProductController {
                                         schema = @Schema(implementation = ProductDto.class))),
                 @ApiResponse(responseCode = "404", description = "Product not found")
             })
-    ResponseEntity<ProductDto> getProduct(@PathVariable String code) {
+    ResponseEntity<ProductDto> getProduct(@PathVariable String code, HttpServletRequest request) {
         var username = SecurityUtils.getCurrentUsername();
+        var userId = SecurityUtils.getCurrentUserId();
         var result = productService
                 .findProductByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
 
-        if (username != null && result.getStatusCode().is2xxSuccessful()) {
-            featureUsageService.logUsage(username, null, code, ActionType.PRODUCT_VIEWED);
+        if (result.getStatusCode().is2xxSuccessful()) {
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    code, // productCode
+                    null, // releaseCode
+                    ActionType.PRODUCT_VIEWED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         return result;
