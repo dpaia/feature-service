@@ -53,9 +53,8 @@ class FeatureController {
 
     @GetMapping("")
     @Operation(
-            summary = "Find features by product, release, or tags",
-            description =
-                    "Find features by product, release, or tags. If tagIds is provided, returns all features matching any of the given tags. Otherwise, returns features by product or release.",
+            summary = "Find features by product, release, category, or tags",
+            description = "Find features by product, release, category, or tags.",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -63,34 +62,39 @@ class FeatureController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class))))
+                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class)))),
+                @ApiResponse(responseCode = "400", description = "Invalid request - only one parameter type allowed")
             })
-    List<FeatureDto> getFeatures(
+    ResponseEntity<List<FeatureDto>> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
             @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
             @RequestParam(value = "tagIds", required = false) List<Long> tagIds) {
         String username = SecurityUtils.getCurrentUsername();
 
-        // Only one of productCode or releaseCode or tagIds should be provided
-        if ((StringUtils.isBlank(productCode)
-                        && StringUtils.isBlank(releaseCode)
-                        && (tagIds == null || tagIds.isEmpty()))
-                || (StringUtils.isNotBlank(productCode)
-                        && StringUtils.isNotBlank(releaseCode)
-                        && tagIds != null
-                        && !tagIds.isEmpty())) {
-            // TODO: Return 400 Bad Request
-            return List.of();
+        // Count how many parameter types are provided
+        boolean hasProductCode = StringUtils.isNotBlank(productCode);
+        boolean hasReleaseCode = StringUtils.isNotBlank(releaseCode);
+        boolean hasTagsOrCategories =
+                (tagIds != null && !tagIds.isEmpty()) || (categoryIds != null && !categoryIds.isEmpty());
+
+        int parameterTypesProvided =
+                (hasProductCode ? 1 : 0) + (hasReleaseCode ? 1 : 0) + (hasTagsOrCategories ? 1 : 0);
+
+        // Validate: exactly one parameter type must be provided
+        if (parameterTypesProvided == 0) {
+            return ResponseEntity.badRequest().build();
         }
-        List<FeatureDto> featureDtos = List.of();
-        if (StringUtils.isNotBlank(productCode)) {
+        if (parameterTypesProvided > 1) {
+            return ResponseEntity.badRequest().build();
+        }
+        List<FeatureDto> featureDtos;
+        if (hasProductCode) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-        }
-        if (StringUtils.isNotBlank(releaseCode)) {
+        } else if (hasReleaseCode) {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
-        }
-        if (tagIds != null && !tagIds.isEmpty()) {
-            featureDtos = featureService.findFeaturesByTags(username, tagIds);
+        } else {
+            featureDtos = featureService.findFeaturesByTags(username, categoryIds, tagIds);
         }
 
         if (username != null && !featureDtos.isEmpty()) {
@@ -101,7 +105,7 @@ class FeatureController {
                     .map(featureDto -> featureDto.makeFavorite(favoriteFeatures.get(featureDto.code())))
                     .toList();
         }
-        return featureDtos;
+        return ResponseEntity.ok(featureDtos);
     }
 
     @GetMapping("/{code}")
