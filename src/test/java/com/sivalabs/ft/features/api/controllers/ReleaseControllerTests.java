@@ -9,6 +9,7 @@ import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.parameters.P;
 
 class ReleaseControllerTests extends AbstractIT {
 
@@ -21,7 +22,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
-                .isEqualTo(2);
+                .isEqualTo(3);
     }
 
     @Test
@@ -101,5 +102,323 @@ class ReleaseControllerTests extends AbstractIT {
         // Verify deletion
         var getResult = mvc.get().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void createNewReleaseWithParent() {
+        var parentPayload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(parentPayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2.1",
+                "parentCode": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2.1 Update"
+            }
+            """;
+
+        var result2 = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result2).hasStatus(HttpStatus.CREATED);
+
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2025.2.1").exchange();
+        assertThat(updatedRelease)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.description()).isEqualTo("IntelliJ IDEA 2025.2.1 Update");
+                    assertThat(dto.status()).isEqualTo(ReleaseStatus.DRAFT);
+                    assertThat(dto.parentCode()).isEqualTo("IDEA-2025.2");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void whenParentReleaseDeletedChildReleaseShouldRemain() {
+        var parentPayload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(parentPayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2.1",
+                "parentCode": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2.1 Update"
+            }
+            """;
+
+        var result2 = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result2).hasStatus(HttpStatus.CREATED);
+
+        var deleteResult = mvc.delete().uri("/api/releases/{code}", "IDEA-2025.2").exchange();
+        assertThat(deleteResult).hasStatusOk();
+
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2025.2.1").exchange();
+        assertThat(updatedRelease)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.description()).isEqualTo("IntelliJ IDEA 2025.2.1 Update");
+                    assertThat(dto.status()).isEqualTo(ReleaseStatus.DRAFT);
+                    assertThat(dto.parentCode()).isNull();
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void parentReleaseShouldBeEditable() {
+        var parentPayload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(parentPayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2.1",
+                "description": "IntelliJ IDEA 2025.2.1 Update"
+            }
+            """;
+
+        var result2 = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result2).hasStatus(HttpStatus.CREATED);
+
+        var updateParentPayload =
+                """
+            {
+                "parentCode": "IDEA-2025.2",
+                "status": "DRAFT",
+                "description": "IntelliJ IDEA 2025.2.1 Update"
+            }
+            """;
+        var result3 = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2025.2.1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateParentPayload)
+                .exchange();
+        assertThat(result3).hasStatusOk();
+
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2025.2.1").exchange();
+        assertThat(updatedRelease)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.parentCode()).isEqualTo("IDEA-2025.2");
+                });
+
+        var removeParentPayload =
+                """
+            {
+                "status": "DRAFT",
+                "description": "IntelliJ IDEA 2025.2.1 Update"
+            }
+            """;
+        var result4 = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2025.2.1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(removeParentPayload)
+                .exchange();
+        assertThat(result4).hasStatus2xxSuccessful();
+
+        var updatedRelease2 =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2025.2.1").exchange();
+        assertThat(updatedRelease2)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.parentCode()).isNull();
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void releaseCantBeParentForItselfInCreateMethod() {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2",
+                "parentCode": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasFailed();
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void parentReleaseShouldExistInCreateMethod() {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2",
+                "parentCode": "WRONG_RELEASE_CODE",
+                "description": "IntelliJ IDEA 2025.2"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasFailed();
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void releaseCantBeParentForItselfInUpdateMethod() {
+        var payload =
+                """
+                        {
+                            "productCode": "intellij",
+                            "code": "IDEA-2025.2",
+                            "description": "IntelliJ IDEA 2025.2"
+                        }
+                        """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        var updateParentPayload =
+                """
+                        {
+                            "parentCode": "IDEA-2025.2",
+                            "status": "DRAFT",
+                            "description": "IntelliJ IDEA 2025.2 Update"
+                        }
+                        """;
+        var result2 = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2025.2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateParentPayload)
+                .exchange();
+        assertThat(result2).hasFailed();
+
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2025.2").exchange();
+        assertThat(updatedRelease)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.parentCode()).isNull();
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void parentReleaseShouldExistInUpdateMethod() {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.2",
+                "description": "IntelliJ IDEA 2025.2"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        var updateParentPayload =
+                """
+            {
+                "parentCode": "WRONG_RELEASE_CODE",
+                "status": "DRAFT",
+                "description": "IntelliJ IDEA 2025.2 Update"
+            }
+            """;
+        var result2 = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2025.2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateParentPayload)
+                .exchange();
+        assertThat(result2).hasFailed();
+
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2025.2").exchange();
+        assertThat(updatedRelease)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.parentCode()).isNull();
+                });
     }
 }
