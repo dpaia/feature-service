@@ -145,11 +145,10 @@ class TagRepositoryTest {
         entityManager.clear();
 
         // then
-        Feature retrievedFeature = featureRepository.findById(savedFeature.getId()).orElseThrow();
+        Feature retrievedFeature =
+                featureRepository.findById(savedFeature.getId()).orElseThrow();
         assertThat(retrievedFeature.getTags()).hasSize(2);
-        assertThat(retrievedFeature.getTags())
-                .extracting("name")
-                .containsExactlyInAnyOrder("security", "ui");
+        assertThat(retrievedFeature.getTags()).extracting("name").containsExactlyInAnyOrder("security", "ui");
     }
 
     @Test
@@ -209,16 +208,14 @@ class TagRepositoryTest {
 
         // then
         assertThat(featuresWithApiTag).hasSize(2);
-        assertThat(featuresWithApiTag)
-                .extracting("code")
-                .containsExactlyInAnyOrder("API-001", "API-002");
+        assertThat(featuresWithApiTag).extracting("code").containsExactlyInAnyOrder("API-001", "API-002");
     }
 
     @Test
     void shouldRemoveTagFromFeature() {
         // given
         Tag tag = new Tag();
-        tag.setName("documentation");
+        tag.setName("documentation-test");
         tag.setDescription("Documentation related features");
         tag.setCreatedBy("admin");
         tag.setCreatedAt(Instant.now());
@@ -241,14 +238,16 @@ class TagRepositoryTest {
         entityManager.clear();
 
         // when
-        Feature retrievedFeature = featureRepository.findById(savedFeature.getId()).orElseThrow();
+        Feature retrievedFeature =
+                featureRepository.findById(savedFeature.getId()).orElseThrow();
         retrievedFeature.getTags().clear();
         featureRepository.save(retrievedFeature);
         entityManager.flush();
         entityManager.clear();
 
         // then
-        Feature updatedFeature = featureRepository.findById(savedFeature.getId()).orElseThrow();
+        Feature updatedFeature =
+                featureRepository.findById(savedFeature.getId()).orElseThrow();
         assertThat(updatedFeature.getTags()).isEmpty();
     }
 }

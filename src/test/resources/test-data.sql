@@ -60,10 +60,10 @@ insert into feature_tags (feature_id, tag_id) values
 (2, 1);
 
 insert into categories (id, name, description, parent_category_id, created_by, created_at) values
-(1, 'SpringBoot', 'Spring Boot framework', null, 'admin', '2024-03-01 00:00:00'),
-(2, 'Quarkus', 'Quarkus framework', null, 'admin', '2024-03-01 00:00:00'),
-(3, 'CICD', 'CI/CD', null, 'admin', '2024-03-01 00:00:00'),
-(4, 'Angular', 'Angular framework', null, 'admin', '2024-03-01 00:00:00');
+(7, 'SpringBoot', 'Spring Boot framework', null, 'admin', '2024-03-01 00:00:00'),
+(8, 'Quarkus', 'Quarkus framework', null, 'admin', '2024-03-01 00:00:00'),
+(9, 'CICD', 'CI/CD', null, 'admin', '2024-03-01 00:00:00'),
+(10, 'Angular', 'Angular framework', null, 'admin', '2024-03-01 00:00:00');
 
 update features set category_id = 1 where id = 1;
 update features set category_id = 3 where id = 2;
