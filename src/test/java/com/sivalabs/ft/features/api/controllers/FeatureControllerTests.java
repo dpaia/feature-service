@@ -2,16 +2,21 @@ package com.sivalabs.ft.features.api.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 class FeatureControllerTests extends AbstractIT {
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void shouldGetFeaturesByReleaseCode() {
@@ -159,42 +164,20 @@ class FeatureControllerTests extends AbstractIT {
         assertThat(result).hasStatusOk();
 
         // Verify tags are assigned to IDEA-1
-        var getResult1 = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
-        assertThat(getResult1)
-                .hasStatusOk()
-                .bodyJson()
-                .convertTo(FeatureDto.class)
-                .satisfies(featureDto -> {
-                    // Verify tag 1 is assigned
-                    assertThat(featureDto.tags().stream()
-                                    .filter(tagDto -> tagDto.id() == 1)
-                                    .count())
-                            .isEqualTo(1);
-                    // Verify tag 3 is assigned
-                    assertThat(featureDto.tags().stream()
-                                    .filter(tagDto -> tagDto.id() == 3)
-                                    .count())
-                            .isEqualTo(1);
-                });
+        var feature1 = getFeature("IDEA-1");
+        assertThat(feature1.tags().stream().filter(tagDto -> tagDto.id() == 1).count())
+                .isEqualTo(1);
+        // Verify tag 3 is assigned
+        assertThat(feature1.tags().stream().filter(tagDto -> tagDto.id() == 3).count())
+                .isEqualTo(1);
 
         // Verify tags are assigned to IDEA-2
-        var getResult2 = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
-        assertThat(getResult2)
-                .hasStatusOk()
-                .bodyJson()
-                .convertTo(FeatureDto.class)
-                .satisfies(featureDto -> {
-                    // Verify tag 1 is assigned
-                    assertThat(featureDto.tags().stream()
-                                    .filter(tagDto -> tagDto.id() == 1)
-                                    .count())
-                            .isEqualTo(1);
-                    // Verify tag 3 is assigned
-                    assertThat(featureDto.tags().stream()
-                                    .filter(tagDto -> tagDto.id() == 3)
-                                    .count())
-                            .isEqualTo(1);
-                });
+        var feature2 = getFeature("IDEA-2");
+        assertThat(feature2.tags().stream().filter(tagDto -> tagDto.id() == 1).count())
+                .isEqualTo(1);
+        // Verify tag 3 is assigned
+        assertThat(feature2.tags().stream().filter(tagDto -> tagDto.id() == 3).count())
+                .isEqualTo(1);
     }
 
     @Test
@@ -235,31 +218,93 @@ class FeatureControllerTests extends AbstractIT {
         assertThat(result).hasStatusOk();
 
         // Verify tags are removed from IDEA-1
-        var getResult1 = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
-        assertThat(getResult1)
-                .hasStatusOk()
-                .bodyJson()
-                .convertTo(FeatureDto.class)
-                .satisfies(featureDto -> {
-                    // Verify tags 1, 2 is removed
-                    assertThat(featureDto.tags().stream()
-                                    .filter(tagDto -> tagDto.id() == 1 || tagDto.id() == 2)
-                                    .count())
-                            .isEqualTo(0);
-                });
+        var feature1 = getFeature("IDEA-1");
+        assertThat(feature1.tags().stream()
+                        .filter(tagDto -> tagDto.id() == 1 || tagDto.id() == 2)
+                        .count())
+                .isEqualTo(0);
 
         // Verify tags are removed to IDEA-2
-        var getResult2 = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
-        assertThat(getResult2)
-                .hasStatusOk()
-                .bodyJson()
-                .convertTo(FeatureDto.class)
-                .satisfies(featureDto -> {
-                    // Verify tags 1, 2 is removed
-                    assertThat(featureDto.tags().stream()
-                                    .filter(tagDto -> tagDto.id() == 1 || tagDto.id() == 2)
-                                    .count())
-                            .isEqualTo(0);
-                });
+        var feature2 = getFeature("IDEA-2");
+        assertThat(feature2.tags().stream()
+                        .filter(tagDto -> tagDto.id() == 1 || tagDto.id() == 2)
+                        .count())
+                .isEqualTo(0);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldAssignCategoryToFeatures() {
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-1", "GO-3"],
+                "categoryId": 4
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        var feature1 = getFeature("IDEA-1");
+        assertThat(feature1.category().id()).isEqualTo(4);
+
+        var feature2 = getFeature("GO-3");
+        assertThat(feature2.category().id()).isEqualTo(4);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenAssigningNonExistentCategory() {
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-1", "GO-3"],
+                "categoryId": 999
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenAssigningCategoryToNonExistentFeature() {
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-999"],
+                "categoryId": 4
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    private FeatureDto getFeature(String featureCode) {
+        try {
+            var json = mvc.get()
+                    .uri("/api/features/{code}", featureCode)
+                    .exchange()
+                    .getResponse()
+                    .getContentAsString();
+            return objectMapper.readValue(json, FeatureDto.class);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
