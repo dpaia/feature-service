@@ -2,7 +2,9 @@ package com.sivalabs.ft.features.domain.events;
 
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.domain.entities.Feature;
+import com.sivalabs.ft.features.domain.entities.Tag;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +27,8 @@ public class EventPublisher {
                 feature.getStatus(),
                 feature.getRelease() == null ? null : feature.getRelease().getCode(),
                 feature.getAssignedTo(),
+                getTags(feature),
+                feature.getCategory() == null ? null : feature.getCategory().getName(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt());
         kafkaTemplate.send(properties.events().newFeatures(), event);
@@ -39,6 +43,8 @@ public class EventPublisher {
                 feature.getStatus(),
                 feature.getRelease() == null ? null : feature.getRelease().getCode(),
                 feature.getAssignedTo(),
+                getTags(feature),
+                feature.getCategory() == null ? null : feature.getCategory().getName(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt(),
                 feature.getUpdatedBy(),
@@ -55,6 +61,8 @@ public class EventPublisher {
                 feature.getStatus(),
                 feature.getRelease() == null ? null : feature.getRelease().getCode(),
                 feature.getAssignedTo(),
+                getTags(feature),
+                feature.getCategory() == null ? null : feature.getCategory().getName(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt(),
                 feature.getUpdatedBy(),
@@ -62,5 +70,12 @@ public class EventPublisher {
                 deletedBy,
                 deletedAt);
         kafkaTemplate.send(properties.events().deletedFeatures(), event);
+    }
+
+    private List<String> getTags(Feature feature) {
+        if (feature.getTags() == null || feature.getTags().isEmpty()) {
+            return List.of();
+        }
+        return feature.getTags().stream().map(Tag::getName).toList();
     }
 }
