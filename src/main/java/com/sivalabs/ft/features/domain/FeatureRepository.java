@@ -24,8 +24,6 @@ interface FeatureRepository extends ListCrudRepository<Feature, Long> {
     @Query("update Feature f set f.release = null where f.release.code = :code")
     void unsetRelease(String code);
 
-    boolean existsByCode(String code);
-
     @Query(value = "select nextval('feature_code_seq')", nativeQuery = true)
     long getNextFeatureId();
 }

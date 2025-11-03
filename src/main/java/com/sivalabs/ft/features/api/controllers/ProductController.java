@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -78,21 +79,26 @@ class ProductController {
             })
     ResponseEntity<ProductDto> getProduct(@PathVariable String code, HttpServletRequest request) {
         var username = SecurityUtils.getCurrentUsername();
+        var userId = SecurityUtils.getCurrentUserId();
         var result = productService
                 .findProductByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
 
-        // Log for both authorized and anonymous users
         if (result.getStatusCode().is2xxSuccessful()) {
-            String userId = username != null ? username : "anonymous";
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+
             featureUsageService.logUsage(
                     userId,
-                    null,
-                    code,
-                    null,
+                    null, // featureCode
+                    code, // productCode
+                    null, // releaseCode
                     ActionType.PRODUCT_VIEWED,
-                    null,
+                    context,
                     request.getRemoteAddr(),
                     request.getHeader("User-Agent"));
         }

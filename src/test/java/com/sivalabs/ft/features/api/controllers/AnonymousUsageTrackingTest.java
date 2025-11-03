@@ -13,10 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-/**
- * Integration tests to verify that usage events are logged for anonymous (unauthenticated) users.
- * These tests do NOT use @WithMockOAuth2User annotation to simulate anonymous requests.
- */
 class AnonymousUsageTrackingTest extends AbstractIT {
 
     @Autowired
@@ -25,22 +21,21 @@ class AnonymousUsageTrackingTest extends AbstractIT {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private static final String ANONYMOUS_USER_ID = "anonymous";
+
     @BeforeEach
     void setUp() {
-        // Clean up feature_usage table before each test
         jdbcTemplate.execute("DELETE FROM feature_usage");
     }
 
     @Test
     void shouldLogAnonymousUserViewingProduct() throws Exception {
-        // When: Anonymous user views a product
         mockMvc.perform(get("/api/products/intellij")).andExpect(status().is2xxSuccessful());
 
-        // Then: Verify usage event was logged with userId="anonymous"
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
                 Integer.class,
-                "anonymous",
+                ANONYMOUS_USER_ID,
                 "intellij",
                 ActionType.PRODUCT_VIEWED.name());
 
@@ -49,14 +44,12 @@ class AnonymousUsageTrackingTest extends AbstractIT {
 
     @Test
     void shouldLogAnonymousUserViewingFeature() throws Exception {
-        // When: Anonymous user views a feature
         mockMvc.perform(get("/api/features/IDEA-1")).andExpect(status().is2xxSuccessful());
 
-        // Then: Verify usage event was logged with userId="anonymous"
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
                 Integer.class,
-                "anonymous",
+                ANONYMOUS_USER_ID,
                 "IDEA-1",
                 ActionType.FEATURE_VIEWED.name());
 
@@ -65,14 +58,12 @@ class AnonymousUsageTrackingTest extends AbstractIT {
 
     @Test
     void shouldLogAnonymousUserListingFeatures() throws Exception {
-        // When: Anonymous user lists features by product
         mockMvc.perform(get("/api/features?productCode=intellij")).andExpect(status().is2xxSuccessful());
 
-        // Then: Verify usage event was logged with userId="anonymous"
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
                 Integer.class,
-                "anonymous",
+                ANONYMOUS_USER_ID,
                 "intellij",
                 ActionType.FEATURES_LISTED.name());
 
@@ -81,14 +72,12 @@ class AnonymousUsageTrackingTest extends AbstractIT {
 
     @Test
     void shouldLogAnonymousUserViewingRelease() throws Exception {
-        // When: Anonymous user views a release
         mockMvc.perform(get("/api/releases/IDEA-2023.3.8")).andExpect(status().is2xxSuccessful());
 
-        // Then: Verify usage event was logged with userId="anonymous"
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND release_code = ? AND action_type = ?",
                 Integer.class,
-                "anonymous",
+                ANONYMOUS_USER_ID,
                 "IDEA-2023.3.8",
                 ActionType.RELEASE_VIEWED.name());
 
@@ -97,27 +86,23 @@ class AnonymousUsageTrackingTest extends AbstractIT {
 
     @Test
     void shouldStoreDeviceFingerprintInContextForAnonymousUser() throws Exception {
-        // When: Anonymous user views a product with User-Agent header
         mockMvc.perform(get("/api/products/intellij")
                         .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) Chrome/120.0.0.0")
                         .header("X-Forwarded-For", "192.168.1.100"))
                 .andExpect(status().is2xxSuccessful());
 
-        // Then: Verify context contains device fingerprint
         Map<String, Object> event = jdbcTemplate.queryForMap(
-                "SELECT * FROM feature_usage WHERE user_id = ? AND product_code = ?", "anonymous", "intellij");
+                "SELECT * FROM feature_usage WHERE user_id = ? AND product_code = ?", ANONYMOUS_USER_ID, "intellij");
 
         String context = (String) event.get("context");
         assertThat(context).isNotNull();
 
-        // Verify device fingerprint is present (16 hex characters)
         assertThat(context).contains("deviceFingerprint");
         assertThat(context).matches(".*\"deviceFingerprint\":\"[a-f0-9]{16}\".*");
     }
 
     @Test
     void shouldNotLogAnonymousUserCreatingFeature() throws Exception {
-        // When: Anonymous user tries to create a feature (should be rejected by security)
         mockMvc.perform(
                         post("/api/features")
                                 .contentType("application/json")
@@ -131,21 +116,14 @@ class AnonymousUsageTrackingTest extends AbstractIT {
                                 """))
                 .andExpect(status().is4xxClientError()); // 401 Unauthorized
 
-        // Then: Verify no usage event was logged
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ?", Integer.class, "anonymous");
+                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ?", Integer.class, ANONYMOUS_USER_ID);
 
         assertThat(count).isEqualTo(0);
     }
 
     @Test
     void shouldDifferentiateAnonymousAndAuthenticatedUsers() {
-        // This test documents that:
-        // - Anonymous users: userId = "anonymous" (for VIEW events only)
-        // - Authenticated users: userId = actual username
-        // - CREATE/UPDATE/DELETE events require authentication (cannot be anonymous)
-
-        // Verify only VIEW action types can be anonymous
         ActionType[] viewActionTypes = {
             ActionType.FEATURE_VIEWED, ActionType.FEATURES_LISTED, ActionType.PRODUCT_VIEWED, ActionType.RELEASE_VIEWED
         };

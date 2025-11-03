@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -81,31 +82,38 @@ class FeatureController {
             return List.of();
         }
         String username = SecurityUtils.getCurrentUsername();
+        String userId = SecurityUtils.getCurrentUserId();
         List<FeatureDto> featureDtos;
         if (StringUtils.isNotBlank(productCode)) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-            // Log for both authorized and anonymous users
-            String userId = username != null ? username : "anonymous";
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
             featureUsageService.logUsage(
                     userId,
-                    null,
+                    null, // featureCode
                     productCode,
-                    null,
+                    null, // releaseCode
                     ActionType.FEATURES_LISTED,
-                    null,
+                    context,
                     request.getRemoteAddr(),
                     request.getHeader("User-Agent"));
         } else {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
-            // Log for both authorized and anonymous users
-            String userId = username != null ? username : "anonymous";
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
             featureUsageService.logUsage(
                     userId,
-                    null,
-                    null,
-                    null,
+                    null, // featureCode
+                    null, // productCode
+                    releaseCode,
                     ActionType.FEATURES_LISTED,
-                    null,
+                    context,
                     request.getRemoteAddr(),
                     request.getHeader("User-Agent"));
         }
@@ -137,26 +145,33 @@ class FeatureController {
             })
     ResponseEntity<FeatureDto> getFeature(@PathVariable String code, HttpServletRequest request) {
         String username = SecurityUtils.getCurrentUsername();
+        String userId = SecurityUtils.getCurrentUserId();
         Optional<FeatureDto> featureDtoOptional = featureService.findFeatureByCode(username, code);
-        if (username != null && featureDtoOptional.isPresent()) {
+        if (featureDtoOptional.isPresent()) {
             FeatureDto featureDto = featureDtoOptional.get();
-            Set<String> featureCodes = Set.of(featureDto.code());
-            Map<String, Boolean> favoriteFeatures = favoriteFeatureService.getFavoriteFeatures(username, featureCodes);
-            featureDto = featureDto.makeFavorite(favoriteFeatures.get(featureDto.code()));
-            featureDtoOptional = Optional.of(featureDto);
+            if (username != null) {
+                Set<String> featureCodes = Set.of(featureDto.code());
+                Map<String, Boolean> favoriteFeatures =
+                        favoriteFeatureService.getFavoriteFeatures(username, featureCodes);
+                featureDto = featureDto.makeFavorite(favoriteFeatures.get(featureDto.code()));
+                featureDtoOptional = Optional.of(featureDto);
+            }
         }
 
-        // Log for both authorized and anonymous users
         if (featureDtoOptional.isPresent()) {
             FeatureDto dto = featureDtoOptional.get();
-            String userId = username != null ? username : "anonymous";
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
             featureUsageService.logUsage(
                     userId,
                     dto.code(),
-                    null,
-                    null,
+                    null, // productCode
+                    null, // releaseCode
                     ActionType.FEATURE_VIEWED,
-                    null,
+                    context,
                     request.getRemoteAddr(),
                     request.getHeader("User-Agent"));
         }
@@ -184,7 +199,10 @@ class FeatureController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> createFeature(@RequestBody @Valid CreateFeaturePayload payload) {
-        var username = SecurityUtils.getCurrentUsername();
+        String username = SecurityUtils.getCurrentUsername();
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         var cmd = new CreateFeatureCommand(
                 payload.productCode(),
                 payload.releaseCode(),
@@ -195,9 +213,7 @@ class FeatureController {
         String code = featureService.createFeature(cmd);
         log.info("Created feature with code {}", code);
 
-        if (username != null) {
-            featureUsageService.logUsage(username, code, payload.productCode(), ActionType.FEATURE_CREATED);
-        }
+        featureUsageService.logUsage(username, code, payload.productCode(), ActionType.FEATURE_CREATED);
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{code}")

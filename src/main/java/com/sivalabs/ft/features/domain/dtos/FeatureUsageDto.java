@@ -8,8 +8,7 @@ public record FeatureUsageDto(
         String userId,
         String featureCode,
         String productCode,
+        String releaseCode,
         ActionType actionType,
         Instant timestamp,
-        String context,
-        String ipAddress,
-        String userAgent) {}
+        String context) {}
