@@ -16,12 +16,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FeatureService {
     public static final String FEATURE_SEPARATOR = "-";
+    private static final Logger log = LoggerFactory.getLogger(FeatureService.class);
     private final FavoriteFeatureService favoriteFeatureService;
     private final ReleaseRepository releaseRepository;
     private final FeatureRepository featureRepository;
@@ -134,5 +137,11 @@ public class FeatureService {
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+    }
+
+    public void handleFeatureEvent(Object event) {
+        log.info("Handling feature event: {}", event);
+        // Business logic for handling feature events would go here
+        // For now, this is just a placeholder for event processing
     }
 }
