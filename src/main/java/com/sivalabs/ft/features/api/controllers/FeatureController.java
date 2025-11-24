@@ -8,6 +8,7 @@ import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
+import com.sivalabs.ft.features.domain.models.ActionType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,10 +47,15 @@ class FeatureController {
     private static final Logger log = LoggerFactory.getLogger(FeatureController.class);
     private final FeatureService featureService;
     private final FavoriteFeatureService favoriteFeatureService;
+    private final FeatureUsageService featureUsageService;
 
-    FeatureController(FeatureService featureService, FavoriteFeatureService favoriteFeatureService) {
+    FeatureController(
+            FeatureService featureService,
+            FavoriteFeatureService favoriteFeatureService,
+            FeatureUsageService featureUsageService) {
         this.featureService = featureService;
         this.favoriteFeatureService = favoriteFeatureService;
+        this.featureUsageService = featureUsageService;
     }
 
     @GetMapping("")
@@ -65,7 +73,8 @@ class FeatureController {
             })
     List<FeatureDto> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
-            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            HttpServletRequest request) {
         // Only one of productCode or releaseCode should be provided
         if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
                 || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
@@ -73,11 +82,40 @@ class FeatureController {
             return List.of();
         }
         String username = SecurityUtils.getCurrentUsername();
+        String userId = SecurityUtils.getCurrentUserId();
         List<FeatureDto> featureDtos;
         if (StringUtils.isNotBlank(productCode)) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    productCode,
+                    null, // releaseCode
+                    ActionType.FEATURES_LISTED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         } else {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    null, // productCode
+                    releaseCode,
+                    ActionType.FEATURES_LISTED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
         }
 
         if (username != null && !featureDtos.isEmpty()) {
@@ -105,16 +143,39 @@ class FeatureController {
                                         schema = @Schema(implementation = FeatureDto.class))),
                 @ApiResponse(responseCode = "404", description = "Feature not found")
             })
-    ResponseEntity<FeatureDto> getFeature(@PathVariable String code) {
+    ResponseEntity<FeatureDto> getFeature(@PathVariable String code, HttpServletRequest request) {
         String username = SecurityUtils.getCurrentUsername();
+        String userId = SecurityUtils.getCurrentUserId();
         Optional<FeatureDto> featureDtoOptional = featureService.findFeatureByCode(username, code);
-        if (username != null && featureDtoOptional.isPresent()) {
+        if (featureDtoOptional.isPresent()) {
             FeatureDto featureDto = featureDtoOptional.get();
-            Set<String> featureCodes = Set.of(featureDto.code());
-            Map<String, Boolean> favoriteFeatures = favoriteFeatureService.getFavoriteFeatures(username, featureCodes);
-            featureDto = featureDto.makeFavorite(favoriteFeatures.get(featureDto.code()));
-            featureDtoOptional = Optional.of(featureDto);
+            if (username != null) {
+                Set<String> featureCodes = Set.of(featureDto.code());
+                Map<String, Boolean> favoriteFeatures =
+                        favoriteFeatureService.getFavoriteFeatures(username, featureCodes);
+                featureDto = featureDto.makeFavorite(favoriteFeatures.get(featureDto.code()));
+                featureDtoOptional = Optional.of(featureDto);
+            }
         }
+
+        if (featureDtoOptional.isPresent()) {
+            FeatureDto dto = featureDtoOptional.get();
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+            featureUsageService.logUsage(
+                    userId,
+                    dto.code(),
+                    null, // productCode
+                    null, // releaseCode
+                    ActionType.FEATURE_VIEWED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
+        }
+
         return featureDtoOptional
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -138,7 +199,10 @@ class FeatureController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> createFeature(@RequestBody @Valid CreateFeaturePayload payload) {
-        var username = SecurityUtils.getCurrentUsername();
+        String username = SecurityUtils.getCurrentUsername();
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         var cmd = new CreateFeatureCommand(
                 payload.productCode(),
                 payload.releaseCode(),
@@ -148,6 +212,9 @@ class FeatureController {
                 username);
         String code = featureService.createFeature(cmd);
         log.info("Created feature with code {}", code);
+
+        featureUsageService.logUsage(username, code, payload.productCode(), ActionType.FEATURE_CREATED);
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{code}")
                 .buildAndExpand(code)
@@ -176,6 +243,10 @@ class FeatureController {
                 payload.assignedTo(),
                 username);
         featureService.updateFeature(cmd);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, code, null, ActionType.FEATURE_UPDATED);
+        }
     }
 
     @DeleteMapping("/{code}")
@@ -193,8 +264,14 @@ class FeatureController {
         if (!featureService.isFeatureExists(code)) {
             return ResponseEntity.notFound().build();
         }
+
         var cmd = new DeleteFeatureCommand(code, username);
         featureService.deleteFeature(cmd);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, code, null, ActionType.FEATURE_DELETED);
+        }
+
         return ResponseEntity.ok().build();
     }
 }

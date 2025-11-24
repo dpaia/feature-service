@@ -5,8 +5,10 @@ import com.sivalabs.ft.features.api.models.UpdateProductPayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.Commands.CreateProductCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateProductCommand;
+import com.sivalabs.ft.features.domain.FeatureUsageService;
 import com.sivalabs.ft.features.domain.ProductService;
 import com.sivalabs.ft.features.domain.dtos.ProductDto;
+import com.sivalabs.ft.features.domain.models.ActionType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -14,9 +16,11 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -35,9 +39,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class ProductController {
     private static final Logger log = LoggerFactory.getLogger(ProductController.class);
     private final ProductService productService;
+    private final FeatureUsageService featureUsageService;
 
-    ProductController(ProductService productService) {
+    ProductController(ProductService productService, FeatureUsageService featureUsageService) {
         this.productService = productService;
+        this.featureUsageService = featureUsageService;
     }
 
     @GetMapping("")
@@ -71,11 +77,33 @@ class ProductController {
                                         schema = @Schema(implementation = ProductDto.class))),
                 @ApiResponse(responseCode = "404", description = "Product not found")
             })
-    ResponseEntity<ProductDto> getProduct(@PathVariable String code) {
-        return productService
+    ResponseEntity<ProductDto> getProduct(@PathVariable String code, HttpServletRequest request) {
+        var username = SecurityUtils.getCurrentUsername();
+        var userId = SecurityUtils.getCurrentUserId();
+        var result = productService
                 .findProductByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+
+        if (result.getStatusCode().is2xxSuccessful()) {
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    code, // productCode
+                    null, // releaseCode
+                    ActionType.PRODUCT_VIEWED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
+        }
+
+        return result;
     }
 
     @PostMapping("")
@@ -101,6 +129,11 @@ class ProductController {
                 payload.code(), payload.prefix(), payload.name(), payload.description(), payload.imageUrl(), username);
         Long id = productService.createProduct(cmd);
         log.info("Created product with id {}", id);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, null, payload.code(), ActionType.PRODUCT_CREATED);
+        }
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{code}")
                 .buildAndExpand(payload.code())
@@ -123,5 +156,9 @@ class ProductController {
         var cmd = new UpdateProductCommand(
                 code, payload.prefix(), payload.name(), payload.description(), payload.imageUrl(), username);
         productService.updateProduct(cmd);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, null, code, ActionType.PRODUCT_UPDATED);
+        }
     }
 }

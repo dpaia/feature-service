@@ -47,7 +47,7 @@ public class ReleaseService {
 
     @Transactional(readOnly = true)
     public boolean isReleaseExists(String code) {
-        return releaseRepository.existsByCode(code);
+        return releaseRepository.findByCode(code).isPresent();
     }
 
     @Transactional
@@ -81,7 +81,7 @@ public class ReleaseService {
 
     @Transactional
     public void deleteRelease(String code) {
-        if (!releaseRepository.existsByCode(code)) {
+        if (!releaseRepository.findByCode(code).isPresent()) {
             throw new ResourceNotFoundException("Release with code " + code + " not found");
         }
         featureRepository.unsetRelease(code);

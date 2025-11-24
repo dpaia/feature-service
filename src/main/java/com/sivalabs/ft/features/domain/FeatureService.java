@@ -86,7 +86,7 @@ public class FeatureService {
 
     @Transactional(readOnly = true)
     public boolean isFeatureExists(String code) {
-        return featureRepository.existsByCode(code);
+        return featureRepository.findByCode(code).isPresent();
     }
 
     @Transactional

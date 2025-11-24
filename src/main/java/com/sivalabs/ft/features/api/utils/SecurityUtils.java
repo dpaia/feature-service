@@ -1,5 +1,8 @@
 package com.sivalabs.ft.features.api.utils;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +20,55 @@ public class SecurityUtils {
             return null;
         }
         return String.valueOf(username);
+    }
+
+    public static String getCurrentUserId() {
+        String username = getCurrentUsername();
+        return username != null ? username : "anonymous";
+    }
+
+    public static Map<String, Object> createAnonymousContext(HttpServletRequest request) {
+        Map<String, Object> context = new HashMap<>();
+        context.put("deviceFingerprint", generateDeviceFingerprint(request));
+        context.put("location", "RU"); // Default location as per GDPR requirement
+        return context;
+    }
+
+    private static String generateDeviceFingerprint(HttpServletRequest request) {
+        String userAgent = request.getHeader("User-Agent");
+        String ipAddress = getClientIpAddress(request);
+        String fingerprint = userAgent + ipAddress;
+
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hash = md.digest(fingerprint.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString().substring(0, 16); // Take first 16 characters
+        } catch (NoSuchAlgorithmException e) {
+            // Fallback to simple hash
+            return String.valueOf(fingerprint.hashCode()).substring(0, 16);
+        }
+    }
+
+    private static String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+
+        return request.getRemoteAddr();
     }
 
     static Map<String, Object> getLoginUserDetails() {
