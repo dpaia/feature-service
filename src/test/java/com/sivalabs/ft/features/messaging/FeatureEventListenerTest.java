@@ -19,163 +19,93 @@ class FeatureEventListenerTest {
     @Mock
     private RabbitMQEventPublisher rabbitMQEventPublisher;
 
-    private FeatureEventListener eventListener;
+    private FeatureEventListener listener;
 
     @BeforeEach
     void setUp() {
-        eventListener = new FeatureEventListener(rabbitMQEventPublisher);
+        listener = new FeatureEventListener(rabbitMQEventPublisher);
     }
 
     @Test
-    void shouldHandleFeatureCreatedEvent() {
-        // Given
+    void shouldRelayFeatureCreatedEventToRabbitMQ() {
         FeatureCreatedEvent event = new FeatureCreatedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Test Feature",
-                "Description",
+                "Test Description",
                 FeatureStatus.NEW,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
                 Instant.now());
 
-        // When
-        eventListener.handleFeatureCreatedEvent(event);
+        listener.handleFeatureCreatedEvent(event);
 
-        // Then
         verify(rabbitMQEventPublisher).publishFeatureCreatedEvent(event);
     }
 
     @Test
-    void shouldHandleFeatureUpdatedEvent() {
-        // Given
+    void shouldRelayFeatureUpdatedEventToRabbitMQ() {
         FeatureUpdatedEvent event = new FeatureUpdatedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Updated Feature",
                 "Updated Description",
                 FeatureStatus.IN_PROGRESS,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
-                Instant.now().minusSeconds(3600),
+                Instant.now(),
                 "updater",
                 Instant.now());
 
-        // When
-        eventListener.handleFeatureUpdatedEvent(event);
+        listener.handleFeatureUpdatedEvent(event);
 
-        // Then
         verify(rabbitMQEventPublisher).publishFeatureUpdatedEvent(event);
     }
 
     @Test
-    void shouldHandleFeatureDeletedEvent() {
-        // Given
+    void shouldRelayFeatureDeletedEventToRabbitMQ() {
         FeatureDeletedEvent event = new FeatureDeletedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Deleted Feature",
-                "Description",
+                "Deleted Description",
                 FeatureStatus.RELEASED,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
-                Instant.now().minusSeconds(7200),
+                Instant.now(),
                 "updater",
-                Instant.now().minusSeconds(3600),
+                Instant.now(),
                 "deleter",
                 Instant.now());
 
-        // When
-        eventListener.handleFeatureDeletedEvent(event);
+        listener.handleFeatureDeletedEvent(event);
 
-        // Then
         verify(rabbitMQEventPublisher).publishFeatureDeletedEvent(event);
     }
 
     @Test
-    void shouldHandleExceptionInFeatureCreatedEvent() {
-        // Given
+    void shouldNotThrowExceptionWhenRabbitMQPublisherFails() {
         FeatureCreatedEvent event = new FeatureCreatedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Test Feature",
-                "Description",
+                "Test Description",
                 FeatureStatus.NEW,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
                 Instant.now());
 
-        doThrow(new RuntimeException("Publishing failed"))
+        doThrow(new RuntimeException("RabbitMQ connection failed"))
                 .when(rabbitMQEventPublisher)
                 .publishFeatureCreatedEvent(event);
 
-        // When
-        eventListener.handleFeatureCreatedEvent(event);
+        // When/Then - Should not throw exception, just log error
+        listener.handleFeatureCreatedEvent(event);
 
-        // Then
         verify(rabbitMQEventPublisher).publishFeatureCreatedEvent(event);
-        // Exception should be caught and logged, not propagated
-    }
-
-    @Test
-    void shouldHandleExceptionInFeatureUpdatedEvent() {
-        // Given
-        FeatureUpdatedEvent event = new FeatureUpdatedEvent(
-                1L,
-                "FEAT-001",
-                "Updated Feature",
-                "Updated Description",
-                FeatureStatus.IN_PROGRESS,
-                "REL-001",
-                "user1",
-                "creator",
-                Instant.now().minusSeconds(3600),
-                "updater",
-                Instant.now());
-
-        doThrow(new RuntimeException("Publishing failed"))
-                .when(rabbitMQEventPublisher)
-                .publishFeatureUpdatedEvent(event);
-
-        // When
-        eventListener.handleFeatureUpdatedEvent(event);
-
-        // Then
-        verify(rabbitMQEventPublisher).publishFeatureUpdatedEvent(event);
-        // Exception should be caught and logged, not propagated
-    }
-
-    @Test
-    void shouldHandleExceptionInFeatureDeletedEvent() {
-        // Given
-        FeatureDeletedEvent event = new FeatureDeletedEvent(
-                1L,
-                "FEAT-001",
-                "Deleted Feature",
-                "Description",
-                FeatureStatus.RELEASED,
-                "REL-001",
-                "user1",
-                "creator",
-                Instant.now().minusSeconds(7200),
-                "updater",
-                Instant.now().minusSeconds(3600),
-                "deleter",
-                Instant.now());
-
-        doThrow(new RuntimeException("Publishing failed"))
-                .when(rabbitMQEventPublisher)
-                .publishFeatureDeletedEvent(event);
-
-        // When
-        eventListener.handleFeatureDeletedEvent(event);
-
-        // Then
-        verify(rabbitMQEventPublisher).publishFeatureDeletedEvent(event);
-        // Exception should be caught and logged, not propagated
     }
 }

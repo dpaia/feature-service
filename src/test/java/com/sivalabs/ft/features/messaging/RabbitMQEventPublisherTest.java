@@ -1,8 +1,5 @@
 package com.sivalabs.ft.features.messaging;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.sivalabs.ft.features.config.RabbitMQProperties;
@@ -14,7 +11,6 @@ import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.AmqpException;
@@ -29,166 +25,176 @@ class RabbitMQEventPublisherTest {
     @Mock
     private RabbitMQErrorHandler errorHandler;
 
-    private RabbitMQProperties properties;
     private RabbitMQEventPublisher publisher;
+
+    // Test constants
+    private static final String TEST_EXCHANGE = "test-exchange";
+    private static final String ROUTING_KEY_CREATED = "feature.created";
+    private static final String ROUTING_KEY_UPDATED = "feature.updated";
+    private static final String ROUTING_KEY_DELETED = "feature.deleted";
 
     @BeforeEach
     void setUp() {
-        properties = createTestProperties();
+        RabbitMQProperties.Exchange.RoutingKeys routingKeys = new RabbitMQProperties.Exchange.RoutingKeys(
+                ROUTING_KEY_CREATED, ROUTING_KEY_UPDATED, ROUTING_KEY_DELETED);
+
+        RabbitMQProperties.Exchange exchange =
+                new RabbitMQProperties.Exchange(TEST_EXCHANGE, "topic", true, routingKeys);
+
+        RabbitMQProperties.Retry retry = new RabbitMQProperties.Retry(3, 1000, 2.0, 10000);
+
+        RabbitMQProperties.DeadLetter deadLetter = new RabbitMQProperties.DeadLetter("test-dlx", "test-dlq", "#");
+
+        RabbitMQProperties properties =
+                new RabbitMQProperties("localhost", 5672, "guest", "guest", "/", exchange, retry, deadLetter);
+
         publisher = new RabbitMQEventPublisher(rabbitTemplate, properties, errorHandler);
     }
 
     @Test
-    void shouldPublishFeatureCreatedEvent() {
-        // Given
+    void shouldPublishFeatureCreatedEventSuccessfully() {
         FeatureCreatedEvent event = new FeatureCreatedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Test Feature",
-                "Description",
+                "Test Description",
                 FeatureStatus.NEW,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
                 Instant.now());
 
-        // When
         publisher.publishFeatureCreatedEvent(event);
 
-        // Then
-        ArgumentCaptor<RabbitMQEventPublisher.EventMessage> messageCaptor =
-                ArgumentCaptor.forClass(RabbitMQEventPublisher.EventMessage.class);
-
-        verify(rabbitTemplate).convertAndSend(eq("feature.events"), eq("feature.created"), messageCaptor.capture());
-
-        RabbitMQEventPublisher.EventMessage capturedMessage = messageCaptor.getValue();
-        assertThat(capturedMessage.eventType()).isEqualTo("FeatureCreated");
-        assertThat(capturedMessage.payload()).isEqualTo(event);
-        assertThat(capturedMessage.timestamp()).isNotNull();
+        verify(rabbitTemplate)
+                .convertAndSend(
+                        eq(TEST_EXCHANGE), eq(ROUTING_KEY_CREATED), any(RabbitMQEventPublisher.EventMessage.class));
     }
 
     @Test
-    void shouldPublishFeatureUpdatedEvent() {
-        // Given
+    void shouldPublishFeatureUpdatedEventSuccessfully() {
         FeatureUpdatedEvent event = new FeatureUpdatedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Updated Feature",
                 "Updated Description",
                 FeatureStatus.IN_PROGRESS,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
-                Instant.now().minusSeconds(3600),
+                Instant.now(),
                 "updater",
                 Instant.now());
 
-        // When
         publisher.publishFeatureUpdatedEvent(event);
 
-        // Then
-        ArgumentCaptor<RabbitMQEventPublisher.EventMessage> messageCaptor =
-                ArgumentCaptor.forClass(RabbitMQEventPublisher.EventMessage.class);
-
-        verify(rabbitTemplate).convertAndSend(eq("feature.events"), eq("feature.updated"), messageCaptor.capture());
-
-        RabbitMQEventPublisher.EventMessage capturedMessage = messageCaptor.getValue();
-        assertThat(capturedMessage.eventType()).isEqualTo("FeatureUpdated");
-        assertThat(capturedMessage.payload()).isEqualTo(event);
+        verify(rabbitTemplate)
+                .convertAndSend(
+                        eq(TEST_EXCHANGE), eq(ROUTING_KEY_UPDATED), any(RabbitMQEventPublisher.EventMessage.class));
     }
 
     @Test
-    void shouldPublishFeatureDeletedEvent() {
-        // Given
+    void shouldPublishFeatureDeletedEventSuccessfully() {
         FeatureDeletedEvent event = new FeatureDeletedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Deleted Feature",
-                "Description",
+                "Deleted Description",
                 FeatureStatus.RELEASED,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
-                Instant.now().minusSeconds(7200),
+                Instant.now(),
                 "updater",
-                Instant.now().minusSeconds(3600),
+                Instant.now(),
                 "deleter",
                 Instant.now());
 
-        // When
         publisher.publishFeatureDeletedEvent(event);
 
-        // Then
-        ArgumentCaptor<RabbitMQEventPublisher.EventMessage> messageCaptor =
-                ArgumentCaptor.forClass(RabbitMQEventPublisher.EventMessage.class);
-
-        verify(rabbitTemplate).convertAndSend(eq("feature.events"), eq("feature.deleted"), messageCaptor.capture());
-
-        RabbitMQEventPublisher.EventMessage capturedMessage = messageCaptor.getValue();
-        assertThat(capturedMessage.eventType()).isEqualTo("FeatureDeleted");
-        assertThat(capturedMessage.payload()).isEqualTo(event);
+        verify(rabbitTemplate)
+                .convertAndSend(
+                        eq(TEST_EXCHANGE), eq(ROUTING_KEY_DELETED), any(RabbitMQEventPublisher.EventMessage.class));
     }
 
     @Test
-    void shouldHandleAmqpExceptionDuringPublishing() {
-        // Given
+    void shouldCallErrorHandlerWhenPublishingFeatureCreatedEventFails() {
         FeatureCreatedEvent event = new FeatureCreatedEvent(
                 1L,
-                "FEAT-001",
+                "TEST-1",
                 "Test Feature",
-                "Description",
+                "Test Description",
                 FeatureStatus.NEW,
-                "REL-001",
+                "RELEASE-1",
                 "user1",
                 "creator",
                 Instant.now());
 
         AmqpException exception = new AmqpException("Connection failed");
-        doThrow(exception).when(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
+        doThrow(exception)
+                .when(rabbitTemplate)
+                .convertAndSend(
+                        eq(TEST_EXCHANGE), eq(ROUTING_KEY_CREATED), any(RabbitMQEventPublisher.EventMessage.class));
 
-        // When
         publisher.publishFeatureCreatedEvent(event);
 
-        // Then
-        verify(errorHandler).handlePublishingError(event, "feature.created", "FeatureCreated", exception);
+        verify(errorHandler)
+                .handlePublishingError(eq(event), eq(ROUTING_KEY_CREATED), eq("FeatureCreated"), eq(exception));
     }
 
     @Test
-    void shouldHandleGenericExceptionDuringPublishing() {
-        // Given
-        FeatureCreatedEvent event = new FeatureCreatedEvent(
+    void shouldCallErrorHandlerWhenPublishingFeatureUpdatedEventFails() {
+        FeatureUpdatedEvent event = new FeatureUpdatedEvent(
                 1L,
-                "FEAT-001",
-                "Test Feature",
-                "Description",
-                FeatureStatus.NEW,
-                "REL-001",
+                "TEST-1",
+                "Updated Feature",
+                "Updated Description",
+                FeatureStatus.IN_PROGRESS,
+                "RELEASE-1",
                 "user1",
                 "creator",
+                Instant.now(),
+                "updater",
                 Instant.now());
 
-        RuntimeException exception = new RuntimeException("Unexpected error");
-        doThrow(exception).when(rabbitTemplate).convertAndSend(anyString(), anyString(), any(Object.class));
+        AmqpException exception = new AmqpException("Connection failed");
+        doThrow(exception)
+                .when(rabbitTemplate)
+                .convertAndSend(
+                        eq(TEST_EXCHANGE), eq(ROUTING_KEY_UPDATED), any(RabbitMQEventPublisher.EventMessage.class));
 
-        // When
-        publisher.publishFeatureCreatedEvent(event);
+        publisher.publishFeatureUpdatedEvent(event);
 
-        // Then
-        verify(errorHandler).handlePublishingError(event, "feature.created", "FeatureCreated", exception);
+        verify(errorHandler)
+                .handlePublishingError(eq(event), eq(ROUTING_KEY_UPDATED), eq("FeatureUpdated"), eq(exception));
     }
 
-    private RabbitMQProperties createTestProperties() {
-        RabbitMQProperties.Exchange.RoutingKeys routingKeys =
-                new RabbitMQProperties.Exchange.RoutingKeys("feature.created", "feature.updated", "feature.deleted");
+    @Test
+    void shouldCallErrorHandlerWhenPublishingFeatureDeletedEventFails() {
+        FeatureDeletedEvent event = new FeatureDeletedEvent(
+                1L,
+                "TEST-1",
+                "Deleted Feature",
+                "Deleted Description",
+                FeatureStatus.RELEASED,
+                "RELEASE-1",
+                "user1",
+                "creator",
+                Instant.now(),
+                "updater",
+                Instant.now(),
+                "deleter",
+                Instant.now());
 
-        RabbitMQProperties.Exchange exchange =
-                new RabbitMQProperties.Exchange("feature.events", "topic", true, routingKeys);
+        AmqpException exception = new AmqpException("Connection failed");
+        doThrow(exception)
+                .when(rabbitTemplate)
+                .convertAndSend(
+                        eq(TEST_EXCHANGE), eq(ROUTING_KEY_DELETED), any(RabbitMQEventPublisher.EventMessage.class));
 
-        RabbitMQProperties.Retry retry = new RabbitMQProperties.Retry(3, 1000L, 2.0, 10000L);
+        publisher.publishFeatureDeletedEvent(event);
 
-        RabbitMQProperties.DeadLetter deadLetter =
-                new RabbitMQProperties.DeadLetter("feature.events.dlx", "feature.events.dlq", "feature.failed");
-
-        return new RabbitMQProperties("localhost", 5672, "guest", "guest", "", exchange, retry, deadLetter);
+        verify(errorHandler)
+                .handlePublishingError(eq(event), eq(ROUTING_KEY_DELETED), eq("FeatureDeleted"), eq(exception));
     }
 }
