@@ -2,16 +2,21 @@ package com.sivalabs.ft.features.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sivalabs.ft.features.domain.dtos.*;
 import com.sivalabs.ft.features.domain.entities.FeatureUsage;
+import com.sivalabs.ft.features.domain.mappers.FeatureUsageMapper;
 import com.sivalabs.ft.features.domain.models.ActionType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,14 +27,17 @@ public class FeatureUsageService {
     private final FeatureUsageRepository featureUsageRepository;
     private final ObjectMapper objectMapper;
     private final com.sivalabs.ft.features.ApplicationProperties applicationProperties;
+    private final FeatureUsageMapper featureUsageMapper;
 
     public FeatureUsageService(
             FeatureUsageRepository featureUsageRepository,
             ObjectMapper objectMapper,
-            com.sivalabs.ft.features.ApplicationProperties applicationProperties) {
+            com.sivalabs.ft.features.ApplicationProperties applicationProperties,
+            FeatureUsageMapper featureUsageMapper) {
         this.featureUsageRepository = featureUsageRepository;
         this.objectMapper = objectMapper;
         this.applicationProperties = applicationProperties;
+        this.featureUsageMapper = featureUsageMapper;
     }
 
     @Transactional
@@ -143,5 +151,199 @@ public class FeatureUsageService {
         // For now, return null or "UNKNOWN"
         // Example: return geoIpService.getCountryCode(ipAddress);
         return null;
+    }
+
+    // New API methods for programmatic usage tracking
+
+    @Transactional
+    public FeatureUsageDto createUsageEvent(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> context,
+            String ipAddress,
+            String userAgent) {
+
+        logUsage(userId, featureCode, productCode, releaseCode, actionType, context, ipAddress, userAgent);
+
+        // Find the most recent usage event for this user and action
+        Page<FeatureUsage> recentUsage = featureUsageRepository.findWithFiltersPaginated(
+                actionType, null, null, userId, featureCode, productCode, PageRequest.of(0, 1));
+
+        if (!recentUsage.isEmpty()) {
+            FeatureUsage usage = recentUsage.getContent().get(0);
+            return new FeatureUsageDto(
+                    usage.getId(),
+                    usage.getUserId(),
+                    usage.getFeatureCode(),
+                    usage.getProductCode(),
+                    usage.getReleaseCode(),
+                    usage.getActionType(),
+                    usage.getTimestamp(),
+                    usage.getContext(),
+                    ipAddress,
+                    userAgent);
+        }
+
+        return null;
+    }
+
+    // Statistics methods
+    public UsageStatsDto getOverallStats(ActionType actionType, Instant startDate, Instant endDate) {
+        long totalUsageCount = featureUsageRepository.countWithFilters(actionType, startDate, endDate);
+        long uniqueUserCount = featureUsageRepository.countUniqueUsersWithFilters(actionType, startDate, endDate);
+        long uniqueFeatureCount = featureUsageRepository.countUniqueFeaturesWithFilters(actionType, startDate, endDate);
+        long uniqueProductCount = featureUsageRepository.countUniqueProductsWithFilters(actionType, startDate, endDate);
+
+        Map<ActionType, Long> usageByActionType =
+                featureUsageRepository.findUsageByActionType(actionType, startDate, endDate).stream()
+                        .collect(Collectors.toMap(row -> (ActionType) row[0], row -> (Long) row[1]));
+
+        List<TopItemDto> topFeatures =
+                featureUsageRepository.findTopFeatures(startDate, endDate, PageRequest.of(0, 10)).stream()
+                        .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                        .collect(Collectors.toList());
+
+        List<TopItemDto> topProducts =
+                featureUsageRepository.findTopProducts(startDate, endDate, PageRequest.of(0, 10)).stream()
+                        .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                        .collect(Collectors.toList());
+
+        List<TopItemDto> topUsers =
+                featureUsageRepository.findTopUsers(startDate, endDate, PageRequest.of(0, 10)).stream()
+                        .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                        .collect(Collectors.toList());
+
+        return new UsageStatsDto(
+                totalUsageCount,
+                uniqueUserCount,
+                uniqueFeatureCount,
+                uniqueProductCount,
+                usageByActionType,
+                topFeatures,
+                topProducts,
+                topUsers);
+    }
+
+    public FeatureStatsDto getFeatureStats(
+            String featureCode, ActionType actionType, Instant startDate, Instant endDate) {
+        long totalUsageCount =
+                featureUsageRepository.countByFeatureCodeWithFilters(featureCode, actionType, startDate, endDate);
+        long uniqueUserCount = featureUsageRepository.countUniqueUsersByFeatureCodeWithFilters(
+                featureCode, actionType, startDate, endDate);
+
+        Map<ActionType, Long> usageByActionType =
+                featureUsageRepository.findUsageByActionType(actionType, startDate, endDate).stream()
+                        .collect(Collectors.toMap(row -> (ActionType) row[0], row -> (Long) row[1]));
+
+        List<TopItemDto> topUsers =
+                featureUsageRepository
+                        .findTopUsersByFeatureCode(featureCode, actionType, startDate, endDate, PageRequest.of(0, 10))
+                        .stream()
+                        .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                        .collect(Collectors.toList());
+
+        List<TopItemDto> usageByProduct =
+                featureUsageRepository.findFeatureUsageByProduct(featureCode, actionType, startDate, endDate).stream()
+                        .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                        .collect(Collectors.toList());
+
+        return new FeatureStatsDto(
+                featureCode, totalUsageCount, uniqueUserCount, usageByActionType, topUsers, usageByProduct);
+    }
+
+    public ProductStatsDto getProductStats(
+            String productCode, ActionType actionType, Instant startDate, Instant endDate) {
+        long totalUsageCount =
+                featureUsageRepository.countByProductCodeWithFilters(productCode, actionType, startDate, endDate);
+        long uniqueUserCount = featureUsageRepository.countUniqueUsersByProductCodeWithFilters(
+                productCode, actionType, startDate, endDate);
+        long uniqueFeatureCount = featureUsageRepository.countUniqueFeaturesByProductCodeWithFilters(
+                productCode, actionType, startDate, endDate);
+
+        Map<ActionType, Long> usageByActionType =
+                featureUsageRepository.findUsageByActionType(actionType, startDate, endDate).stream()
+                        .collect(Collectors.toMap(row -> (ActionType) row[0], row -> (Long) row[1]));
+
+        List<TopItemDto> topFeatures = featureUsageRepository
+                .findTopFeaturesByProductCode(productCode, actionType, startDate, endDate, PageRequest.of(0, 10))
+                .stream()
+                .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                .collect(Collectors.toList());
+
+        List<TopItemDto> topUsers =
+                featureUsageRepository
+                        .findTopUsersByProductCode(productCode, actionType, startDate, endDate, PageRequest.of(0, 10))
+                        .stream()
+                        .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                        .collect(Collectors.toList());
+
+        return new ProductStatsDto(
+                productCode,
+                totalUsageCount,
+                uniqueUserCount,
+                uniqueFeatureCount,
+                usageByActionType,
+                topFeatures,
+                topUsers);
+    }
+
+    // Events list methods (paginated)
+    public Page<FeatureUsageDto> getAllEventsPaginated(
+            ActionType actionType,
+            Instant startDate,
+            Instant endDate,
+            String userId,
+            String featureCode,
+            String productCode,
+            Pageable pageable) {
+        Page<FeatureUsage> events = featureUsageRepository.findWithFiltersPaginated(
+                actionType, startDate, endDate, userId, featureCode, productCode, pageable);
+        return events.map(featureUsageMapper::toDto);
+    }
+
+    public Page<FeatureUsageDto> getFeatureEventsPaginatedWithFilters(
+            String featureCode, ActionType actionType, Instant startDate, Instant endDate, Pageable pageable) {
+        Page<FeatureUsage> events = featureUsageRepository.findFeatureEventsWithFiltersPaginated(
+                featureCode, actionType, startDate, endDate, pageable);
+        return events.map(featureUsageMapper::toDto);
+    }
+
+    public Page<FeatureUsageDto> getProductEventsPaginatedWithFilters(
+            String productCode, ActionType actionType, Instant startDate, Instant endDate, Pageable pageable) {
+        Page<FeatureUsage> events = featureUsageRepository.findProductEventsWithFiltersPaginated(
+                productCode, actionType, startDate, endDate, pageable);
+        return events.map(featureUsageMapper::toDto);
+    }
+
+    // Top rankings methods
+    public List<TopItemDto> getTopFeatures(Instant startDate, Instant endDate, int limit) {
+        return featureUsageRepository.findTopFeatures(startDate, endDate, PageRequest.of(0, limit)).stream()
+                .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                .collect(Collectors.toList());
+    }
+
+    public List<TopItemDto> getTopUsers(Instant startDate, Instant endDate, int limit) {
+        return featureUsageRepository.findTopUsers(startDate, endDate, PageRequest.of(0, limit)).stream()
+                .map(row -> new TopItemDto((String) row[0], (Long) row[1]))
+                .collect(Collectors.toList());
+    }
+
+    // Paginated methods
+    public Page<FeatureUsageDto> getUserEvents(String userId, Pageable pageable) {
+        Page<FeatureUsage> events = featureUsageRepository.findByUserIdOrderByTimestampDesc(userId, pageable);
+        return events.map(featureUsageMapper::toDto);
+    }
+
+    public Page<FeatureUsageDto> getFeatureEventsPaginated(String featureCode, Pageable pageable) {
+        Page<FeatureUsage> events = featureUsageRepository.findByFeatureCodeOrderByTimestampDesc(featureCode, pageable);
+        return events.map(featureUsageMapper::toDto);
+    }
+
+    public Page<FeatureUsageDto> getProductEventsPaginated(String productCode, Pageable pageable) {
+        Page<FeatureUsage> events = featureUsageRepository.findByProductCodeOrderByTimestampDesc(productCode, pageable);
+        return events.map(featureUsageMapper::toDto);
     }
 }
