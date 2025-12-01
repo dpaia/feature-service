@@ -1,5 +1,6 @@
 package com.sivalabs.ft.features.domain.entities;
 
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -52,6 +53,23 @@ public class Feature {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    // Feature Planning fields
+    @Column(name = "planned_completion_date")
+    private Instant plannedCompletionDate;
+
+    @Column(name = "planning_status", length = 50)
+    @Enumerated(EnumType.STRING)
+    private FeaturePlanningStatus planningStatus = FeaturePlanningStatus.NOT_STARTED;
+
+    @Size(max = 255) @Column(name = "feature_owner")
+    private String featureOwner;
+
+    @Column(name = "planning_notes", length = Integer.MAX_VALUE)
+    private String planningNotes;
+
+    @Column(name = "blockage_reason", length = Integer.MAX_VALUE)
+    private String blockageReason;
 
     public Long getId() {
         return id;
@@ -147,5 +165,45 @@ public class Feature {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Instant getPlannedCompletionDate() {
+        return plannedCompletionDate;
+    }
+
+    public void setPlannedCompletionDate(Instant plannedCompletionDate) {
+        this.plannedCompletionDate = plannedCompletionDate;
+    }
+
+    public FeaturePlanningStatus getPlanningStatus() {
+        return planningStatus;
+    }
+
+    public void setPlanningStatus(FeaturePlanningStatus planningStatus) {
+        this.planningStatus = planningStatus;
+    }
+
+    public String getFeatureOwner() {
+        return featureOwner;
+    }
+
+    public void setFeatureOwner(String featureOwner) {
+        this.featureOwner = featureOwner;
+    }
+
+    public String getPlanningNotes() {
+        return planningNotes;
+    }
+
+    public void setPlanningNotes(String planningNotes) {
+        this.planningNotes = planningNotes;
+    }
+
+    public String getBlockageReason() {
+        return blockageReason;
+    }
+
+    public void setBlockageReason(String blockageReason) {
+        this.blockageReason = blockageReason;
     }
 }
