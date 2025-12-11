@@ -1,0 +1,17 @@
+package com.sivalabs.ft.features.domain.models;
+
+public enum ActionType {
+    FEATURE_VIEWED,
+    FEATURE_CREATED,
+    FEATURE_UPDATED,
+    FEATURE_DELETED,
+    FEATURES_LISTED,
+    PRODUCT_VIEWED,
+    PRODUCT_CREATED,
+    PRODUCT_UPDATED,
+    RELEASE_VIEWED,
+    RELEASE_CREATED,
+    COMMENT_ADDED,
+    FAVORITE_ADDED,
+    FAVORITE_REMOVED
+}
