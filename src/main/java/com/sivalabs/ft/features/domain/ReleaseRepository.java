@@ -13,6 +13,4 @@ interface ReleaseRepository extends ListCrudRepository<Release, Long> {
 
     @Modifying
     void deleteByCode(String code);
-
-    boolean existsByCode(String code);
 }

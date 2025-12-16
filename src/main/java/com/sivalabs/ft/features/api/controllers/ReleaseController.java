@@ -5,8 +5,10 @@ import com.sivalabs.ft.features.api.models.UpdateReleasePayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
+import com.sivalabs.ft.features.domain.FeatureUsageService;
 import com.sivalabs.ft.features.domain.ReleaseService;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.models.ActionType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -14,9 +16,11 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -37,9 +41,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class ReleaseController {
     private static final Logger log = LoggerFactory.getLogger(ReleaseController.class);
     private final ReleaseService releaseService;
+    private final FeatureUsageService featureUsageService;
 
-    ReleaseController(ReleaseService releaseService) {
+    ReleaseController(ReleaseService releaseService, FeatureUsageService featureUsageService) {
         this.releaseService = releaseService;
+        this.featureUsageService = featureUsageService;
     }
 
     @GetMapping("")
@@ -73,11 +79,33 @@ class ReleaseController {
                                         schema = @Schema(implementation = ReleaseDto.class))),
                 @ApiResponse(responseCode = "404", description = "Release not found")
             })
-    ResponseEntity<ReleaseDto> getRelease(@PathVariable String code) {
-        return releaseService
+    ResponseEntity<ReleaseDto> getRelease(@PathVariable String code, HttpServletRequest request) {
+        var username = SecurityUtils.getCurrentUsername();
+        var userId = SecurityUtils.getCurrentUserId();
+        var result = releaseService
                 .findReleaseByCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+
+        if (result.getStatusCode().is2xxSuccessful()) {
+            // Create context for anonymous users (GDPR compliance)
+            Map<String, Object> context = null;
+            if (username == null) {
+                context = SecurityUtils.createAnonymousContext(request);
+            }
+
+            featureUsageService.logUsage(
+                    userId,
+                    null, // featureCode
+                    null, // productCode
+                    code, // releaseCode
+                    ActionType.RELEASE_VIEWED,
+                    context,
+                    request.getRemoteAddr(),
+                    request.getHeader("User-Agent"));
+        }
+
+        return result;
     }
 
     @PostMapping("")
@@ -102,6 +130,11 @@ class ReleaseController {
         var cmd = new CreateReleaseCommand(payload.productCode(), payload.code(), payload.description(), username);
         String code = releaseService.createRelease(cmd);
         log.info("Created release with code {}", code);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, null, payload.productCode(), code, ActionType.RELEASE_CREATED);
+        }
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{code}")
                 .buildAndExpand(code)
