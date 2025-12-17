@@ -4,7 +4,9 @@ import com.sivalabs.ft.features.api.models.AddCommentPayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.Commands.CreateCommentCommand;
 import com.sivalabs.ft.features.domain.CommentService;
+import com.sivalabs.ft.features.domain.FeatureUsageService;
 import com.sivalabs.ft.features.domain.dtos.CommentDto;
+import com.sivalabs.ft.features.domain.models.ActionType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,9 +25,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class CommentController {
     private static final Logger log = LoggerFactory.getLogger(CommentController.class);
     private final CommentService commentService;
+    private final FeatureUsageService featureUsageService;
 
-    CommentController(CommentService commentService) {
+    CommentController(CommentService commentService, FeatureUsageService featureUsageService) {
         this.commentService = commentService;
+        this.featureUsageService = featureUsageService;
     }
 
     @PostMapping
@@ -49,6 +53,11 @@ class CommentController {
         var commentId = commentService.createComment(command);
 
         log.info("Comment added with id: {}", commentId);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, addCommentPayload.featureCode(), null, ActionType.COMMENT_ADDED);
+        }
+
         return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
                         .path("/{commentId}")
                         .buildAndExpand(commentId)
