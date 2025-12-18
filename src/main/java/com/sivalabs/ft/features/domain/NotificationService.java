@@ -7,6 +7,8 @@ import com.sivalabs.ft.features.domain.mappers.NotificationMapper;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
 import com.sivalabs.ft.features.domain.models.NotificationEventType;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +51,43 @@ public class NotificationService {
 
         return notificationMapper.toDto(notification);
     }
+
+    /**
+     * Create multiple notifications in a single batch operation.
+     */
+    @Transactional
+    public List<NotificationDto> createNotificationsBatch(List<NotificationData> notificationsData) {
+        if (notificationsData == null || notificationsData.isEmpty()) {
+            return List.of();
+        }
+
+        List<Notification> notifications = new ArrayList<>();
+        Instant now = Instant.now();
+
+        for (NotificationData data : notificationsData) {
+            var notification = new Notification();
+            notification.setRecipientUserId(data.recipientUserId());
+            notification.setEventType(data.eventType());
+            notification.setEventDetails(data.eventDetails());
+            notification.setLink(data.link());
+            notification.setCreatedAt(now);
+            notification.setRead(false);
+            notification.setDeliveryStatus(DeliveryStatus.PENDING);
+            notifications.add(notification);
+        }
+
+        List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
+
+        log.info("Created {} notifications in batch", savedNotifications.size());
+
+        return savedNotifications.stream().map(notificationMapper::toDto).toList();
+    }
+
+    /**
+     * Data class for batch notification creation
+     */
+    public record NotificationData(
+            String recipientUserId, NotificationEventType eventType, String eventDetails, String link) {}
 
     /**
      * Get notifications for a user with pagination
