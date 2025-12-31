@@ -1,0 +1,397 @@
+package com.sivalabs.ft.features.api.controllers;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sivalabs.ft.features.AbstractIT;
+import com.sivalabs.ft.features.MockOAuth2UserContextFactory;
+import com.sivalabs.ft.features.WithMockOAuth2User;
+import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.jdbc.Sql;
+
+/**
+ * Integration tests for email notification system.
+ * Tests email sending, delivery failure handling, and read tracking via pixel.
+ */
+@Sql("/test-data.sql")
+@ExtendWith(OutputCaptureExtension.class)
+@Import(EmailNotificationIntegrationTest.TestConfig.class)
+class EmailNotificationIntegrationTest extends AbstractIT {
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        @Primary
+        JavaMailSender mockJavaMailSender() {
+            JavaMailSender mailSender = mock(JavaMailSender.class);
+            // Use real MimeMessage so we can inspect content
+            MimeMessage mimeMessage = new MimeMessage((Session) null);
+            org.mockito.Mockito.when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+            return mailSender;
+        }
+    }
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private JavaMailSender javaMailSender;
+
+    private final MockOAuth2UserContextFactory contextFactory = new MockOAuth2UserContextFactory();
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate.execute("DELETE FROM notifications");
+        reset(javaMailSender);
+        // Configure mock to return real MimeMessage so we can inspect content
+        MimeMessage mimeMessage = new MimeMessage((Session) null);
+        org.mockito.Mockito.when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        doNothing().when(javaMailSender).send(any(MimeMessage.class));
+    }
+
+    @AfterEach
+    void tearDown() {
+        jdbcTemplate.execute("DELETE FROM notifications");
+    }
+
+    private void setAuthenticationContext(String username) {
+        WithMockOAuth2User mockUser = new WithMockOAuth2User() {
+            @Override
+            public Class<WithMockOAuth2User> annotationType() {
+                return WithMockOAuth2User.class;
+            }
+
+            @Override
+            public String value() {
+                return username;
+            }
+
+            @Override
+            public String username() {
+                return username;
+            }
+
+            @Override
+            public long id() {
+                return username.hashCode();
+            }
+
+            @Override
+            public String[] roles() {
+                return new String[] {"USER"};
+            }
+        };
+        SecurityContextHolder.setContext(contextFactory.createSecurityContext(mockUser));
+    }
+
+    // ========== Test 1: Email is sent after notification creation ==========
+
+    @Test
+    void shouldSendEmailWhenNotificationIsCreated() throws Exception {
+        // Given - alice creates a feature assigned to bob
+        setAuthenticationContext("alice");
+        CreateFeaturePayload payload =
+                new CreateFeaturePayload("intellij", "Email Test Feature", "Test email notification", null, "bob");
+
+        // When - Create feature
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // Then - Verify notification was created with recipient_email
+        String recipientEmail = jdbcTemplate.queryForObject(
+                "SELECT recipient_email FROM notifications WHERE recipient_user_id = ?", String.class, "bob");
+        assertThat(recipientEmail).isEqualTo("bob@company.com");
+
+        // Get notification ID from database
+        UUID notificationId = jdbcTemplate.queryForObject(
+                "SELECT id FROM notifications WHERE recipient_user_id = ?", UUID.class, "bob");
+
+        // Verify email was sent and capture the message
+        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, times(1)).send(messageCaptor.capture());
+
+        // Verify email body contains tracking pixel link
+        MimeMessage sentMessage = messageCaptor.getValue();
+        String emailContent = extractEmailContent(sentMessage);
+        assertThat(emailContent)
+                .as("Email should contain tracking pixel link with notification ID")
+                .contains("/notifications/" + notificationId + "/read");
+    }
+
+    private String extractEmailContent(MimeMessage message) throws Exception {
+        Object content = message.getContent();
+        if (content instanceof String) {
+            return (String) content;
+        } else if (content instanceof MimeMultipart multipart) {
+            return extractFromMultipart(multipart);
+        }
+        // Fallback: try to get raw content via DataHandler
+        if (message.getDataHandler() != null) {
+            try (java.io.InputStream is = message.getDataHandler().getInputStream()) {
+                return new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return "";
+    }
+
+    private String extractFromMultipart(MimeMultipart multipart) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < multipart.getCount(); i++) {
+            BodyPart part = multipart.getBodyPart(i);
+            Object partContent = part.getContent();
+            if (partContent instanceof String) {
+                sb.append(partContent);
+            } else if (partContent instanceof MimeMultipart nested) {
+                sb.append(extractFromMultipart(nested));
+            }
+        }
+        return sb.toString();
+    }
+
+    // ========== Test 2: Tracking endpoint marks notification as read ==========
+
+    @Test
+    void shouldMarkNotificationAsReadWhenTrackingPixelIsLoaded() throws Exception {
+        // Given - Create an unread notification directly in database
+        UUID notificationId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO notifications (id, recipient_user_id, recipient_email, event_type, event_details, created_at, read, delivery_status)
+                VALUES (?, 'testuser', 'testuser@example.com', 'FEATURE_CREATED', '{}', NOW(), false, 'PENDING')
+                """,
+                notificationId);
+
+        // When - Load tracking pixel
+        var result = mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
+
+        // Then - Should return 200 OK with GIF image
+        assertThat(result).hasStatus(HttpStatus.OK);
+        assertThat(result.getResponse().getContentType()).isEqualTo("image/gif");
+
+        // Verify notification is marked as read in database
+        Boolean isRead = jdbcTemplate.queryForObject(
+                "SELECT read FROM notifications WHERE id = ?", Boolean.class, notificationId);
+        assertThat(isRead).isTrue();
+
+        // Verify read_at is populated
+        java.sql.Timestamp readAt = jdbcTemplate.queryForObject(
+                "SELECT read_at FROM notifications WHERE id = ?", java.sql.Timestamp.class, notificationId);
+        assertThat(readAt).isNotNull();
+    }
+
+    // ========== Test 3: Tracking endpoint is accessible without authentication ==========
+
+    @Test
+    void shouldAllowTrackingEndpointWithoutAuthentication() throws Exception {
+        // Given - Create notification
+        UUID notificationId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO notifications (id, recipient_user_id, recipient_email, event_type, event_details, created_at, read, delivery_status)
+                VALUES (?, 'testuser', 'testuser@example.com', 'FEATURE_CREATED', '{}', NOW(), false, 'PENDING')
+                """,
+                notificationId);
+
+        // Clear any authentication context
+        SecurityContextHolder.clearContext();
+
+        // When - Access tracking endpoint without authentication
+        var result = mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
+
+        // Then - Should return 200 OK (not 401 Unauthorized)
+        assertThat(result).hasStatus(HttpStatus.OK);
+        assertThat(result.getResponse().getContentType()).isEqualTo("image/gif");
+    }
+
+    // ========== Test 4: Email failure does not affect notification creation ==========
+
+    @Test
+    void shouldCreateNotificationEvenWhenEmailSendingFails(CapturedOutput output) throws Exception {
+        // Given - Configure mail sender to throw exception
+        doThrow(new MailSendException("SMTP server unavailable"))
+                .when(javaMailSender)
+                .send(any(MimeMessage.class));
+
+        setAuthenticationContext("alice");
+        CreateFeaturePayload payload = new CreateFeaturePayload(
+                "intellij", "Email Failure Test", "Test notification despite email failure", null, "bob");
+
+        // When - Create feature (email sending will fail)
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+
+        // Then - Feature should still be created
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // Notification should be saved in database
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "bob");
+        assertThat(count).isEqualTo(1);
+
+        // Error should be logged with recipient email and error details
+        assertThat(output.getOut()).contains("bob@company.com");
+        assertThat(output.getOut()).contains("Email delivery failed");
+    }
+
+    // ========== Test 5: Tracking endpoint returns 404 for non-existent notification ==========
+
+    @Test
+    void shouldReturn404ForNonExistentNotificationId() throws Exception {
+        // Given - Random UUID that doesn't exist
+        UUID nonExistentId = UUID.randomUUID();
+
+        // When - Try to load tracking pixel for non-existent notification
+        var result = mvc.get().uri("/notifications/{id}/read", nonExistentId).exchange();
+
+        // Then - Should return 404 Not Found
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    // ========== Test 6: Tracking endpoint returns 400 for invalid UUID format ==========
+
+    @Test
+    void shouldReturn400ForInvalidUuidFormat() throws Exception {
+        // When - Try to load tracking pixel with invalid UUID
+        var result =
+                mvc.get().uri("/notifications/{id}/read", "not-a-valid-uuid").exchange();
+
+        // Then - Should return 400 Bad Request
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+
+        // Response should not expose internal details (stack traces)
+        String responseBody = result.getResponse().getContentAsString();
+        assertThat(responseBody).doesNotContain("IllegalArgumentException");
+        assertThat(responseBody).doesNotContain("java.util.UUID");
+        assertThat(responseBody).doesNotContain("Exception");
+    }
+
+    // ========== Test 7: Tracking endpoint is idempotent ==========
+
+    @Test
+    void shouldBeIdempotentWhenCalledMultipleTimes() throws Exception {
+        // Given - Create an unread notification
+        UUID notificationId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO notifications (id, recipient_user_id, recipient_email, event_type, event_details, created_at, read, delivery_status)
+                VALUES (?, 'testuser', 'testuser@example.com', 'FEATURE_CREATED', '{}', NOW(), false, 'PENDING')
+                """,
+                notificationId);
+
+        // When - Call tracking endpoint first time
+        var firstResult =
+                mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
+
+        assertThat(firstResult).hasStatus(HttpStatus.OK);
+
+        // Get the read_at timestamp after first call
+        java.sql.Timestamp firstReadAt = jdbcTemplate.queryForObject(
+                "SELECT read_at FROM notifications WHERE id = ?", java.sql.Timestamp.class, notificationId);
+
+        // When - Call tracking endpoint second time
+        var secondResult =
+                mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
+
+        // Then - Should still return 200 OK
+        assertThat(secondResult).hasStatus(HttpStatus.OK);
+
+        // read_at should NOT be updated (idempotent)
+        java.sql.Timestamp secondReadAt = jdbcTemplate.queryForObject(
+                "SELECT read_at FROM notifications WHERE id = ?", java.sql.Timestamp.class, notificationId);
+
+        assertThat(secondReadAt).isEqualTo(firstReadAt);
+    }
+
+    // ========== Test 8: Notification contains recipient_email in database ==========
+
+    @Test
+    void shouldStoreRecipientEmailInNotification() throws Exception {
+        // Given
+        setAuthenticationContext("creator");
+        CreateFeaturePayload payload = new CreateFeaturePayload(
+                "intellij", "Recipient Email Test", "Test recipient email storage", null, "recipient");
+
+        // When - Create feature
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // Then - Verify recipient_email column is populated
+        String recipientEmail = jdbcTemplate.queryForObject(
+                "SELECT recipient_email FROM notifications WHERE recipient_user_id = ?", String.class, "recipient");
+
+        assertThat(recipientEmail)
+                .as("recipient_email should match email from users table")
+                .isEqualTo("recipient@company.com");
+    }
+
+    // ========== Test 9: Tracking endpoint returns valid GIF image ==========
+
+    @Test
+    void shouldReturnValidGifImage() throws Exception {
+        // Given - Create notification
+        UUID notificationId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO notifications (id, recipient_user_id, recipient_email, event_type, event_details, created_at, read, delivery_status)
+                VALUES (?, 'testuser', 'testuser@example.com', 'FEATURE_CREATED', '{}', NOW(), false, 'PENDING')
+                """,
+                notificationId);
+
+        // When - Load tracking pixel
+        var result = mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
+
+        // Then - Should return valid GIF
+        assertThat(result).hasStatus(HttpStatus.OK);
+        assertThat(result.getResponse().getContentType()).isEqualTo("image/gif");
+
+        // Verify response body is not empty (actual GIF content)
+        byte[] content = result.getResponse().getContentAsByteArray();
+        assertThat(content).isNotEmpty();
+    }
+}
