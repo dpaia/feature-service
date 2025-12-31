@@ -3,6 +3,18 @@ delete from comments;
 delete from features;
 delete from releases;
 delete from products;
+delete from notifications;
+delete from users;
+
+-- Insert test users (let PostgreSQL generate UUIDs automatically)
+insert into users (username, email, created_at, updated_at) values
+('admin', 'admin@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00'),
+('siva', 'siva@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00'),
+('marcobehler', 'marcobehler@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00'),
+('daniiltsarev', 'daniiltsarev@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00'),
+('antonarhipov', 'antonarhipov@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00'),
+('andreybelyaev', 'andreybelyaev@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00'),
+('user', 'user@example.com', '2024-01-01 00:00:00', '2024-01-01 00:00:00');
 
 insert into products (id, code, prefix, name, description, image_url, disabled, created_by, created_at) values
 (1, 'intellij', 'IDEA', 'IntelliJ IDEA', 'JetBrains IDE for Java', 'https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA.png', false, 'admin', '2024-03-01 00:00:00'),

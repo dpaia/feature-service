@@ -6,6 +6,7 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.NotificationMapper;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
 import com.sivalabs.ft.features.domain.models.NotificationEventType;
+import com.sivalabs.ft.features.notifications.EmailService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,10 +24,18 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final UserRepository userRepository;
+    private final EmailService emailService;
 
-    public NotificationService(NotificationRepository notificationRepository, NotificationMapper notificationMapper) {
+    public NotificationService(
+            NotificationRepository notificationRepository,
+            NotificationMapper notificationMapper,
+            UserRepository userRepository,
+            EmailService emailService) {
         this.notificationRepository = notificationRepository;
         this.notificationMapper = notificationMapper;
+        this.userRepository = userRepository;
+        this.emailService = emailService;
     }
 
     /**
@@ -45,7 +54,30 @@ public class NotificationService {
         notification.setRead(false);
         notification.setDeliveryStatus(DeliveryStatus.PENDING);
 
+        // Get user email for notification
+        var maybeEmail = userRepository.findEmailByUsername(recipientUserId);
+        if (maybeEmail.isPresent()) {
+            notification.setRecipientEmail(maybeEmail.get());
+        }
+
         notification = notificationRepository.save(notification);
+
+        // Send email notification asynchronously (don't block notification creation)
+        try {
+            if (notification.getRecipientEmail() != null) {
+                var status = emailService.sendNotificationEmail(notification);
+                notification.updateDeliveryStatus(status);
+                notificationRepository.save(notification);
+            }
+        } catch (Exception e) {
+            // Log failure but don't prevent notification creation
+            emailService.logDeliveryFailure(
+                    notification.getRecipientEmail(),
+                    notification.getEventType().toString(),
+                    "Failed to send email: " + e.getMessage());
+            notification.updateDeliveryStatus(DeliveryStatus.FAILED);
+            notificationRepository.save(notification);
+        }
 
         log.info("Created notification {} for user {}", notification.getId(), recipientUserId);
 
@@ -73,10 +105,36 @@ public class NotificationService {
             notification.setCreatedAt(now);
             notification.setRead(false);
             notification.setDeliveryStatus(DeliveryStatus.PENDING);
+
+            // Get user email for notification
+            var email = userRepository.findEmailByUsername(data.recipientUserId());
+            if (email.isPresent()) {
+                notification.setRecipientEmail(email.get());
+            }
+
             notifications.add(notification);
         }
 
         List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
+
+        // Send emails for all notifications (asynchronously)
+        for (Notification notification : savedNotifications) {
+            try {
+                if (notification.getRecipientEmail() != null) {
+                    var status = emailService.sendNotificationEmail(notification);
+                    notification.updateDeliveryStatus(status);
+                }
+            } catch (Exception e) {
+                emailService.logDeliveryFailure(
+                        notification.getRecipientEmail(),
+                        notification.getEventType().toString(),
+                        "Failed to send email: " + e.getMessage());
+                notification.updateDeliveryStatus(DeliveryStatus.FAILED);
+            }
+        }
+
+        // Save updated delivery statuses
+        notificationRepository.saveAll(savedNotifications);
 
         log.info("Created {} notifications in batch", savedNotifications.size());
 
@@ -142,5 +200,32 @@ public class NotificationService {
         log.info("Marked notification {} as unread for user {}", notificationId, recipientUserId);
 
         return notificationMapper.toDto(notification);
+    }
+
+    /**
+     * Mark notification as read via email tracking (public endpoint)
+     * This is idempotent - subsequent calls don't update the timestamp
+     * @return true if notification was found and processed, false if not found
+     */
+    @Transactional
+    public boolean markAsReadByTracking(UUID notificationId) {
+        var notificationOpt = notificationRepository.findById(notificationId);
+
+        if (notificationOpt.isEmpty()) {
+            return false;
+        }
+
+        Notification notification = notificationOpt.get();
+
+        // Only mark as read if not already read (idempotent behavior)
+        if (!notification.getRead()) {
+            notification.markAsRead();
+            notificationRepository.save(notification);
+            log.info("Marked notification {} as read via email tracking", notificationId);
+        } else {
+            log.debug("Notification {} already marked as read, skipping update", notificationId);
+        }
+
+        return true;
     }
 }
