@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.ListCrudRepository;
 
-interface NotificationRepository extends ListCrudRepository<Notification, UUID> {
+public interface NotificationRepository extends ListCrudRepository<Notification, UUID> {
 
     /**
      * Find all notifications for a specific user with pagination, ordered by creation date (newest first)

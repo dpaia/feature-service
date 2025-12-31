@@ -16,6 +16,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class NotificationService {
@@ -23,10 +25,15 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final NotificationEmailService notificationEmailService;
 
-    public NotificationService(NotificationRepository notificationRepository, NotificationMapper notificationMapper) {
+    public NotificationService(
+            NotificationRepository notificationRepository,
+            NotificationMapper notificationMapper,
+            NotificationEmailService notificationEmailService) {
         this.notificationRepository = notificationRepository;
         this.notificationMapper = notificationMapper;
+        this.notificationEmailService = notificationEmailService;
     }
 
     /**
@@ -34,10 +41,15 @@ public class NotificationService {
      */
     @Transactional
     public NotificationDto createNotification(
-            String recipientUserId, NotificationEventType eventType, String eventDetails, String link) {
+            String recipientUserId,
+            String recipientEmail,
+            NotificationEventType eventType,
+            String eventDetails,
+            String link) {
 
         var notification = new Notification();
         notification.setRecipientUserId(recipientUserId);
+        notification.setRecipientEmail(recipientEmail);
         notification.setEventType(eventType);
         notification.setEventDetails(eventDetails);
         notification.setLink(link);
@@ -48,6 +60,15 @@ public class NotificationService {
         notification = notificationRepository.save(notification);
 
         log.info("Created notification {} for user {}", notification.getId(), recipientUserId);
+
+        // Send email after transaction commits to avoid sending if rollback occurs
+        Notification savedNotification = notification;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notificationEmailService.sendNotificationEmail(savedNotification);
+            }
+        });
 
         return notificationMapper.toDto(notification);
     }
@@ -67,6 +88,7 @@ public class NotificationService {
         for (NotificationData data : notificationsData) {
             var notification = new Notification();
             notification.setRecipientUserId(data.recipientUserId());
+            notification.setRecipientEmail(data.recipientEmail());
             notification.setEventType(data.eventType());
             notification.setEventDetails(data.eventDetails());
             notification.setLink(data.link());
@@ -80,6 +102,16 @@ public class NotificationService {
 
         log.info("Created {} notifications in batch", savedNotifications.size());
 
+        // Send emails after transaction commits to avoid sending if rollback occurs
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (Notification savedNotification : savedNotifications) {
+                    notificationEmailService.sendNotificationEmail(savedNotification);
+                }
+            }
+        });
+
         return savedNotifications.stream().map(notificationMapper::toDto).toList();
     }
 
@@ -87,7 +119,11 @@ public class NotificationService {
      * Data class for batch notification creation
      */
     public record NotificationData(
-            String recipientUserId, NotificationEventType eventType, String eventDetails, String link) {}
+            String recipientUserId,
+            String recipientEmail,
+            NotificationEventType eventType,
+            String eventDetails,
+            String link) {}
 
     /**
      * Get notifications for a user with pagination
