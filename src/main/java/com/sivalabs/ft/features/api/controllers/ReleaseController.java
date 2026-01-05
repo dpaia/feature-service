@@ -5,8 +5,11 @@ import com.sivalabs.ft.features.api.models.UpdateReleasePayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
+import com.sivalabs.ft.features.domain.DashboardService;
 import com.sivalabs.ft.features.domain.ReleaseService;
+import com.sivalabs.ft.features.domain.dtos.ReleaseDashboardResponseDto;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.dtos.ReleaseMetricsResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -37,9 +40,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class ReleaseController {
     private static final Logger log = LoggerFactory.getLogger(ReleaseController.class);
     private final ReleaseService releaseService;
+    private final DashboardService dashboardService;
 
-    ReleaseController(ReleaseService releaseService) {
+    ReleaseController(ReleaseService releaseService, DashboardService dashboardService) {
         this.releaseService = releaseService;
+        this.dashboardService = dashboardService;
     }
 
     @GetMapping("")
@@ -142,5 +147,53 @@ class ReleaseController {
         }
         releaseService.deleteRelease(code);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{code}/dashboard")
+    @Operation(
+            summary = "Get release dashboard data",
+            description =
+                    "Get comprehensive dashboard data for a specific release including overview, health indicators, timeline, and feature breakdown",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ReleaseDashboardResponseDto.class))),
+                @ApiResponse(responseCode = "404", description = "Release not found")
+            })
+    ResponseEntity<ReleaseDashboardResponseDto> getReleaseDashboard(@PathVariable String code) {
+        try {
+            ReleaseDashboardResponseDto dashboard = dashboardService.getReleaseDashboard(code);
+            return ResponseEntity.ok(dashboard);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{code}/metrics")
+    @Operation(
+            summary = "Get release metrics",
+            description =
+                    "Get detailed metrics for a specific release including completion rate, velocity, blocked time, and workload distribution",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ReleaseMetricsResponseDto.class))),
+                @ApiResponse(responseCode = "404", description = "Release not found")
+            })
+    ResponseEntity<ReleaseMetricsResponseDto> getReleaseMetrics(@PathVariable String code) {
+        try {
+            ReleaseMetricsResponseDto metrics = dashboardService.getReleaseMetrics(code);
+            return ResponseEntity.ok(metrics);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

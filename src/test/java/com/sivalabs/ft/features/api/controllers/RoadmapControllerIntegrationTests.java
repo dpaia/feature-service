@@ -30,7 +30,7 @@ class RoadmapControllerIntegrationTests extends AbstractIT {
             assertThat(summary.get("totalReleases")).isEqualTo(6);
             assertThat(summary.get("completedReleases")).isEqualTo(6);
             assertThat(summary.get("draftReleases")).isEqualTo(0);
-            assertThat(summary.get("totalFeatures")).isEqualTo(2); // Only 2 features have release_id set
+            assertThat(summary.get("totalFeatures")).isEqualTo(3); // 3 features have release_id set in IDEA-2023.3.8
             assertThat((Double) summary.get("overallCompletionPercentage")).isBetween(0.0, 100.0);
             assertThat((Integer) summary.get("completedReleases") + (Integer) summary.get("draftReleases"))
                     .isEqualTo((Integer) summary.get("totalReleases"));
@@ -59,7 +59,7 @@ class RoadmapControllerIntegrationTests extends AbstractIT {
 
             Map<String, Object> summary = (Map<String, Object>) response.get("summary");
             assertThat(summary.get("totalReleases")).isEqualTo(2);
-            assertThat(summary.get("totalFeatures")).isEqualTo(2);
+            assertThat(summary.get("totalFeatures")).isEqualTo(3); // 3 features in IDEA-2023.3.8 release
 
             // Check exact applied filters
             Map<String, Object> appliedFilters = (Map<String, Object>) response.get("appliedFilters");
@@ -470,18 +470,18 @@ class RoadmapControllerIntegrationTests extends AbstractIT {
 
             // Validate progress metrics with specific values
             Map<String, Object> progress = (Map<String, Object>) idea2023Release.get("progressMetrics");
-            assertThat(progress.get("totalFeatures")).isEqualTo(2);
+            assertThat(progress.get("totalFeatures")).isEqualTo(3);
             assertThat(progress.get("completedFeatures")).isEqualTo(0);
             assertThat(progress.get("inProgressFeatures")).isEqualTo(0);
-            assertThat(progress.get("newFeatures")).isEqualTo(2); // Both IDEA-1 and IDEA-2 are NEW
-            assertThat(progress.get("onHoldFeatures")).isEqualTo(0);
+            assertThat(progress.get("newFeatures")).isEqualTo(2); // IDEA-1 and IDEA-2 are NEW
+            assertThat(progress.get("onHoldFeatures")).isEqualTo(1); // IDEA-5 is ON_HOLD
             assertThat(progress.get("completionPercentage")).isEqualTo(0.0);
 
             // Validate health indicators
             Map<String, Object> health = (Map<String, Object>) idea2023Release.get("healthIndicators");
             assertThat(health.get("timelineAdherence").toString()).isIn("ON_SCHEDULE", "DELAYED", "CRITICAL");
             assertThat(health.get("riskLevel").toString()).isIn("LOW", "MEDIUM", "HIGH", "CRITICAL");
-            assertThat(health.get("blockedFeatures")).isEqualTo(0);
+            assertThat(health.get("blockedFeatures")).isEqualTo(1); // IDEA-5 is ON_HOLD
 
             // Validate release structure with specific values
             Map<String, Object> release = (Map<String, Object>) idea2023Release.get("release");
@@ -598,13 +598,13 @@ class RoadmapControllerIntegrationTests extends AbstractIT {
             if (releaseWithFeatures.isPresent()) {
                 var item = releaseWithFeatures.get();
                 List<Map<String, Object>> features = (List<Map<String, Object>>) item.get("features");
-                assertThat(features).hasSize(2);
+                assertThat(features).hasSize(3);
                 assertThat(features)
                         .extracting(feature -> feature.get("code"))
-                        .containsExactlyInAnyOrder("IDEA-1", "IDEA-2");
+                        .containsExactlyInAnyOrder("IDEA-1", "IDEA-2", "IDEA-5");
                 assertThat(features)
                         .extracting(feature -> feature.get("status").toString())
-                        .containsExactlyInAnyOrder("NEW", "NEW");
+                        .containsExactlyInAnyOrder("NEW", "NEW", "ON_HOLD");
 
                 // Validate complete feature structure with specific values
                 var featureIdea1 = features.stream()
