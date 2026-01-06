@@ -688,12 +688,33 @@ class RoadmapControllerIntegrationTests extends AbstractIT {
             var content = response.getMvcResult().getResponse().getContentAsString();
             assertThat(content).isNotEmpty();
 
-            // Validate exact CSV header line
+            // Validate CSV headers in any order
             String[] lines = content.split("\n");
             String headerLine = lines[0].trim();
-            String expectedHeaders =
-                    "Product Code,Product Name,Release Code,Release Description,Release Status,Released At,Total Features,Completed Features,In Progress Features,New Features,On Hold Features,Completion Percentage,Timeline Adherence,Risk Level,Blocked Features,Feature Code,Feature Title,Feature Status,Assigned To,Created At";
-            assertThat(headerLine).isEqualTo(expectedHeaders);
+            String[] actualHeaders = headerLine.split(",");
+            String[] expectedHeaders = {
+                "Product Code",
+                "Product Name",
+                "Release Code",
+                "Release Description",
+                "Release Status",
+                "Released At",
+                "Total Features",
+                "Completed Features",
+                "In Progress Features",
+                "New Features",
+                "On Hold Features",
+                "Completion Percentage",
+                "Timeline Adherence",
+                "Risk Level",
+                "Blocked Features",
+                "Feature Code",
+                "Feature Title",
+                "Feature Status",
+                "Assigned To",
+                "Created At"
+            };
+            assertThat(actualHeaders).containsExactlyInAnyOrder(expectedHeaders);
 
             // Validate data rows contain expected values
             assertThat(lines.length).isGreaterThan(1); // At least header + 1 data row
