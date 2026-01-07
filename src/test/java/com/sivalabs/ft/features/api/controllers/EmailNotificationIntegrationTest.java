@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.AbstractIT;
-import com.sivalabs.ft.features.MockOAuth2UserContextFactory;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
 import jakarta.mail.BodyPart;
@@ -19,7 +18,6 @@ import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +34,6 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.jdbc.Sql;
 
 /**
@@ -70,8 +67,6 @@ class EmailNotificationIntegrationTest extends AbstractIT {
     @Autowired
     private JavaMailSender javaMailSender;
 
-    private final MockOAuth2UserContextFactory contextFactory = new MockOAuth2UserContextFactory();
-
     @BeforeEach
     void setUp() {
         jdbcTemplate.execute("DELETE FROM notifications");
@@ -82,47 +77,12 @@ class EmailNotificationIntegrationTest extends AbstractIT {
         doNothing().when(javaMailSender).send(any(MimeMessage.class));
     }
 
-    @AfterEach
-    void tearDown() {
-        jdbcTemplate.execute("DELETE FROM notifications");
-    }
-
-    private void setAuthenticationContext(String username) {
-        WithMockOAuth2User mockUser = new WithMockOAuth2User() {
-            @Override
-            public Class<WithMockOAuth2User> annotationType() {
-                return WithMockOAuth2User.class;
-            }
-
-            @Override
-            public String value() {
-                return username;
-            }
-
-            @Override
-            public String username() {
-                return username;
-            }
-
-            @Override
-            public long id() {
-                return username.hashCode();
-            }
-
-            @Override
-            public String[] roles() {
-                return new String[] {"USER"};
-            }
-        };
-        SecurityContextHolder.setContext(contextFactory.createSecurityContext(mockUser));
-    }
-
     // ========== Test 1: Email is sent after notification creation ==========
 
     @Test
+    @WithMockOAuth2User(username = "alice")
     void shouldSendEmailWhenNotificationIsCreated() throws Exception {
         // Given - alice creates a feature assigned to bob
-        setAuthenticationContext("alice");
         CreateFeaturePayload payload =
                 new CreateFeaturePayload("intellij", "Email Test Feature", "Test email notification", null, "bob");
 
@@ -221,7 +181,7 @@ class EmailNotificationIntegrationTest extends AbstractIT {
 
     @Test
     void shouldAllowTrackingEndpointWithoutAuthentication() throws Exception {
-        // Given - Create notification
+        // Given - Create notification (no @WithMockOAuth2User = unauthenticated request)
         UUID notificationId = UUID.randomUUID();
         jdbcTemplate.update(
                 """
@@ -229,9 +189,6 @@ class EmailNotificationIntegrationTest extends AbstractIT {
                 VALUES (?, 'testuser', 'testuser@example.com', 'FEATURE_CREATED', '{}', NOW(), false, 'PENDING')
                 """,
                 notificationId);
-
-        // Clear any authentication context
-        SecurityContextHolder.clearContext();
 
         // When - Access tracking endpoint without authentication
         var result = mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
@@ -244,13 +201,13 @@ class EmailNotificationIntegrationTest extends AbstractIT {
     // ========== Test 4: Email failure does not affect notification creation ==========
 
     @Test
+    @WithMockOAuth2User(username = "alice")
     void shouldCreateNotificationEvenWhenEmailSendingFails(CapturedOutput output) throws Exception {
         // Given - Configure mail sender to throw exception
         doThrow(new MailSendException("SMTP server unavailable"))
                 .when(javaMailSender)
                 .send(any(MimeMessage.class));
 
-        setAuthenticationContext("alice");
         CreateFeaturePayload payload = new CreateFeaturePayload(
                 "intellij", "Email Failure Test", "Test notification despite email failure", null, "bob");
 
@@ -346,9 +303,9 @@ class EmailNotificationIntegrationTest extends AbstractIT {
     // ========== Test 8: Notification contains recipient_email in database ==========
 
     @Test
+    @WithMockOAuth2User(username = "creator")
     void shouldStoreRecipientEmailInNotification() throws Exception {
         // Given
-        setAuthenticationContext("creator");
         CreateFeaturePayload payload = new CreateFeaturePayload(
                 "intellij", "Recipient Email Test", "Test recipient email storage", null, "recipient");
 
@@ -393,5 +350,199 @@ class EmailNotificationIntegrationTest extends AbstractIT {
         // Verify response body is not empty (actual GIF content)
         byte[] content = result.getResponse().getContentAsByteArray();
         assertThat(content).isNotEmpty();
+    }
+
+    // ========== Test 10: XSS prevention - HTML should be escaped in email content ==========
+
+    @Test
+    @WithMockOAuth2User(username = "alice")
+    void shouldEscapeHtmlInEmailContent() throws Exception {
+        // Given - Create feature with potentially malicious HTML content
+        String maliciousTitle = "<script>alert('XSS')</script>Malicious Feature";
+        String maliciousDescription = "<img src=x onerror=alert('XSS')>Description";
+        CreateFeaturePayload payload =
+                new CreateFeaturePayload("intellij", maliciousTitle, maliciousDescription, null, "bob");
+
+        // When - Create feature
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // Then - Capture email and verify HTML is escaped
+        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, times(1)).send(messageCaptor.capture());
+
+        MimeMessage sentMessage = messageCaptor.getValue();
+        String emailContent = extractEmailContent(sentMessage);
+
+        // Verify malicious tags are escaped (not present as raw HTML)
+        assertThat(emailContent).doesNotContain("<script>");
+        assertThat(emailContent).doesNotContain("onerror=");
+        assertThat(emailContent).doesNotContain("<img src=x");
+    }
+
+    // ========== Test 11: Email should include all required fields ==========
+
+    @Test
+    @WithMockOAuth2User(username = "alice")
+    void shouldIncludeAllRequiredFieldsInEmail() throws Exception {
+        // Given
+        CreateFeaturePayload payload =
+                new CreateFeaturePayload("intellij", "Complete Email Test", "Full email validation", null, "bob");
+
+        // When - Create feature
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // Capture email
+        ArgumentCaptor<MimeMessage> messageCaptor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(javaMailSender, times(1)).send(messageCaptor.capture());
+
+        MimeMessage sentMessage = messageCaptor.getValue();
+        String emailContent = extractEmailContent(sentMessage);
+
+        // Verify required fields are present (per Task Description)
+        // Note: Tracking pixel is verified in shouldSendEmailWhenNotificationIsCreated
+        // 1. Link to affected entity
+        assertThat(emailContent).as("Email should contain link to feature").contains("/features/");
+        // 2. Event summary (feature title or code should be present)
+        assertThat(emailContent)
+                .as("Email should contain event summary with feature info")
+                .satisfiesAnyOf(
+                        content -> assertThat(content).contains("Complete Email Test"),
+                        content -> assertThat(content).contains("IDEA-"));
+        // 3. Actor (who triggered the event)
+        assertThat(emailContent)
+                .as("Email should contain actor who triggered the event")
+                .contains("alice");
+    }
+
+    // ========== Test 12: No email sent when user not found in users table ==========
+
+    @Test
+    @WithMockOAuth2User(username = "alice")
+    void shouldNotSendEmailWhenUserNotFoundInUsersTable() throws Exception {
+        // Given - Create feature assigned to user that does NOT exist in users table
+        CreateFeaturePayload payload = new CreateFeaturePayload(
+                "intellij", "Feature for Unknown User", "Test unknown user handling", null, "nonexistent_user");
+
+        // When - Create feature
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+
+        // Then - Feature should be created successfully
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // No email should be sent for user not in users table
+        // (implementation may or may not create notification record - we don't check that)
+        verify(javaMailSender, times(0)).send(any(MimeMessage.class));
+    }
+
+    // ========== Test 13: Batch notifications send multiple emails for release status change ==========
+
+    @Test
+    @WithMockOAuth2User(username = "admin")
+    void shouldSendMultipleEmailsForBatchNotifications() throws Exception {
+        // Given - Create release and multiple features assigned to different users
+
+        // Create release
+        mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                        "{\"productCode\":\"intellij\",\"code\":\"BATCH-TEST-REL\",\"description\":\"Batch Test Release\"}")
+                .exchange();
+
+        String releaseCode = "IDEA-BATCH-TEST-REL";
+
+        // Create features assigned to different users (user1, user2)
+        mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(
+                        new CreateFeaturePayload("intellij", "Feature 1", "Desc 1", releaseCode, "user1")))
+                .exchange();
+
+        mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(
+                        new CreateFeaturePayload("intellij", "Feature 2", "Desc 2", releaseCode, "user2")))
+                .exchange();
+
+        // Clear notifications from feature creation and reset mock
+        jdbcTemplate.execute("DELETE FROM notifications");
+        reset(javaMailSender);
+        MimeMessage mimeMessage = new MimeMessage((Session) null);
+        org.mockito.Mockito.when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
+        doNothing().when(javaMailSender).send(any(MimeMessage.class));
+
+        // Transition release: DRAFT → PLANNED → IN_PROGRESS → RELEASED
+        mvc.put()
+                .uri("/api/releases/{code}", releaseCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Planned\",\"status\":\"PLANNED\"}")
+                .exchange();
+
+        mvc.put()
+                .uri("/api/releases/{code}", releaseCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"In Progress\",\"status\":\"IN_PROGRESS\"}")
+                .exchange();
+
+        // When - Update to RELEASED status (triggers batch notifications)
+        var result = mvc.put()
+                .uri("/api/releases/{code}", releaseCode)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Released\",\"status\":\"RELEASED\"}")
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.OK);
+
+        // Then - Verify multiple notifications created (for user1 and user2, not admin who made the update)
+        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
+        assertThat(totalNotifications)
+                .as("Should create notifications for both feature assignees")
+                .isGreaterThanOrEqualTo(2);
+
+        // Verify emails were sent for batch notifications
+        verify(javaMailSender, times(totalNotifications)).send(any(MimeMessage.class));
+    }
+
+    // ========== Test 14: Tracking pixel returns Cache-Control header ==========
+
+    @Test
+    void shouldReturnCacheControlHeaderForTrackingPixel() throws Exception {
+        // Given - Create notification
+        UUID notificationId = UUID.randomUUID();
+        jdbcTemplate.update(
+                """
+                INSERT INTO notifications (id, recipient_user_id, recipient_email, event_type, event_details, created_at, read, delivery_status)
+                VALUES (?, 'testuser', 'testuser@example.com', 'FEATURE_CREATED', '{}', NOW(), false, 'PENDING')
+                """,
+                notificationId);
+
+        // When - Load tracking pixel
+        var result = mvc.get().uri("/notifications/{id}/read", notificationId).exchange();
+
+        // Then - Cache-Control must prevent caching (required for tracking to work correctly)
+        String cacheControl = result.getResponse().getHeader("Cache-Control");
+        assertThat(cacheControl)
+                .as("Cache-Control header must be present to prevent pixel caching")
+                .isNotNull()
+                .satisfiesAnyOf(s -> assertThat(s.toLowerCase()).contains("no-cache"), s -> assertThat(s.toLowerCase())
+                        .contains("no-store"));
     }
 }
