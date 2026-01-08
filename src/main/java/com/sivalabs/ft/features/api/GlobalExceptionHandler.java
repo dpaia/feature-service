@@ -11,6 +11,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -78,6 +79,16 @@ class GlobalExceptionHandler {
         log.warn("Access denied", e);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(FORBIDDEN, "Access denied");
         problemDetail.setTitle("Forbidden");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ProblemDetail handle(MissingServletRequestParameterException e) {
+        log.warn("Missing required parameter: {}", e.getParameterName());
+        String message = "Required parameter '" + e.getParameterName() + "' is missing";
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
+        problemDetail.setTitle("Missing Parameter");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }
