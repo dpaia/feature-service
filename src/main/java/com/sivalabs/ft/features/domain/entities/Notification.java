@@ -46,6 +46,9 @@ public class Notification {
     @ColumnDefault("'PENDING'")
     private DeliveryStatus deliveryStatus;
 
+    @Size(max = 255) @Column(name = "recipient_email")
+    private String recipientEmail;
+
     public UUID getId() {
         return id;
     }
@@ -116,6 +119,14 @@ public class Notification {
 
     public void setDeliveryStatus(DeliveryStatus deliveryStatus) {
         this.deliveryStatus = deliveryStatus;
+    }
+
+    public String getRecipientEmail() {
+        return recipientEmail;
+    }
+
+    public void setRecipientEmail(String recipientEmail) {
+        this.recipientEmail = recipientEmail;
     }
 
     /**
