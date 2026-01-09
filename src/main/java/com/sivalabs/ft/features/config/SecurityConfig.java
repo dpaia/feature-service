@@ -34,7 +34,7 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/notifications/*/read", "/notifications/empty/read")
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/*/read")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

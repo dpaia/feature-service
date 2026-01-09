@@ -20,9 +20,6 @@ public class Notification {
     @Size(max = 255) @NotNull @Column(name = "recipient_user_id", nullable = false)
     private String recipientUserId;
 
-    @Size(max = 255) @Column(name = "recipient_email")
-    private String recipientEmail;
-
     @NotNull @Column(name = "event_type", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
     private NotificationEventType eventType;
@@ -49,6 +46,9 @@ public class Notification {
     @ColumnDefault("'PENDING'")
     private DeliveryStatus deliveryStatus;
 
+    @Size(max = 255) @Column(name = "recipient_email")
+    private String recipientEmail;
+
     public UUID getId() {
         return id;
     }
@@ -63,14 +63,6 @@ public class Notification {
 
     public void setRecipientUserId(String recipientUserId) {
         this.recipientUserId = recipientUserId;
-    }
-
-    public String getRecipientEmail() {
-        return recipientEmail;
-    }
-
-    public void setRecipientEmail(String recipientEmail) {
-        this.recipientEmail = recipientEmail;
     }
 
     public NotificationEventType getEventType() {
@@ -127,6 +119,14 @@ public class Notification {
 
     public void setDeliveryStatus(DeliveryStatus deliveryStatus) {
         this.deliveryStatus = deliveryStatus;
+    }
+
+    public String getRecipientEmail() {
+        return recipientEmail;
+    }
+
+    public void setRecipientEmail(String recipientEmail) {
+        this.recipientEmail = recipientEmail;
     }
 
     /**

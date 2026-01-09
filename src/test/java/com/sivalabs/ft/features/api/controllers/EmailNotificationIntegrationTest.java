@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -21,15 +20,8 @@ import jakarta.mail.internet.MimeMultipart;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,23 +32,10 @@ import org.springframework.test.context.jdbc.Sql;
 /**
  * Integration tests for email notification system.
  * Tests email sending, delivery failure handling, and read tracking via pixel.
+ * Note: JavaMailSender mock is provided globally by AbstractIT.GlobalMailMockConfig
  */
 @Sql("/test-data.sql")
-@ExtendWith(OutputCaptureExtension.class)
-@Import(EmailNotificationIntegrationTest.TestConfig.class)
 class EmailNotificationIntegrationTest extends AbstractIT {
-
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        @Primary
-        JavaMailSender mockJavaMailSender() {
-            JavaMailSender mailSender = mock(JavaMailSender.class);
-            // Return new MimeMessage for each call so we can inspect content
-            when(mailSender.createMimeMessage()).thenAnswer(inv -> new MimeMessage((Session) null));
-            return mailSender;
-        }
-    }
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -200,7 +179,7 @@ class EmailNotificationIntegrationTest extends AbstractIT {
 
     @Test
     @WithMockOAuth2User(username = "alice")
-    void shouldCreateNotificationEvenWhenEmailSendingFails(CapturedOutput output) throws Exception {
+    void shouldCreateNotificationEvenWhenEmailSendingFails() throws Exception {
         // Given - Configure mail sender to throw exception
         doThrow(new MailSendException("SMTP server unavailable"))
                 .when(javaMailSender)
@@ -224,11 +203,15 @@ class EmailNotificationIntegrationTest extends AbstractIT {
                 "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "bob");
         assertThat(count).isEqualTo(1);
 
-        // Wait for async email sending attempt to complete
+        // Verify email send was attempted (will fail due to mock configuration)
         verify(javaMailSender, timeout(2000).times(1)).send(any(MimeMessage.class));
 
-        // Error should be logged with recipient email
-        assertThat(output.getOut()).contains("bob@company.com");
+        // Verify delivery_status is updated to FAILED after failed send
+        String deliveryStatus = jdbcTemplate.queryForObject(
+                "SELECT delivery_status FROM notifications WHERE recipient_user_id = ?", String.class, "bob");
+        assertThat(deliveryStatus)
+                .as("delivery_status should be FAILED after email send failure")
+                .isEqualTo("FAILED");
     }
 
     // ========== Test 5: Tracking endpoint returns 404 for non-existent notification ==========

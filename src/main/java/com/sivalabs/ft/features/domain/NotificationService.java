@@ -6,7 +6,6 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.NotificationMapper;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
 import com.sivalabs.ft.features.domain.models.NotificationEventType;
-import com.sivalabs.ft.features.notifications.EmailService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,34 +53,19 @@ public class NotificationService {
         notification.setRead(false);
         notification.setDeliveryStatus(DeliveryStatus.PENDING);
 
-        // Get user email for notification
-        var maybeEmail = userRepository.findEmailByUsername(recipientUserId);
-        if (maybeEmail.isPresent()) {
-            notification.setRecipientEmail(maybeEmail.get());
-        }
+        // Look up user email and set recipient_email
+        userRepository
+                .findByUsername(recipientUserId)
+                .ifPresent(user -> notification.setRecipientEmail(user.getEmail()));
 
-        notification = notificationRepository.save(notification);
+        var savedNotification = notificationRepository.save(notification);
 
-        // Send email notification asynchronously (don't block notification creation)
-        try {
-            if (notification.getRecipientEmail() != null) {
-                var status = emailService.sendNotificationEmail(notification);
-                notification.updateDeliveryStatus(status);
-                notificationRepository.save(notification);
-            }
-        } catch (Exception e) {
-            // Log failure but don't prevent notification creation
-            emailService.logDeliveryFailure(
-                    notification.getRecipientEmail(),
-                    notification.getEventType().toString(),
-                    "Failed to send email: " + e.getMessage());
-            notification.updateDeliveryStatus(DeliveryStatus.FAILED);
-            notificationRepository.save(notification);
-        }
+        log.info("Created notification {} for user {}", savedNotification.getId(), recipientUserId);
 
-        log.info("Created notification {} for user {}", notification.getId(), recipientUserId);
+        // Send email notification asynchronously (don't let email failures prevent notification creation)
+        sendEmailNotificationAsync(savedNotification);
 
-        return notificationMapper.toDto(notification);
+        return notificationMapper.toDto(savedNotification);
     }
 
     /**
@@ -106,37 +90,22 @@ public class NotificationService {
             notification.setRead(false);
             notification.setDeliveryStatus(DeliveryStatus.PENDING);
 
-            // Get user email for notification
-            var email = userRepository.findEmailByUsername(data.recipientUserId());
-            if (email.isPresent()) {
-                notification.setRecipientEmail(email.get());
-            }
+            // Look up user email and set recipient_email
+            userRepository
+                    .findByUsername(data.recipientUserId())
+                    .ifPresent(user -> notification.setRecipientEmail(user.getEmail()));
 
             notifications.add(notification);
         }
 
         List<Notification> savedNotifications = notificationRepository.saveAll(notifications);
 
-        // Send emails for all notifications (asynchronously)
-        for (Notification notification : savedNotifications) {
-            try {
-                if (notification.getRecipientEmail() != null) {
-                    var status = emailService.sendNotificationEmail(notification);
-                    notification.updateDeliveryStatus(status);
-                }
-            } catch (Exception e) {
-                emailService.logDeliveryFailure(
-                        notification.getRecipientEmail(),
-                        notification.getEventType().toString(),
-                        "Failed to send email: " + e.getMessage());
-                notification.updateDeliveryStatus(DeliveryStatus.FAILED);
-            }
-        }
-
-        // Save updated delivery statuses
-        notificationRepository.saveAll(savedNotifications);
-
         log.info("Created {} notifications in batch", savedNotifications.size());
+
+        // Send email notifications asynchronously for all notifications
+        for (Notification notification : savedNotifications) {
+            sendEmailNotificationAsync(notification);
+        }
 
         return savedNotifications.stream().map(notificationMapper::toDto).toList();
     }
@@ -203,21 +172,17 @@ public class NotificationService {
     }
 
     /**
-     * Mark notification as read via email tracking (public endpoint)
-     * This is idempotent - subsequent calls don't update the timestamp
-     * @return true if notification was found and processed, false if not found
+     * Mark notification as read via email tracking pixel
+     * This method is used for email read tracking and doesn't require user authentication
+     * It's idempotent - subsequent calls won't update the timestamp
      */
     @Transactional
-    public boolean markAsReadByTracking(UUID notificationId) {
-        var notificationOpt = notificationRepository.findById(notificationId);
+    public void markAsReadViaTracking(UUID notificationId) {
+        Notification notification = notificationRepository
+                .findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
-        if (notificationOpt.isEmpty()) {
-            return false;
-        }
-
-        Notification notification = notificationOpt.get();
-
-        // Only mark as read if not already read (idempotent behavior)
+        // Only mark as read if it's not already read (idempotent behavior)
         if (!notification.getRead()) {
             notification.markAsRead();
             notificationRepository.save(notification);
@@ -225,7 +190,51 @@ public class NotificationService {
         } else {
             log.debug("Notification {} already marked as read, skipping update", notificationId);
         }
+    }
 
-        return true;
+    /**
+     * Send email notification asynchronously
+     * This method handles email sending and updates delivery status
+     */
+    private void sendEmailNotificationAsync(Notification notification) {
+        if (notification.getRecipientEmail() == null
+                || notification.getRecipientEmail().trim().isEmpty()) {
+            log.warn("Cannot send email for notification {}: recipient email is null or empty", notification.getId());
+            // Keep status as PENDING when email is missing - this is not a delivery failure
+            return;
+        }
+
+        try {
+            boolean emailSent = emailService.sendNotificationEmail(notification);
+            DeliveryStatus status = emailSent ? DeliveryStatus.DELIVERED : DeliveryStatus.FAILED;
+            updateDeliveryStatus(notification.getId(), status);
+
+            if (emailSent) {
+                log.info("Email sent successfully for notification {}", notification.getId());
+            } else {
+                log.warn("Failed to send email for notification {}", notification.getId());
+            }
+        } catch (Exception e) {
+            log.error(
+                    "Exception occurred while sending email for notification {}: {}",
+                    notification.getId(),
+                    e.getMessage(),
+                    e);
+            updateDeliveryStatus(notification.getId(), DeliveryStatus.FAILED);
+        }
+    }
+
+    /**
+     * Update delivery status of a notification
+     */
+    private void updateDeliveryStatus(UUID notificationId, DeliveryStatus status) {
+        try {
+            notificationRepository.findById(notificationId).ifPresent(notification -> {
+                notification.updateDeliveryStatus(status);
+                notificationRepository.save(notification);
+            });
+        } catch (Exception e) {
+            log.error("Failed to update delivery status for notification {}: {}", notificationId, e.getMessage());
+        }
     }
 }

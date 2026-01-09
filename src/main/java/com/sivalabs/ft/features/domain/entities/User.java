@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.Instant;
 import java.util.UUID;
-import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "users")
@@ -22,13 +20,12 @@ public class User {
     @Size(max = 255) @NotNull @Email @Column(name = "email", nullable = false)
     private String email;
 
-    @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    public User() {}
 
-    @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    public User(String username, String email) {
+        this.username = username;
+        this.email = email;
+    }
 
     public UUID getId() {
         return id;
@@ -52,32 +49,5 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
     }
 }
