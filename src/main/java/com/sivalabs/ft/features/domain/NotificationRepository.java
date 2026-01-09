@@ -1,6 +1,7 @@
 package com.sivalabs.ft.features.domain;
 
 import com.sivalabs.ft.features.domain.entities.Notification;
+import com.sivalabs.ft.features.domain.models.DeliveryStatus;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -9,7 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.ListCrudRepository;
 
-interface NotificationRepository extends ListCrudRepository<Notification, UUID> {
+public interface NotificationRepository extends ListCrudRepository<Notification, UUID> {
 
     /**
      * Find all notifications for a specific user with pagination, ordered by creation date (newest first)
@@ -32,4 +33,11 @@ interface NotificationRepository extends ListCrudRepository<Notification, UUID> 
     @Query(
             "UPDATE Notification n SET n.read = false, n.readAt = null WHERE n.id = :id AND n.recipientUserId = :recipientUserId")
     int markAsUnread(UUID id, String recipientUserId);
+
+    /**
+     * Update delivery status (used for FAILED status when email sending fails)
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.deliveryStatus = :deliveryStatus WHERE n.id = :id")
+    int updateDeliveryStatus(UUID id, DeliveryStatus deliveryStatus);
 }

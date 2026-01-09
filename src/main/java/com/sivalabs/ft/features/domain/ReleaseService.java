@@ -36,6 +36,7 @@ public class ReleaseService {
     private final ReleaseMapper releaseMapper;
     private final ReleaseStatusValidator releaseStatusValidator;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     ReleaseService(
@@ -45,6 +46,7 @@ public class ReleaseService {
             ReleaseMapper releaseMapper,
             ReleaseStatusValidator releaseStatusValidator,
             NotificationService notificationService,
+            UserRepository userRepository,
             ObjectMapper objectMapper) {
         this.releaseRepository = releaseRepository;
         this.productRepository = productRepository;
@@ -52,6 +54,7 @@ public class ReleaseService {
         this.releaseMapper = releaseMapper;
         this.releaseStatusValidator = releaseStatusValidator;
         this.notificationService = notificationService;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -167,6 +170,7 @@ public class ReleaseService {
         eventDetails.put("oldStatus", oldStatus.name());
         eventDetails.put("newStatus", release.getStatus().name());
         eventDetails.put("description", release.getDescription());
+        eventDetails.put("actor", updatedBy);
 
         try {
             String eventDetailsJson = objectMapper.writeValueAsString(eventDetails);
@@ -175,8 +179,19 @@ public class ReleaseService {
             // Prepare batch notification data
             List<NotificationService.NotificationData> notificationsData = new ArrayList<>();
             for (String recipient : recipients) {
+                String recipientEmail = userRepository
+                        .findByUsername(recipient)
+                        .map(user -> user.getEmail())
+                        .orElse(null);
+
+                if (recipientEmail == null) {
+                    logger.warn(
+                            "User {} not found, skipping notification for release {}", recipient, release.getCode());
+                    continue;
+                }
+
                 notificationsData.add(new NotificationService.NotificationData(
-                        recipient, NotificationEventType.RELEASE_UPDATED, eventDetailsJson, link));
+                        recipient, recipientEmail, NotificationEventType.RELEASE_UPDATED, eventDetailsJson, link));
             }
 
             // Create all notifications in a single batch operation
