@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
+import com.sivalabs.ft.features.testsupport.MockJavaMailSenderConfig;
 import jakarta.mail.BodyPart;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,9 +34,9 @@ import org.springframework.test.context.jdbc.Sql;
 /**
  * Integration tests for email notification system.
  * Tests email sending, delivery failure handling, and read tracking via pixel.
- * Note: JavaMailSender mock is provided globally by AbstractIT.GlobalMailMockConfig
  */
 @Sql("/test-data.sql")
+@Import(MockJavaMailSenderConfig.class)
 class EmailNotificationIntegrationTest extends AbstractIT {
 
     @Autowired
