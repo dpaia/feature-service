@@ -21,8 +21,11 @@ import jakarta.mail.internet.MimeMultipart;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -37,6 +40,7 @@ import org.springframework.test.context.jdbc.Sql;
  */
 @Sql("/test-data.sql")
 @Import(MockJavaMailSenderConfig.class)
+@ExtendWith(OutputCaptureExtension.class)
 class EmailNotificationIntegrationTest extends AbstractIT {
 
     @Autowired
@@ -181,7 +185,7 @@ class EmailNotificationIntegrationTest extends AbstractIT {
 
     @Test
     @WithMockOAuth2User(username = "alice")
-    void shouldCreateNotificationEvenWhenEmailSendingFails() throws Exception {
+    void shouldCreateNotificationEvenWhenEmailSendingFails(CapturedOutput output) throws Exception {
         // Given - Configure mail sender to throw exception
         doThrow(new MailSendException("SMTP server unavailable"))
                 .when(javaMailSender)
@@ -214,6 +218,11 @@ class EmailNotificationIntegrationTest extends AbstractIT {
         assertThat(deliveryStatus)
                 .as("delivery_status should be FAILED after email send failure")
                 .isEqualTo("FAILED");
+
+        // Verify error is logged with recipient email and event type (per Task Description requirements)
+        String logs = output.getOut();
+        assertThat(logs).as("Log should contain recipient email").contains("bob@company.com");
+        assertThat(logs).as("Log should contain event type").contains("FEATURE_CREATED");
     }
 
     // ========== Test 5: Tracking endpoint returns 404 for non-existent notification ==========
