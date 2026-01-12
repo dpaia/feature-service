@@ -9,5 +9,6 @@ import org.mapstruct.Mapping;
 public interface FeatureMapper {
     @Mapping(target = "releaseCode", source = "release.code", defaultExpression = "java( null )")
     @Mapping(target = "isFavorite", ignore = true)
+    @Mapping(target = "makeFavorite", ignore = true)
     FeatureDto toDto(Feature feature);
 }

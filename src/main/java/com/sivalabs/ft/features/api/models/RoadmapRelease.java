@@ -1,15 +1,13 @@
-package com.sivalabs.ft.features.domain.dtos;
+package com.sivalabs.ft.features.api.models;
 
-import com.sivalabs.ft.features.domain.models.ReleaseStatus;
-import java.io.Serializable;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.Instant;
 
-public record ReleaseDto(
+public record RoadmapRelease(
         Long id,
-        ProductDto product,
         String code,
         String description,
-        ReleaseStatus status,
+        String status,
         Instant releasedAt,
         Instant plannedStartDate,
         Instant plannedReleaseDate,
@@ -19,5 +17,5 @@ public record ReleaseDto(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt)
-        implements Serializable {}
+        Instant updatedAt,
+        @JsonIgnore ProductInfo product) {}

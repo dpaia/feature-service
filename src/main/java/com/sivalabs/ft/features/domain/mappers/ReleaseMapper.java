@@ -4,7 +4,9 @@ import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.entities.Release;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
+@Mapper(
+        componentModel = "spring",
+        uses = {ProductMapper.class})
 public interface ReleaseMapper {
     ReleaseDto toDto(Release release);
 }
