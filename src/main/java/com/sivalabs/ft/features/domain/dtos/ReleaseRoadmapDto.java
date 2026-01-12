@@ -1,12 +1,12 @@
 package com.sivalabs.ft.features.domain.dtos;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.io.Serializable;
 import java.time.Instant;
 
-public record ReleaseDto(
+public record ReleaseRoadmapDto(
         Long id,
-        ProductDto product,
         String code,
         String description,
         ReleaseStatus status,
@@ -19,5 +19,7 @@ public record ReleaseDto(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt)
+        Instant updatedAt,
+        @JsonIgnore String productCode,
+        @JsonIgnore String productName)
         implements Serializable {}
