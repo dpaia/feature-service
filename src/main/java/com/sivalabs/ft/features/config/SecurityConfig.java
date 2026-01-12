@@ -26,6 +26,9 @@ class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.*")
                         .permitAll()
+                        // Email tracking endpoint - must be publicly accessible for email clients
+                        .requestMatchers(HttpMethod.GET, "/notifications/*/read")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/releases/**")

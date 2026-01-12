@@ -3,6 +3,31 @@ delete from comments;
 delete from features;
 delete from releases;
 delete from products;
+delete from users;
+
+-- Insert test users
+insert into users (username, email) values
+('admin', 'admin@company.com'),
+('siva', 'siva@company.com'),
+('alice', 'alice@company.com'),
+('bob', 'bob@company.com'),
+('testuser', 'testuser@company.com'),
+('creator', 'creator@company.com'),
+('assignee', 'assignee@company.com'),
+('recipient', 'recipient@company.com'),
+('user1', 'user1@company.com'),
+('user2', 'user2@company.com'),
+('otheruser', 'otheruser@company.com'),
+('marcobehler', 'marcobehler@company.com'),
+('daniiltsarev', 'daniiltsarev@company.com'),
+('antonarhipov', 'antonarhipov@company.com'),
+('andreybelyaev', 'andreybelyaev@company.com'),
+('developer', 'developer@company.com'),
+('releaseManager', 'releaseManager@company.com'),
+('productOwner', 'productOwner@company.com'),
+('userA', 'userA@company.com'),
+('userB', 'userB@company.com'),
+('userC', 'userC@company.com');
 
 insert into products (id, code, prefix, name, description, image_url, disabled, created_by, created_at) values
 (1, 'intellij', 'IDEA', 'IntelliJ IDEA', 'JetBrains IDE for Java', 'https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA.png', false, 'admin', '2024-03-01 00:00:00'),

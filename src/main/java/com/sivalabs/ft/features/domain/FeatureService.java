@@ -38,6 +38,7 @@ public class FeatureService {
     private final FeatureMapper featureMapper;
     private final NotificationService notificationService;
     private final NotificationRecipientService recipientService;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     FeatureService(
@@ -50,6 +51,7 @@ public class FeatureService {
             FeatureMapper featureMapper,
             NotificationService notificationService,
             NotificationRecipientService recipientService,
+            UserRepository userRepository,
             ObjectMapper objectMapper) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
@@ -60,6 +62,7 @@ public class FeatureService {
         this.featureMapper = featureMapper;
         this.notificationService = notificationService;
         this.recipientService = recipientService;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -186,13 +189,28 @@ public class FeatureService {
         if (feature.getStatus() != null) {
             eventDetails.put("status", feature.getStatus().name());
         }
+        eventDetails.put("actor", excludeUser);
 
         try {
             String eventDetailsJson = objectMapper.writeValueAsString(eventDetails);
             String link = "/features/" + feature.getCode();
 
             for (String recipientUserId : recipients) {
-                notificationService.createNotification(recipientUserId, eventType, eventDetailsJson, link);
+                String recipientEmail = userRepository
+                        .findByUsername(recipientUserId)
+                        .map(user -> user.getEmail())
+                        .orElse(null);
+
+                if (recipientEmail == null) {
+                    logger.warn(
+                            "User {} not found, skipping notification for feature {}",
+                            recipientUserId,
+                            feature.getCode());
+                    continue;
+                }
+
+                notificationService.createNotification(
+                        recipientUserId, recipientEmail, eventType, eventDetailsJson, link);
                 logger.debug("Created notification for user {} about feature {}", recipientUserId, feature.getCode());
             }
         } catch (JsonProcessingException e) {
