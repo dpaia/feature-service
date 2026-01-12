@@ -21,7 +21,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
-                .isEqualTo(2);
+                .isEqualTo(3);
     }
 
     @Test
@@ -301,7 +301,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
-                .isEqualTo(2);
+                .isEqualTo(3);
 
         // Verify that releases include planning fields in the response by checking first release
         assertThat(result)
