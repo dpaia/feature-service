@@ -9,9 +9,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = RANDOM_PORT,
+        properties = {"spring.config.additional-location=classpath:application-test.properties"})
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestKafkaTopicConfiguration.class})
 @Sql(scripts = {"/test-data.sql"})
 public abstract class AbstractIT {
     @Autowired
