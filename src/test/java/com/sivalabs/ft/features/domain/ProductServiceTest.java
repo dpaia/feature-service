@@ -3,6 +3,7 @@ package com.sivalabs.ft.features.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.sivalabs.ft.features.TestKafkaTopicConfiguration;
 import com.sivalabs.ft.features.TestcontainersConfiguration;
 import com.sivalabs.ft.features.domain.Commands.CreateProductCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateProductCommand;
@@ -16,7 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestKafkaTopicConfiguration.class})
 @Sql(scripts = {"/test-data.sql"})
 class ProductServiceTest {
 
