@@ -4,6 +4,7 @@ import com.sivalabs.ft.features.domain.entities.FeatureUsage;
 import com.sivalabs.ft.features.domain.models.ActionType;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface FeatureUsageRepository
         extends JpaRepository<FeatureUsage, Long>, JpaSpecificationExecutor<FeatureUsage> {
+
+    // Deduplication support - can be used as idempotency key
+    boolean existsByEventHash(String eventHash);
 
     // Find by feature code (paginated)
     Page<FeatureUsage> findByFeatureCodeOrderByTimestampDesc(String featureCode, Pageable pageable);
@@ -430,4 +434,16 @@ public interface FeatureUsageRepository
             @Param("releaseCode") String releaseCode,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
+
+    // ========== NEW METHODS FOR ADMIN MONITORING ==========
+
+    /**
+     * Count total events within a date range for health metrics calculation
+     */
+    Long countByTimestampBetween(Instant start, Instant end);
+
+    /**
+     * Find the most recent event for last event timestamp in health dashboard
+     */
+    Optional<FeatureUsage> findFirstByOrderByTimestampDesc();
 }
