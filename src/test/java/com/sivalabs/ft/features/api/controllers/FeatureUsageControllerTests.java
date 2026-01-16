@@ -294,10 +294,11 @@ class FeatureUsageControllerTests extends AbstractIT {
 
         @Test
         void shouldGetFeatureStatsWithPreciseValidation() {
-            // Create exactly 3 events with different action types
+            // Create exactly 3 events with different action types and slight variations to avoid deduplication
             createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
             createUsageEventViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createUsageEventViaAPI(
+                    "FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT-2"); // Different product to avoid deduplication
 
             var result = mvc.get().uri("/api/usage/feature/TEST-FEATURE/stats").exchange();
 
@@ -567,7 +568,8 @@ class FeatureUsageControllerTests extends AbstractIT {
             // Create test data with different usage counts to verify sorting
             createUsageEventViaAPI("FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT");
             createUsageEventViaAPI("FEATURE_VIEWED", "TOP-FEATURE-2", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT"); // Make FEATURE-1 more popular
+            createUsageEventViaAPI(
+                    "FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT-2"); // Different product to avoid deduplication
 
             var result = mvc.get().uri("/api/usage/top-features").exchange();
 
@@ -863,7 +865,8 @@ class FeatureUsageControllerTests extends AbstractIT {
             // Create 3 events: 2 FEATURE_VIEWED, 1 FEATURE_UPDATED
             createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
             createUsageEventViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createUsageEventViaAPI(
+                    "FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT-2"); // Different product to avoid deduplication
 
             // Filter by FEATURE_VIEWED only
             var result = mvc.get()

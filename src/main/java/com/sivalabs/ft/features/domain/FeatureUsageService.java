@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +55,20 @@ public class FeatureUsageService {
             return;
         }
         try {
+            // Generate event hash for deduplication (can be used as idempotency key)
+            String eventHash = generateEventHash(userId, featureCode, productCode, actionType, Instant.now());
+
+            // Check for duplicates
+            if (featureUsageRepository.existsByEventHash(eventHash)) {
+                log.debug(
+                        "Duplicate usage event detected, skipping: user={}, feature={}, action={}, hash={}",
+                        userId,
+                        featureCode,
+                        actionType,
+                        eventHash);
+                return; // Skip duplicate
+            }
+
             // Enrich context with anonymized device fingerprint for anonymous users
             Map<String, Object> enrichedContext = contextData != null ? new HashMap<>(contextData) : new HashMap<>();
 
@@ -86,15 +101,29 @@ public class FeatureUsageService {
             featureUsage.setActionType(actionType);
             featureUsage.setTimestamp(Instant.now());
             featureUsage.setContext(contextJson);
+            featureUsage.setEventHash(eventHash);
 
             featureUsageRepository.save(featureUsage);
             log.debug(
-                    "Logged usage: user={}, feature={}, product={}, release={}, action={}",
+                    "Logged usage: user={}, feature={}, product={}, release={}, action={}, hash={}",
                     userId,
                     featureCode,
                     productCode,
                     releaseCode,
-                    actionType);
+                    actionType,
+                    eventHash);
+        } catch (DataIntegrityViolationException e) {
+            if (e.getMessage() != null && e.getMessage().contains("uk_feature_usage_event_hash")) {
+                log.debug(
+                        "Duplicate usage event prevented by database constraint: user={}, feature={}, action={}",
+                        userId,
+                        featureCode,
+                        actionType);
+                // This is normal during reprocessing - just ignore
+            } else {
+                log.error("Failed to log usage event due to data integrity violation", e);
+                throw e;
+            }
         } catch (Exception e) {
             log.error("Failed to log usage event", e);
             // Don't throw exception to avoid breaking the main flow
@@ -116,6 +145,42 @@ public class FeatureUsageService {
     public void logUsage(
             String userId, String featureCode, String productCode, String releaseCode, ActionType actionType) {
         logUsage(userId, featureCode, productCode, releaseCode, actionType, null, null, null);
+    }
+
+    /**
+     * Generate event hash for deduplication (can be used as idempotency key).
+     * Creates deterministic hash from event key fields with time window grouping.
+     */
+    private String generateEventHash(
+            String userId, String featureCode, String productCode, ActionType actionType, Instant timestamp) {
+        try {
+            // Round timestamp to 5-minute windows to group similar events
+            long roundedMinutes = timestamp.getEpochSecond() / 300 * 300; // 300 seconds = 5 minutes
+            Instant roundedTimestamp = Instant.ofEpochSecond(roundedMinutes);
+
+            // Create deterministic string from key fields
+            String combined = userId + ":" + (featureCode != null ? featureCode : "null")
+                    + ":" + (productCode != null ? productCode : "null")
+                    + ":" + actionType
+                    + ":" + roundedTimestamp;
+
+            // Generate SHA-256 hash
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(combined.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+
+            // Return first 16 characters for shorter hash
+            return hexString.substring(0, 16);
+        } catch (NoSuchAlgorithmException e) {
+            log.warn("Failed to generate event hash", e);
+            // Fallback: use UUID if hash generation fails
+            return UUID.randomUUID().toString().substring(0, 16);
+        }
     }
 
     /**

@@ -39,6 +39,9 @@ public class FeatureUsage {
     @Column(name = "context", length = Integer.MAX_VALUE)
     private String context;
 
+    @Column(name = "event_hash", length = 64, unique = true)
+    private String eventHash;
+
     public Long getId() {
         return id;
     }
@@ -101,5 +104,13 @@ public class FeatureUsage {
 
     public void setContext(String context) {
         this.context = context;
+    }
+
+    public String getEventHash() {
+        return eventHash;
+    }
+
+    public void setEventHash(String eventHash) {
+        this.eventHash = eventHash;
     }
 }
