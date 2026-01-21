@@ -32,6 +32,8 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/features/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/planning-history/**")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**")
                         .permitAll()
                         .anyRequest()
