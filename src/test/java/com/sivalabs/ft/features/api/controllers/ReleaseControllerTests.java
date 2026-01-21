@@ -44,12 +44,12 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldCreateNewRelease() {
         var payload =
                 """
-            {
-                "productCode": "intellij",
-                "code": "IDEA-2025.1",
-                "description": "IntelliJ IDEA 2025.1"
-            }
-            """;
+                                {
+                                    "productCode": "intellij",
+                                    "code": "IDEA-2025.1",
+                                    "description": "IntelliJ IDEA 2025.1"
+                                }
+                                """;
 
         var result = mvc.post()
                 .uri("/api/releases")
@@ -64,12 +64,12 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldUpdateRelease() {
         var payload =
                 """
-            {
-                "description": "Updated description",
-                "status": "RELEASED",
-                "releasedAt": "2023-12-01T10:00:00Z"
-            }
-            """;
+                                {
+                                    "description": "Updated description",
+                                    "status": "RELEASED",
+                                    "releasedAt": "2023-12-01T10:00:00Z"
+                                }
+                                """;
 
         var result = mvc.put()
                 .uri("/api/releases/{code}", "IDEA-2023.3.8")
@@ -97,16 +97,16 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldCreateReleaseWithAllPlanningFields() {
         var payload =
                 """
-            {
-                "productCode": "intellij",
-                "code": "IDEA-PLANNING-2025.1",
-                "description": "IntelliJ IDEA 2025.1 with Planning Fields",
-                "plannedStartDate": "2025-01-15T09:00:00Z",
-                "plannedReleaseDate": "2025-03-15T17:00:00Z",
-                "owner": "release.manager@company.com",
-                "notes": "Major release with new AI features and performance improvements"
-            }
-            """;
+                                {
+                                    "productCode": "intellij",
+                                    "code": "IDEA-PLANNING-2025.1",
+                                    "description": "IntelliJ IDEA 2025.1 with Planning Fields",
+                                    "plannedStartDate": "2025-01-15T09:00:00Z",
+                                    "plannedReleaseDate": "2025-03-15T17:00:00Z",
+                                    "owner": "release.manager@company.com",
+                                    "notes": "Major release with new AI features and performance improvements"
+                                }
+                                """;
 
         var result = mvc.post()
                 .uri("/api/releases")
@@ -139,12 +139,12 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldCreateReleaseWithNullPlanningFields() {
         var payload =
                 """
-            {
-                "productCode": "intellij",
-                "code": "IDEA-NULL-2025.1",
-                "description": "IntelliJ IDEA 2025.1 with Null Planning Fields"
-            }
-            """;
+                                {
+                                    "productCode": "intellij",
+                                    "code": "IDEA-NULL-2025.1",
+                                    "description": "IntelliJ IDEA 2025.1 with Null Planning Fields"
+                                }
+                                """;
 
         var result = mvc.post()
                 .uri("/api/releases")
@@ -178,12 +178,12 @@ class ReleaseControllerTests extends AbstractIT {
         // First create a release
         var createPayload =
                 """
-            {
-                "productCode": "intellij",
-                "code": "IDEA-UPDATE-PLANNING-2025.1",
-                "description": "Initial Release"
-            }
-            """;
+                                {
+                                    "productCode": "intellij",
+                                    "code": "IDEA-UPDATE-PLANNING-2025.1",
+                                    "description": "Initial Release"
+                                }
+                                """;
 
         mvc.post()
                 .uri("/api/releases")
@@ -194,17 +194,17 @@ class ReleaseControllerTests extends AbstractIT {
         // Then update with all planning fields
         var updatePayload =
                 """
-            {
-                "description": "Updated Release with Planning Fields",
-                "status": "COMPLETED",
-                "releasedAt": "2025-03-20T10:00:00Z",
-                "plannedStartDate": "2025-01-10T08:00:00Z",
-                "plannedReleaseDate": "2025-03-15T16:00:00Z",
-                "actualReleaseDate": "2025-03-18T14:30:00Z",
-                "owner": "updated.owner@company.com",
-                "notes": "Updated with comprehensive planning information and actual delivery dates"
-            }
-            """;
+                                {
+                                    "description": "Updated Release with Planning Fields",
+                                    "status": "COMPLETED",
+                                    "releasedAt": "2025-03-20T10:00:00Z",
+                                    "plannedStartDate": "2025-01-10T08:00:00Z",
+                                    "plannedReleaseDate": "2025-03-15T16:00:00Z",
+                                    "actualReleaseDate": "2025-03-18T14:30:00Z",
+                                    "owner": "updated.owner@company.com",
+                                    "notes": "Updated with comprehensive planning information and actual delivery dates"
+                                }
+                                """;
 
         var result = mvc.put()
                 .uri("/api/releases/{code}", "IDEA-UPDATE-PLANNING-2025.1")
@@ -242,12 +242,12 @@ class ReleaseControllerTests extends AbstractIT {
         // Create a release
         var createPayload =
                 """
-            {
-                "productCode": "intellij",
-                "code": "IDEA-STATUS-2025.1",
-                "description": "Status Progression Test Release"
-            }
-            """;
+                                {
+                                    "productCode": "intellij",
+                                    "code": "IDEA-STATUS-2025.1",
+                                    "description": "Status Progression Test Release"
+                                }
+                                """;
 
         mvc.post()
                 .uri("/api/releases")
@@ -255,18 +255,19 @@ class ReleaseControllerTests extends AbstractIT {
                 .content(createPayload)
                 .exchange();
 
-        // Test status progression: DRAFT -> PLANNED -> IN_PROGRESS -> COMPLETED -> RELEASED
+        // Test status progression: DRAFT -> PLANNED -> IN_PROGRESS -> COMPLETED ->
+        // RELEASED
         String[] statuses = {"PLANNED", "IN_PROGRESS", "COMPLETED", "RELEASED"};
 
         for (String status : statuses) {
             var updatePayload = String.format(
                     """
-                {
-                    "description": "Status updated to %s",
-                    "status": "%s",
-                    "notes": "Status progression test - now in %s"
-                }
-                """,
+                                                        {
+                                                            "description": "Status updated to %s",
+                                                            "status": "%s",
+                                                            "notes": "Status progression test - now in %s"
+                                                        }
+                                                        """,
                     status, status, status);
 
             var result = mvc.put()
@@ -303,7 +304,8 @@ class ReleaseControllerTests extends AbstractIT {
                 .asNumber()
                 .isEqualTo(2);
 
-        // Verify that releases include planning fields in the response by checking first release
+        // Verify that releases include planning fields in the response by checking
+        // first release
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
@@ -324,18 +326,18 @@ class ReleaseControllerTests extends AbstractIT {
         // Test missing required fields
         var invalidPayload =
                 """
-            {
-                "description": "Missing required fields"
-            }
-            """;
+                                {
+                                    "description": "Missing required fields"
+                                }
+                                """;
 
         var result = mvc.post()
                 .uri("/api/releases")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidPayload)
                 .exchange();
-        // The application returns 500 for validation errors, which is the current behavior
-        assertThat(result).hasStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     @Test
