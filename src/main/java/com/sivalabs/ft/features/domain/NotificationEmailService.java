@@ -26,14 +26,17 @@ public class NotificationEmailService {
     private final JavaMailSender mailSender;
     private final ApplicationProperties applicationProperties;
     private final NotificationRepository notificationRepository;
+    private final EmailDeliveryFailureService emailDeliveryFailureService;
 
     public NotificationEmailService(
             JavaMailSender mailSender,
             ApplicationProperties applicationProperties,
-            NotificationRepository notificationRepository) {
+            NotificationRepository notificationRepository,
+            EmailDeliveryFailureService emailDeliveryFailureService) {
         this.mailSender = mailSender;
         this.applicationProperties = applicationProperties;
         this.notificationRepository = notificationRepository;
+        this.emailDeliveryFailureService = emailDeliveryFailureService;
     }
 
     /**
@@ -148,5 +151,8 @@ public class NotificationEmailService {
                 Instant.now(),
                 e.getMessage(),
                 e);
+
+        // Save failure to database - this must not throw exceptions to avoid affecting notification processing
+        emailDeliveryFailureService.saveEmailDeliveryFailure(notification, e.getMessage());
     }
 }
