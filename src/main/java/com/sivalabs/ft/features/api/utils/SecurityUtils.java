@@ -19,6 +19,13 @@ public class SecurityUtils {
         return String.valueOf(username);
     }
 
+    public static boolean hasAdminRole() {
+        var loginUserDetails = getLoginUserDetails();
+        @SuppressWarnings("unchecked")
+        List<String> roles = (List<String>) loginUserDetails.get("roles");
+        return roles != null && roles.contains("ADMIN");
+    }
+
     static Map<String, Object> getLoginUserDetails() {
         Map<String, Object> map = new HashMap<>();
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
