@@ -8,6 +8,7 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -39,6 +40,15 @@ class GlobalExceptionHandler {
         log.error("Bad Request", e);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
         problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ProblemDetail handle(AccessDeniedException e) {
+        log.warn("Access denied: {}", e.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(FORBIDDEN, e.getMessage());
+        problemDetail.setTitle("Forbidden");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }
