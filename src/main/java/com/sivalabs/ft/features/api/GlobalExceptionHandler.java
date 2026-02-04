@@ -4,18 +4,34 @@ import static org.springframework.http.HttpStatus.*;
 
 import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ProblemDetail handle(AccessDeniedException e) {
+        log.error("Access denied", e);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(FORBIDDEN, "Access Denied");
+        problemDetail.setTitle("Access Denied");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handle(Exception e) {
@@ -49,7 +65,8 @@ class GlobalExceptionHandler {
         log.error("Invalid JSON request", e);
         String message = "Invalid request format";
 
-        // Check if it's an enum deserialization error and provide a more specific message
+        // Check if it's an enum deserialization error and provide a more specific
+        // message
         if (e.getMessage() != null && e.getMessage().contains("FeaturePlanningStatus")) {
             message =
                     "Invalid value for featurePlanningStatus. Valid values are: NOT_STARTED, IN_PROGRESS, DONE, BLOCKED";
@@ -59,6 +76,43 @@ class GlobalExceptionHandler {
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
         problemDetail.setTitle("Invalid Request Format");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ProblemDetail handle(MethodArgumentNotValidException e) {
+        log.error("Validation error", e);
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
+        problemDetail.setTitle("Validation Failed");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ProblemDetail handle(ConstraintViolationException e) {
+        log.error("Constraint violation", e);
+        String message = e.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
+        problemDetail.setTitle("Validation Failed");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handle(MethodArgumentTypeMismatchException e) {
+        log.error("Type mismatch error", e);
+        String message = String.format("Invalid value '%s' for parameter '%s'", e.getValue(), e.getName());
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
+        problemDetail.setTitle("Invalid Parameter");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }

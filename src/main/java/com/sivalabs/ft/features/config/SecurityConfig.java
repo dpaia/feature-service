@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
@@ -13,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 class SecurityConfig {
 
     @Bean
@@ -26,6 +28,12 @@ class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.*")
                         .permitAll()
+                        .requestMatchers("/api/planning-history/**")
+                        .authenticated()
+                        .requestMatchers("/api/releases/*/history/**")
+                        .authenticated()
+                        .requestMatchers("/api/features/*/history/**")
+                        .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/products/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/releases/**")
