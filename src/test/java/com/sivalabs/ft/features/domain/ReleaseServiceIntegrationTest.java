@@ -171,8 +171,21 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
                 .content(createPayload)
                 .exchange();
 
-        // Update to IN_PROGRESS (not completed)
-        var updatePayload =
+        var updateToPlanned =
+                """
+            {
+                "description": "Planned",
+                "status": "PLANNED"
+            }
+            """;
+
+        mvc.put()
+                .uri("/api/releases/{code}", "IDEA-OVERDUE-API-TEST")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateToPlanned)
+                .exchange();
+
+        var updateToInProgress =
                 """
             {
                 "description": "In progress",
@@ -183,7 +196,7 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
         mvc.put()
                 .uri("/api/releases/{code}", "IDEA-OVERDUE-API-TEST")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(updatePayload)
+                .content(updateToInProgress)
                 .exchange();
 
         // Query overdue releases
