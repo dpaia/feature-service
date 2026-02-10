@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
@@ -14,6 +16,14 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 @Import(TestcontainersConfiguration.class)
 @Sql(scripts = {"/test-data.sql"})
 public abstract class AbstractIT {
+
+    @DynamicPropertySource
+    static void ensureKafkaTopics(DynamicPropertyRegistry registry) {
+        TestcontainersConfiguration.postgres.start();
+        TestcontainersConfiguration.kafka.start();
+        TestcontainersConfiguration.ensureKafkaTopics();
+    }
+
     @Autowired
     protected MockMvcTester mvc;
 }
