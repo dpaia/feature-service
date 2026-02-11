@@ -7,12 +7,14 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -22,6 +24,7 @@ class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     ProblemDetail handle(Exception e) {
         log.error("Unhandled exception", e);
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(INTERNAL_SERVER_ERROR, e.getMessage());
         problemDetail.setTitle("Internal Server Error");
         problemDetail.setProperty("timestamp", Instant.now());
@@ -67,8 +70,23 @@ class GlobalExceptionHandler {
         if (e.getBindingResult().hasFieldErrors()) {
             message = e.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
         }
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
         problemDetail.setTitle("Validation Error");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handle(MethodArgumentTypeMismatchException e) {
+        log.warn("Method argument type mismatch", e);
+        String message = "Invalid request parameter";
+        if (e.getRequiredType() != null && e.getRequiredType().isEnum()) {
+            message = "Invalid " + e.getName() + " value";
+        }
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
+        problemDetail.setTitle("Bad Request");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }
@@ -76,8 +94,19 @@ class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     ProblemDetail handle(AuthorizationDeniedException e) {
         log.warn("Access denied", e);
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(FORBIDDEN, "Access denied");
         problemDetail.setTitle("Forbidden");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ProblemDetail handle(DataIntegrityViolationException e) {
+        log.error("Database constraint violation", e);
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Database constraint violation");
+        problemDetail.setTitle("Database Error");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
     }

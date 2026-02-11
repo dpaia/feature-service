@@ -1,13 +1,17 @@
 package com.sivalabs.ft.features.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.domain.dtos.*;
 import com.sivalabs.ft.features.domain.entities.FeatureUsage;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureUsageMapper;
 import com.sivalabs.ft.features.domain.models.ActionType;
+import com.sivalabs.ft.features.domain.models.ErrorType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,21 +25,29 @@ import org.springframework.stereotype.Service;
 @Service
 public class FeatureUsageService {
     private static final Logger log = LoggerFactory.getLogger(FeatureUsageService.class);
+    private static final Duration DEFAULT_REPROCESS_PERSISTENCE_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration DEFAULT_REPROCESS_POLL_INTERVAL = Duration.ofMillis(100);
 
     private final FeatureUsageRepository featureUsageRepository;
     private final com.sivalabs.ft.features.ApplicationProperties applicationProperties;
     private final FeatureUsageMapper featureUsageMapper;
     private final EventPublisher eventPublisher;
+    private final ErrorLoggingService errorLoggingService;
+    private final ObjectMapper objectMapper;
 
     public FeatureUsageService(
             FeatureUsageRepository featureUsageRepository,
             com.sivalabs.ft.features.ApplicationProperties applicationProperties,
             FeatureUsageMapper featureUsageMapper,
-            EventPublisher eventPublisher) {
+            EventPublisher eventPublisher,
+            ErrorLoggingService errorLoggingService,
+            ObjectMapper objectMapper) {
         this.featureUsageRepository = featureUsageRepository;
         this.applicationProperties = applicationProperties;
         this.featureUsageMapper = featureUsageMapper;
         this.eventPublisher = eventPublisher;
+        this.errorLoggingService = errorLoggingService;
+        this.objectMapper = objectMapper;
     }
 
     public void logUsage(
@@ -51,25 +63,8 @@ public class FeatureUsageService {
             return;
         }
         try {
-            // Enrich context with anonymized device fingerprint for anonymous users
-            Map<String, Object> enrichedContext = contextData != null ? new HashMap<>(contextData) : new HashMap<>();
-
-            if (ipAddress != null && userAgent != null) {
-                // Create device fingerprint: hash(device:ip)
-                String deviceFingerprint = createDeviceFingerprint(ipAddress, userAgent);
-                enrichedContext.put("deviceFingerprint", deviceFingerprint);
-
-                // Extract location from IP (placeholder - would use GeoIP service in production)
-                String location = extractLocation(ipAddress);
-                if (location != null) {
-                    enrichedContext.put("location", location);
-                }
-            }
-
-            Map<String, Object> contextToPublish = enrichedContext.isEmpty() ? null : enrichedContext;
-
-            eventPublisher.publishFeatureUsageEvent(
-                    userId, featureCode, productCode, releaseCode, actionType, contextToPublish, ipAddress, userAgent);
+            publishUsageEvent(
+                    userId, featureCode, productCode, releaseCode, actionType, contextData, ipAddress, userAgent);
 
             log.debug(
                     "Published usage event to Kafka: user={}, feature={}, product={}, release={}, action={}",
@@ -80,6 +75,20 @@ public class FeatureUsageService {
                     actionType);
         } catch (Exception e) {
             log.error("Failed to publish usage event", e);
+            errorLoggingService.logError(
+                    ErrorType.PROCESSING_ERROR,
+                    "Failed to publish usage event",
+                    e,
+                    buildPayload(
+                            userId,
+                            featureCode,
+                            productCode,
+                            releaseCode,
+                            actionType,
+                            contextData,
+                            ipAddress,
+                            userAgent),
+                    userId);
             // Don't throw exception to avoid breaking the main flow
         }
     }
@@ -91,6 +100,124 @@ public class FeatureUsageService {
     public void logUsage(
             String userId, String featureCode, String productCode, String releaseCode, ActionType actionType) {
         logUsage(userId, featureCode, productCode, releaseCode, actionType, null, null, null);
+    }
+
+    /**
+     * Reprocessing path: succeeds only after Kafka event is actually persisted in feature_usage.
+     * Throws on publish failures or on persistence timeout.
+     */
+    public void logUsageForReprocessing(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> contextData,
+            String ipAddress,
+            String userAgent) {
+        if (!applicationProperties.usageTracking().enabled()) {
+            throw new IllegalStateException("Usage tracking is disabled");
+        }
+        String eventId = publishUsageEvent(
+                userId, featureCode, productCode, releaseCode, actionType, contextData, ipAddress, userAgent);
+        waitForPersistence(eventId);
+    }
+
+    private String buildPayload(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> contextData,
+            String ipAddress,
+            String userAgent) {
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userId", userId);
+            payload.put("featureCode", featureCode);
+            payload.put("productCode", productCode);
+            payload.put("releaseCode", releaseCode);
+            payload.put("actionType", actionType);
+            payload.put("context", contextData);
+            payload.put("ipAddress", ipAddress);
+            payload.put("userAgent", userAgent);
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            log.debug("Failed to serialize usage payload", e);
+            return "featureCode=" + featureCode + ", productCode=" + productCode + ", actionType=" + actionType;
+        }
+    }
+
+    private String publishUsageEvent(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> contextData,
+            String ipAddress,
+            String userAgent) {
+        // Enrich context with anonymized device fingerprint for anonymous users
+        Map<String, Object> enrichedContext = contextData != null ? new HashMap<>(contextData) : new HashMap<>();
+
+        if (ipAddress != null && userAgent != null) {
+            // Create device fingerprint: hash(device:ip)
+            String deviceFingerprint = createDeviceFingerprint(ipAddress, userAgent);
+            enrichedContext.put("deviceFingerprint", deviceFingerprint);
+
+            // Extract location from IP (placeholder - would use GeoIP service in production)
+            String location = extractLocation(ipAddress);
+            if (location != null) {
+                enrichedContext.put("location", location);
+            }
+        }
+
+        Map<String, Object> contextToPublish = enrichedContext.isEmpty() ? null : enrichedContext;
+        return eventPublisher.publishFeatureUsageEventWithEventId(
+                userId, featureCode, productCode, releaseCode, actionType, contextToPublish, ipAddress, userAgent);
+    }
+
+    private void waitForPersistence(String eventId) {
+        Duration timeout = getReprocessPersistenceTimeout();
+        Duration pollInterval = getReprocessPollInterval();
+        long pollIntervalMs = Math.max(1, pollInterval.toMillis());
+
+        Instant deadline = Instant.now().plus(timeout);
+        while (Instant.now().isBefore(deadline)) {
+            if (featureUsageRepository.existsByEventId(eventId)) {
+                return;
+            }
+            try {
+                Thread.sleep(pollIntervalMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting for reprocessed event persistence", e);
+            }
+        }
+        throw new IllegalStateException("Timed out waiting for reprocessed event persistence. eventId=" + eventId);
+    }
+
+    private Duration getReprocessPersistenceTimeout() {
+        var reprocessConfig = applicationProperties.reprocess();
+        if (reprocessConfig == null
+                || reprocessConfig.persistenceTimeout() == null
+                || reprocessConfig.persistenceTimeout().isNegative()
+                || reprocessConfig.persistenceTimeout().isZero()) {
+            return DEFAULT_REPROCESS_PERSISTENCE_TIMEOUT;
+        }
+        return reprocessConfig.persistenceTimeout();
+    }
+
+    private Duration getReprocessPollInterval() {
+        var reprocessConfig = applicationProperties.reprocess();
+        if (reprocessConfig == null
+                || reprocessConfig.pollInterval() == null
+                || reprocessConfig.pollInterval().isNegative()
+                || reprocessConfig.pollInterval().isZero()) {
+            return DEFAULT_REPROCESS_POLL_INTERVAL;
+        }
+        return reprocessConfig.pollInterval();
     }
 
     /**

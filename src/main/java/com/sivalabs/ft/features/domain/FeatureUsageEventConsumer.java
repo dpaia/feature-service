@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.domain.entities.FeatureUsage;
 import com.sivalabs.ft.features.domain.events.FeatureUsageEvent;
+import com.sivalabs.ft.features.domain.models.ErrorType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class FeatureUsageEventConsumer {
@@ -20,10 +20,15 @@ public class FeatureUsageEventConsumer {
 
     private final FeatureUsageRepository featureUsageRepository;
     private final ObjectMapper objectMapper;
+    private final ErrorLoggingService errorLoggingService;
 
-    public FeatureUsageEventConsumer(FeatureUsageRepository featureUsageRepository, ObjectMapper objectMapper) {
+    public FeatureUsageEventConsumer(
+            FeatureUsageRepository featureUsageRepository,
+            ObjectMapper objectMapper,
+            ErrorLoggingService errorLoggingService) {
         this.featureUsageRepository = featureUsageRepository;
         this.objectMapper = objectMapper;
+        this.errorLoggingService = errorLoggingService;
     }
 
     @KafkaListener(
@@ -32,7 +37,6 @@ public class FeatureUsageEventConsumer {
             batch = "true",
             autoStartup = "${spring.kafka.listener.auto-startup:true}",
             containerFactory = "batchKafkaListenerContainerFactory")
-    @Transactional
     public void consume(List<FeatureUsageEvent> events) {
         log.debug("Received batch of {} FeatureUsage events from Kafka", events.size());
 
@@ -42,6 +46,7 @@ public class FeatureUsageEventConsumer {
         // is committed, causing a unique constraint violation on INSERT.
         Set<String> seenEventIds = new HashSet<>();
         List<FeatureUsage> toSave = new ArrayList<>();
+        List<FeatureUsageEvent> toSaveEvents = new ArrayList<>();
 
         for (FeatureUsageEvent event : events) {
             try {
@@ -58,14 +63,35 @@ public class FeatureUsageEventConsumer {
 
                 FeatureUsage featureUsage = toEntity(event);
                 toSave.add(featureUsage);
+                toSaveEvents.add(event);
             } catch (Exception e) {
                 log.error("Failed to process FeatureUsage event eventId={}", event.eventId(), e);
+                errorLoggingService.logError(
+                        ErrorType.PROCESSING_ERROR,
+                        "Failed to process FeatureUsage Kafka event",
+                        e,
+                        toPayload(event),
+                        event.userId());
             }
         }
 
         if (!toSave.isEmpty()) {
-            featureUsageRepository.saveAll(toSave);
-            log.debug("Saved {} FeatureUsage records from Kafka batch", toSave.size());
+            try {
+                // Force DB constraints check inside this try/catch so database failures
+                // are captured and logged into error_log.
+                featureUsageRepository.saveAllAndFlush(toSave);
+                log.debug("Saved {} FeatureUsage records from Kafka batch", toSave.size());
+            } catch (Exception e) {
+                log.error("Failed to persist FeatureUsage Kafka batch", e);
+                for (FeatureUsageEvent event : toSaveEvents) {
+                    errorLoggingService.logError(
+                            ErrorType.DATABASE_ERROR,
+                            "Failed to persist FeatureUsage Kafka event",
+                            e,
+                            toPayload(event),
+                            event.userId());
+                }
+            }
         }
     }
 
@@ -89,5 +115,13 @@ public class FeatureUsageEventConsumer {
         featureUsage.setTimestamp(event.timestamp());
         featureUsage.setContext(contextJson);
         return featureUsage;
+    }
+
+    private String toPayload(FeatureUsageEvent event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            return "eventId=" + event.eventId();
+        }
     }
 }

@@ -76,8 +76,22 @@ public class EventPublisher {
             Map<String, Object> context,
             String ipAddress,
             String userAgent) {
+        publishFeatureUsageEventWithEventId(
+                userId, featureCode, productCode, releaseCode, actionType, context, ipAddress, userAgent);
+    }
+
+    public String publishFeatureUsageEventWithEventId(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> context,
+            String ipAddress,
+            String userAgent) {
+        String eventId = UUID.randomUUID().toString();
         FeatureUsageEvent event = new FeatureUsageEvent(
-                UUID.randomUUID().toString(),
+                eventId,
                 userId,
                 featureCode,
                 productCode,
@@ -88,5 +102,6 @@ public class EventPublisher {
                 ipAddress,
                 userAgent);
         kafkaTemplate.send(properties.events().featureUsage(), event);
+        return eventId;
     }
 }
