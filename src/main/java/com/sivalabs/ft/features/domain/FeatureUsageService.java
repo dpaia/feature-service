@@ -1,10 +1,13 @@
 package com.sivalabs.ft.features.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.domain.dtos.*;
 import com.sivalabs.ft.features.domain.entities.FeatureUsage;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureUsageMapper;
 import com.sivalabs.ft.features.domain.models.ActionType;
+import com.sivalabs.ft.features.domain.models.ErrorType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -26,16 +29,22 @@ public class FeatureUsageService {
     private final com.sivalabs.ft.features.ApplicationProperties applicationProperties;
     private final FeatureUsageMapper featureUsageMapper;
     private final EventPublisher eventPublisher;
+    private final ErrorLoggingService errorLoggingService;
+    private final ObjectMapper objectMapper;
 
     public FeatureUsageService(
             FeatureUsageRepository featureUsageRepository,
             com.sivalabs.ft.features.ApplicationProperties applicationProperties,
             FeatureUsageMapper featureUsageMapper,
-            EventPublisher eventPublisher) {
+            EventPublisher eventPublisher,
+            ErrorLoggingService errorLoggingService,
+            ObjectMapper objectMapper) {
         this.featureUsageRepository = featureUsageRepository;
         this.applicationProperties = applicationProperties;
         this.featureUsageMapper = featureUsageMapper;
         this.eventPublisher = eventPublisher;
+        this.errorLoggingService = errorLoggingService;
+        this.objectMapper = objectMapper;
     }
 
     public void logUsage(
@@ -80,6 +89,20 @@ public class FeatureUsageService {
                     actionType);
         } catch (Exception e) {
             log.error("Failed to publish usage event", e);
+            errorLoggingService.logError(
+                    ErrorType.PROCESSING_ERROR,
+                    "Failed to publish usage event",
+                    e,
+                    buildPayload(
+                            userId,
+                            featureCode,
+                            productCode,
+                            releaseCode,
+                            actionType,
+                            contextData,
+                            ipAddress,
+                            userAgent),
+                    userId);
             // Don't throw exception to avoid breaking the main flow
         }
     }
@@ -91,6 +114,32 @@ public class FeatureUsageService {
     public void logUsage(
             String userId, String featureCode, String productCode, String releaseCode, ActionType actionType) {
         logUsage(userId, featureCode, productCode, releaseCode, actionType, null, null, null);
+    }
+
+    private String buildPayload(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> contextData,
+            String ipAddress,
+            String userAgent) {
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userId", userId);
+            payload.put("featureCode", featureCode);
+            payload.put("productCode", productCode);
+            payload.put("releaseCode", releaseCode);
+            payload.put("actionType", actionType);
+            payload.put("context", contextData);
+            payload.put("ipAddress", ipAddress);
+            payload.put("userAgent", userAgent);
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            log.debug("Failed to serialize usage payload", e);
+            return "featureCode=" + featureCode + ", productCode=" + productCode + ", actionType=" + actionType;
+        }
     }
 
     /**

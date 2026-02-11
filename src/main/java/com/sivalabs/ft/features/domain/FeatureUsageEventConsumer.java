@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.domain.entities.FeatureUsage;
 import com.sivalabs.ft.features.domain.events.FeatureUsageEvent;
+import com.sivalabs.ft.features.domain.models.ErrorType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -20,10 +21,15 @@ public class FeatureUsageEventConsumer {
 
     private final FeatureUsageRepository featureUsageRepository;
     private final ObjectMapper objectMapper;
+    private final ErrorLoggingService errorLoggingService;
 
-    public FeatureUsageEventConsumer(FeatureUsageRepository featureUsageRepository, ObjectMapper objectMapper) {
+    public FeatureUsageEventConsumer(
+            FeatureUsageRepository featureUsageRepository,
+            ObjectMapper objectMapper,
+            ErrorLoggingService errorLoggingService) {
         this.featureUsageRepository = featureUsageRepository;
         this.objectMapper = objectMapper;
+        this.errorLoggingService = errorLoggingService;
     }
 
     @KafkaListener(
@@ -60,12 +66,25 @@ public class FeatureUsageEventConsumer {
                 toSave.add(featureUsage);
             } catch (Exception e) {
                 log.error("Failed to process FeatureUsage event eventId={}", event.eventId(), e);
+                errorLoggingService.logError(
+                        ErrorType.PROCESSING_ERROR,
+                        "Failed to process FeatureUsage Kafka event",
+                        e,
+                        toPayload(event),
+                        event.userId());
             }
         }
 
         if (!toSave.isEmpty()) {
-            featureUsageRepository.saveAll(toSave);
-            log.debug("Saved {} FeatureUsage records from Kafka batch", toSave.size());
+            try {
+                featureUsageRepository.saveAll(toSave);
+                log.debug("Saved {} FeatureUsage records from Kafka batch", toSave.size());
+            } catch (Exception e) {
+                log.error("Failed to persist FeatureUsage Kafka batch", e);
+                ErrorType errorType = ErrorType.DATABASE_ERROR;
+                errorLoggingService.logError(
+                        errorType, "Failed to persist FeatureUsage Kafka batch", e, toBatchPayload(events), null);
+            }
         }
     }
 
@@ -89,5 +108,21 @@ public class FeatureUsageEventConsumer {
         featureUsage.setTimestamp(event.timestamp());
         featureUsage.setContext(contextJson);
         return featureUsage;
+    }
+
+    private String toPayload(FeatureUsageEvent event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            return "eventId=" + event.eventId();
+        }
+    }
+
+    private String toBatchPayload(List<FeatureUsageEvent> events) {
+        try {
+            return objectMapper.writeValueAsString(events);
+        } catch (JsonProcessingException e) {
+            return "batchSize=" + events.size();
+        }
     }
 }
