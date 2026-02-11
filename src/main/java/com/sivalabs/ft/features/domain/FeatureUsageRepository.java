@@ -267,4 +267,10 @@ public interface FeatureUsageRepository extends JpaRepository<FeatureUsage, Long
             @Param("actionType") ActionType actionType,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
+
+    // Methods for health metrics
+    long countByTimestampBetween(Instant start, Instant end);
+
+    @Query("SELECT fu.timestamp FROM FeatureUsage fu ORDER BY fu.timestamp DESC LIMIT 1")
+    Instant findLatestTimestamp();
 }
