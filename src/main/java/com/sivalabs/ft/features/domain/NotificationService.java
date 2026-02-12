@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.domain;
 
 import com.sivalabs.ft.features.domain.dtos.NotificationDto;
 import com.sivalabs.ft.features.domain.entities.Notification;
+import com.sivalabs.ft.features.domain.events.UnreadCountChangedPublisher;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.NotificationMapper;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
@@ -26,14 +27,17 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
     private final NotificationEmailService notificationEmailService;
+    private final UnreadCountChangedPublisher unreadCountChangedPublisher;
 
     public NotificationService(
             NotificationRepository notificationRepository,
             NotificationMapper notificationMapper,
-            NotificationEmailService notificationEmailService) {
+            NotificationEmailService notificationEmailService,
+            UnreadCountChangedPublisher unreadCountChangedPublisher) {
         this.notificationRepository = notificationRepository;
         this.notificationMapper = notificationMapper;
         this.notificationEmailService = notificationEmailService;
+        this.unreadCountChangedPublisher = unreadCountChangedPublisher;
     }
 
     /**
@@ -46,6 +50,8 @@ public class NotificationService {
             NotificationEventType eventType,
             String eventDetails,
             String link) {
+
+        long previousUnreadCount = notificationRepository.countUnread(recipientUserId);
 
         var notification = new Notification();
         notification.setRecipientUserId(recipientUserId);
@@ -67,6 +73,7 @@ public class NotificationService {
             @Override
             public void afterCommit() {
                 notificationEmailService.sendNotificationEmail(savedNotification);
+                publishUnreadCountIfChanged(recipientUserId, previousUnreadCount);
             }
         });
 
@@ -106,6 +113,7 @@ public class NotificationService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
+                publishUnreadCountForBatch(savedNotifications);
                 for (Notification savedNotification : savedNotifications) {
                     notificationEmailService.sendNotificationEmail(savedNotification);
                 }
@@ -130,8 +138,18 @@ public class NotificationService {
      */
     @Transactional(readOnly = true)
     public Page<NotificationDto> getNotificationsForUser(String recipientUserId, Pageable pageable) {
-        Page<Notification> notifications =
-                notificationRepository.findByRecipientUserIdOrderByCreatedAtDesc(recipientUserId, pageable);
+        return getNotificationsForUser(recipientUserId, null, pageable);
+    }
+
+    /**
+     * Get notifications for a user with pagination and optional read status
+     */
+    @Transactional(readOnly = true)
+    public Page<NotificationDto> getNotificationsForUser(String recipientUserId, Boolean read, Pageable pageable) {
+        Page<Notification> notifications = read == null
+                ? notificationRepository.findByRecipientUserIdOrderByCreatedAtDesc(recipientUserId, pageable)
+                : notificationRepository.findByRecipientUserIdAndReadOrderByCreatedAtDesc(
+                        recipientUserId, read, pageable);
         return notifications.map(notificationMapper::toDto);
     }
 
@@ -141,6 +159,7 @@ public class NotificationService {
      */
     @Transactional
     public NotificationDto markAsRead(UUID notificationId, String recipientUserId) {
+        long previousUnreadCount = notificationRepository.countUnread(recipientUserId);
         Instant readAt = Instant.now();
         int updated = notificationRepository.markAsRead(notificationId, recipientUserId, readAt);
 
@@ -155,6 +174,8 @@ public class NotificationService {
 
         log.info("Marked notification {} as read for user {}", notificationId, recipientUserId);
 
+        publishUnreadCountAfterCommit(recipientUserId, previousUnreadCount);
+
         return notificationMapper.toDto(notification);
     }
 
@@ -164,6 +185,7 @@ public class NotificationService {
      */
     @Transactional
     public NotificationDto markAsUnread(UUID notificationId, String recipientUserId) {
+        long previousUnreadCount = notificationRepository.countUnread(recipientUserId);
         int updated = notificationRepository.markAsUnread(notificationId, recipientUserId);
 
         if (updated == 0) {
@@ -177,6 +199,47 @@ public class NotificationService {
 
         log.info("Marked notification {} as unread for user {}", notificationId, recipientUserId);
 
+        publishUnreadCountAfterCommit(recipientUserId, previousUnreadCount);
+
         return notificationMapper.toDto(notification);
+    }
+
+    /**
+     * Mark all notifications as read for a user
+     */
+    @Transactional
+    public long markAllAsRead(String recipientUserId) {
+        long previousUnreadCount = notificationRepository.countUnread(recipientUserId);
+        Instant readAt = Instant.now();
+        long updated = notificationRepository.markAllAsRead(recipientUserId, readAt);
+        publishUnreadCountAfterCommit(recipientUserId, previousUnreadCount);
+        log.info("Marked {} notifications as read for user {}", updated, recipientUserId);
+        return updated;
+    }
+
+    void publishUnreadCountAfterCommit(String recipientUserId, long previousUnreadCount) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                publishUnreadCountIfChanged(recipientUserId, previousUnreadCount);
+            }
+        });
+    }
+
+    void publishUnreadCountIfChanged(String recipientUserId, long previousUnreadCount) {
+        long currentUnreadCount = notificationRepository.countUnread(recipientUserId);
+        if (currentUnreadCount != previousUnreadCount) {
+            unreadCountChangedPublisher.publish(recipientUserId, currentUnreadCount);
+        }
+    }
+
+    void publishUnreadCountForBatch(List<Notification> savedNotifications) {
+        savedNotifications.stream()
+                .map(Notification::getRecipientUserId)
+                .distinct()
+                .forEach(recipientUserId -> {
+                    long currentUnreadCount = notificationRepository.countUnread(recipientUserId);
+                    unreadCountChangedPublisher.publish(recipientUserId, currentUnreadCount);
+                });
     }
 }
