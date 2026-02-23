@@ -98,7 +98,7 @@ class ReleaseController {
     @PostMapping("")
     @Operation(
             summary = "Create a new release",
-            description = "Create a new release",
+            description = "Create a new release. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(
                         responseCode = "201",
@@ -127,7 +127,7 @@ class ReleaseController {
     @PutMapping("/{code}")
     @Operation(
             summary = "Update an existing release",
-            description = "Update an existing release",
+            description = "Update an existing release. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Successful response"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
@@ -144,7 +144,7 @@ class ReleaseController {
     @DeleteMapping("/{code}")
     @Operation(
             summary = "Delete an existing release",
-            description = "Delete an existing release",
+            description = "Delete an existing release. Requires ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Successful response"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
@@ -162,7 +162,8 @@ class ReleaseController {
     @PostMapping("/{releaseCode}/features")
     @Operation(
             summary = "Assign a feature to a release",
-            description = "Assign a feature to a release with planning details",
+            description =
+                    "Assign a feature to a release with planning details. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "201", description = "Feature assigned successfully"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
@@ -229,7 +230,8 @@ class ReleaseController {
     @PatchMapping("/{releaseCode}/features/{featureCode}/planning")
     @Operation(
             summary = "Update feature planning details",
-            description = "Update planning details (dates, status, owner, blockage reason) for a feature in a release",
+            description =
+                    "Update planning details (dates, status, owner, blockage reason) for a feature in a release. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Planning updated successfully"),
                 @ApiResponse(responseCode = "400", description = "Invalid request or invalid status transition"),
@@ -258,7 +260,8 @@ class ReleaseController {
     @PostMapping("/{targetReleaseCode}/features/{featureCode}/move")
     @Operation(
             summary = "Move a feature between releases",
-            description = "Move a feature from its current release to another release",
+            description =
+                    "Move a feature from its current release to another release. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Feature moved successfully"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
@@ -286,7 +289,7 @@ class ReleaseController {
     @DeleteMapping("/{releaseCode}/features/{featureCode}")
     @Operation(
             summary = "Remove a feature from a release",
-            description = "Remove a feature from a release",
+            description = "Remove a feature from a release. Requires ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Feature removed successfully"),
                 @ApiResponse(responseCode = "401", description = "Unauthorized"),
