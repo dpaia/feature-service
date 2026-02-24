@@ -11,5 +11,6 @@ public record ApplicationProperties(
         @NotBlank(message = "ft.public-base-url property is required") String publicBaseUrl,
         @NotBlank(message = "ft.mail-from property is required") String mailFrom) {
 
-    public record EventsProperties(String newFeatures, String updatedFeatures, String deletedFeatures) {}
+    public record EventsProperties(
+            String newFeatures, String updatedFeatures, String deletedFeatures, String unreadCount) {}
 }

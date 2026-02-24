@@ -17,9 +17,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -50,13 +52,25 @@ class NotificationController {
                                                         schema = @Schema(implementation = NotificationDto.class)))),
                 @ApiResponse(responseCode = "401", description = "Unauthorized")
             })
-    ResponseEntity<Page<NotificationDto>> getNotifications(Pageable pageable) {
+    ResponseEntity<Page<NotificationDto>> getNotifications(
+            @RequestParam(name = "status", required = false) String status, Pageable pageable) {
         String username = SecurityUtils.getCurrentUsername();
         if (username == null) {
             return ResponseEntity.status(401).build();
         }
 
-        Page<NotificationDto> notifications = notificationService.getNotificationsForUser(username, pageable);
+        Boolean read = null;
+        if (status != null && !status.isBlank()) {
+            if ("read".equalsIgnoreCase(status)) {
+                read = true;
+            } else if ("unread".equalsIgnoreCase(status)) {
+                read = false;
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        Page<NotificationDto> notifications = notificationService.getNotificationsForUser(username, read, pageable);
         return ResponseEntity.ok(notifications);
     }
 
@@ -121,4 +135,30 @@ class NotificationController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @PatchMapping("/mark-all-read")
+    @Operation(
+            summary = "Mark all notifications as read",
+            description = "Mark all unread notifications as read for the current user",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = MarkAllReadResponse.class))),
+                @ApiResponse(responseCode = "401", description = "Unauthorized")
+            })
+    ResponseEntity<MarkAllReadResponse> markAllAsRead() {
+        String username = SecurityUtils.getCurrentUsername();
+        if (username == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        long updated = notificationService.markAllAsRead(username);
+        return ResponseEntity.ok(new MarkAllReadResponse(updated));
+    }
+
+    record MarkAllReadResponse(long updated) {}
 }

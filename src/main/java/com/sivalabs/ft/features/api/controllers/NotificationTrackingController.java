@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.api.controllers;
 
 import com.sivalabs.ft.features.domain.NotificationRepository;
 import com.sivalabs.ft.features.domain.entities.Notification;
+import com.sivalabs.ft.features.domain.events.UnreadCountChangedPublisher;
 import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import java.time.Instant;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,9 +34,12 @@ class NotificationTrackingController {
             Base64.getDecoder().decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
 
     private final NotificationRepository notificationRepository;
+    private final UnreadCountChangedPublisher unreadCountChangedPublisher;
 
-    NotificationTrackingController(NotificationRepository notificationRepository) {
+    NotificationTrackingController(
+            NotificationRepository notificationRepository, UnreadCountChangedPublisher unreadCountChangedPublisher) {
         this.notificationRepository = notificationRepository;
+        this.unreadCountChangedPublisher = unreadCountChangedPublisher;
     }
 
     @GetMapping("/notifications/{id}/read")
@@ -50,12 +56,24 @@ class NotificationTrackingController {
                 .findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
+        long previousUnreadCount = notificationRepository.countUnread(notification.getRecipientUserId());
+
         // Idempotent: only update if not already read
         if (!Boolean.TRUE.equals(notification.getRead())) {
             notification.setRead(true);
             notification.setReadAt(Instant.now());
             notificationRepository.save(notification);
             log.info("Notification {} marked as read via tracking pixel", notificationId);
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    long currentUnreadCount = notificationRepository.countUnread(notification.getRecipientUserId());
+                    if (currentUnreadCount != previousUnreadCount) {
+                        unreadCountChangedPublisher.publish(notification.getRecipientUserId(), currentUnreadCount);
+                    }
+                }
+            });
         } else {
             log.debug("Notification {} already read, skipping update", notificationId);
         }
