@@ -12,6 +12,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface FeatureUsageRepository extends JpaRepository<FeatureUsage, Long> {
 
+    @Query("SELECT COUNT(fu) > 0 FROM FeatureUsage fu WHERE fu.eventId = :eventId")
+    boolean existsByEventId(@Param("eventId") String eventId);
+
     // Find by feature code (paginated)
     Page<FeatureUsage> findByFeatureCodeOrderByTimestampDesc(String featureCode, Pageable pageable);
 

@@ -1,9 +1,8 @@
 package com.sivalabs.ft.features.domain;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.domain.dtos.*;
 import com.sivalabs.ft.features.domain.entities.FeatureUsage;
+import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureUsageMapper;
 import com.sivalabs.ft.features.domain.models.ActionType;
 import java.nio.charset.StandardCharsets;
@@ -18,29 +17,27 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FeatureUsageService {
     private static final Logger log = LoggerFactory.getLogger(FeatureUsageService.class);
 
     private final FeatureUsageRepository featureUsageRepository;
-    private final ObjectMapper objectMapper;
     private final com.sivalabs.ft.features.ApplicationProperties applicationProperties;
     private final FeatureUsageMapper featureUsageMapper;
+    private final EventPublisher eventPublisher;
 
     public FeatureUsageService(
             FeatureUsageRepository featureUsageRepository,
-            ObjectMapper objectMapper,
             com.sivalabs.ft.features.ApplicationProperties applicationProperties,
-            FeatureUsageMapper featureUsageMapper) {
+            FeatureUsageMapper featureUsageMapper,
+            EventPublisher eventPublisher) {
         this.featureUsageRepository = featureUsageRepository;
-        this.objectMapper = objectMapper;
         this.applicationProperties = applicationProperties;
         this.featureUsageMapper = featureUsageMapper;
+        this.eventPublisher = eventPublisher;
     }
 
-    @Transactional
     public void logUsage(
             String userId,
             String featureCode,
@@ -69,50 +66,28 @@ public class FeatureUsageService {
                 }
             }
 
-            String contextJson = null;
-            if (!enrichedContext.isEmpty()) {
-                try {
-                    contextJson = objectMapper.writeValueAsString(enrichedContext);
-                } catch (JsonProcessingException e) {
-                    log.warn("Failed to serialize context data", e);
-                }
-            }
+            Map<String, Object> contextToPublish = enrichedContext.isEmpty() ? null : enrichedContext;
 
-            var featureUsage = new FeatureUsage();
-            featureUsage.setUserId(userId);
-            featureUsage.setFeatureCode(featureCode);
-            featureUsage.setProductCode(productCode);
-            featureUsage.setReleaseCode(releaseCode);
-            featureUsage.setActionType(actionType);
-            featureUsage.setTimestamp(Instant.now());
-            featureUsage.setContext(contextJson);
+            eventPublisher.publishFeatureUsageEvent(
+                    userId, featureCode, productCode, releaseCode, actionType, contextToPublish, ipAddress, userAgent);
 
-            featureUsageRepository.save(featureUsage);
             log.debug(
-                    "Logged usage: user={}, feature={}, product={}, release={}, action={}",
+                    "Published usage event to Kafka: user={}, feature={}, product={}, release={}, action={}",
                     userId,
                     featureCode,
                     productCode,
                     releaseCode,
                     actionType);
         } catch (Exception e) {
-            log.error("Failed to log usage event", e);
+            log.error("Failed to publish usage event", e);
             // Don't throw exception to avoid breaking the main flow
         }
     }
 
-    @Transactional
     public void logUsage(String userId, String featureCode, String productCode, ActionType actionType) {
         logUsage(userId, featureCode, productCode, null, actionType, null, null, null);
     }
 
-    @Transactional
-    public void logUsage(
-            String userId, String featureCode, String productCode, ActionType actionType, Map<String, Object> context) {
-        logUsage(userId, featureCode, productCode, null, actionType, context, null, null);
-    }
-
-    @Transactional
     public void logUsage(
             String userId, String featureCode, String productCode, String releaseCode, ActionType actionType) {
         logUsage(userId, featureCode, productCode, releaseCode, actionType, null, null, null);
@@ -150,43 +125,6 @@ public class FeatureUsageService {
         // Placeholder: In production, use MaxMind GeoIP2 or similar service
         // For now, return null or "UNKNOWN"
         // Example: return geoIpService.getCountryCode(ipAddress);
-        return null;
-    }
-
-    // New API methods for programmatic usage tracking
-
-    @Transactional
-    public FeatureUsageDto createUsageEvent(
-            String userId,
-            String featureCode,
-            String productCode,
-            String releaseCode,
-            ActionType actionType,
-            Map<String, Object> context,
-            String ipAddress,
-            String userAgent) {
-
-        logUsage(userId, featureCode, productCode, releaseCode, actionType, context, ipAddress, userAgent);
-
-        // Find the most recent usage event for this user and action
-        Page<FeatureUsage> recentUsage = featureUsageRepository.findWithFiltersPaginated(
-                actionType, null, null, userId, featureCode, productCode, PageRequest.of(0, 1));
-
-        if (!recentUsage.isEmpty()) {
-            FeatureUsage usage = recentUsage.getContent().get(0);
-            return new FeatureUsageDto(
-                    usage.getId(),
-                    usage.getUserId(),
-                    usage.getFeatureCode(),
-                    usage.getProductCode(),
-                    usage.getReleaseCode(),
-                    usage.getActionType(),
-                    usage.getTimestamp(),
-                    usage.getContext(),
-                    ipAddress,
-                    userAgent);
-        }
-
         return null;
     }
 
