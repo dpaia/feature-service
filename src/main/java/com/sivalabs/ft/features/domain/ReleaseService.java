@@ -3,8 +3,10 @@ package com.sivalabs.ft.features.domain;
 import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.entities.Milestone;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
+import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.ReleaseMapper;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
@@ -21,16 +23,19 @@ public class ReleaseService {
     private final ProductRepository productRepository;
     private final FeatureRepository featureRepository;
     private final ReleaseMapper releaseMapper;
+    private final MilestoneRepository milestoneRepository;
 
     ReleaseService(
             ReleaseRepository releaseRepository,
             ProductRepository productRepository,
             FeatureRepository featureRepository,
-            ReleaseMapper releaseMapper) {
+            ReleaseMapper releaseMapper,
+            MilestoneRepository milestoneRepository) {
         this.releaseRepository = releaseRepository;
         this.productRepository = productRepository;
         this.featureRepository = featureRepository;
         this.releaseMapper = releaseMapper;
+        this.milestoneRepository = milestoneRepository;
     }
 
     @Transactional(readOnly = true)
@@ -74,6 +79,20 @@ public class ReleaseService {
         release.setDescription(cmd.description());
         release.setStatus(cmd.status());
         release.setReleasedAt(cmd.releasedAt());
+        if (cmd.milestoneCode() != null) {
+            Milestone milestone = milestoneRepository
+                    .findByCode(cmd.milestoneCode())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Milestone with code %s not found".formatted(cmd.milestoneCode())));
+
+            if (!milestone.getProduct().getId().equals(release.getProduct().getId())) {
+                throw new BadRequestException("Milestone and Release must belong to the same Product");
+            }
+
+            release.setMilestone(milestone);
+        } else {
+            release.setMilestone(null);
+        }
         release.setUpdatedBy(cmd.updatedBy());
         release.setUpdatedAt(Instant.now());
         releaseRepository.save(release);
