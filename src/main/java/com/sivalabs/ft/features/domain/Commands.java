@@ -1,8 +1,10 @@
 package com.sivalabs.ft.features.domain;
 
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 
 public class Commands {
     private Commands() {}
@@ -39,6 +41,30 @@ public class Commands {
             String updatedBy) {}
 
     public record DeleteFeatureCommand(String code, String deletedBy) {}
+
+    /* Feature Planning Commands */
+    public record AssignFeatureToReleaseCommand(
+            String releaseCode,
+            String featureCode,
+            LocalDate plannedCompletionDate,
+            String featureOwner,
+            String notes,
+            String createdBy) {}
+
+    public record UpdateFeaturePlanningCommand(
+            String releaseCode,
+            String featureCode,
+            LocalDate plannedCompletionDate,
+            FeaturePlanningStatus planningStatus,
+            String featureOwner,
+            String blockageReason,
+            String notes,
+            String updatedBy) {}
+
+    public record MoveFeatureCommand(String targetReleaseCode, String featureCode, String rationale, String movedBy) {}
+
+    public record RemoveFeatureFromReleaseCommand(
+            String releaseCode, String featureCode, String rationale, String removedBy) {}
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
