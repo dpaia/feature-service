@@ -59,7 +59,8 @@ insert into features (id, product_id, release_id, code, title, description, stat
 (6, 1, null, 'IDEA-5', 'New unassigned feature 3', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-27', null, 'NOT_STARTED', null, null, null),
 (7, 1, null, 'IDEA-6', 'New unassigned feature 4', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-28', null, 'NOT_STARTED', null, null, null),
 (8, 1, null, 'IDEA-7', 'New unassigned feature 5', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-01', null, 'NOT_STARTED', null, null, null),
-(9, 1, null, 'IDEA-8', 'New unassigned feature 6', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-02', null, 'NOT_STARTED', null, null, null)
+(9, 1, null, 'IDEA-8', 'New unassigned feature 6', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-02', null, 'NOT_STARTED', null, null, null),
+(10, 1, null, 'IDEA-9', 'Comment-free feature', 'This feature has no comments', 'NEW', 'user', 'user', '2024-03-03', null, 'NOT_STARTED', null, null, null)
 ;
 
 insert into favorite_features (id, feature_id, user_id) values
