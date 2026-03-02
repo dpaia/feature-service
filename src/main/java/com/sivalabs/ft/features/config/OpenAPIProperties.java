@@ -10,7 +10,5 @@ public record OpenAPIProperties(
         @DefaultValue("FeatureService API") String title,
         @DefaultValue("FeatureService API Swagger Documentation") String description,
         @DefaultValue("v1.0.0") String version,
-        Contact contact) {
-
-    public record Contact(@DefaultValue("SivaLabs") String name, @DefaultValue("support@sivalabs.in") String email) {}
-}
+        String contactName,
+        String contactEmail) {}

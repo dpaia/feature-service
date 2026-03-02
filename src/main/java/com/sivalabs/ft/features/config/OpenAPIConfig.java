@@ -19,8 +19,8 @@ class OpenAPIConfig {
     @Bean
     OpenAPI openApi(OpenAPIProperties properties) {
         Contact contact = new Contact()
-                .name(properties.contact().name())
-                .email(properties.contact().email());
+                .name(properties.contactName())
+                .email(properties.contactEmail());
         License license = new License().name("Apache 2.0").url("http://www.apache.org/licenses/LICENSE-2.0.html");
         Info info = new Info()
                 .title(properties.title())
