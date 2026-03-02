@@ -64,10 +64,10 @@ class CommentController {
                 @ApiResponse(responseCode = "204", description = "Comment removed successfully"),
                 @ApiResponse(responseCode = "400", description = "Comment not found")
             })
-    ResponseEntity<Void> removeComment(@PathVariable Long comentId) {
+    ResponseEntity<Void> removeComment(@PathVariable Long commentId) {
         String username = SecurityUtils.getCurrentUsername();
-        commentService.removeComment(comentId, username);
-        log.info("Comment with id: {} is removed", comentId);
+        commentService.removeComment(commentId, username);
+        log.info("Comment with id: {} is removed", commentId);
         return ResponseEntity.noContent().build();
     }
 
