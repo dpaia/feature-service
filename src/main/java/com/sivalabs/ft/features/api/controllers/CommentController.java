@@ -87,4 +87,7 @@ class CommentController {
         log.info("Retrieved {} comments for feature code: {}", comments.size(), featureCode);
         return ResponseEntity.ok(comments);
     }
+
+    @PutMapping("/{commentId}")
+
 }
