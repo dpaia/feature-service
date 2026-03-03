@@ -7,7 +7,7 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface MilestoneMapper {
-    @Mapping
+    @Mapping(target = "completedFeatures", source = "resolvedFeatures")
     MilestoneDto toDto(Milestone milestone);
 
     Milestone toEntity(MilestoneDto dto);
