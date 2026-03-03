@@ -6,10 +6,11 @@ public class FeatureFilter {
     private FeatureStatus status;
     private String assignedTo;
 
-    public FeatureFilter(String productCode, String releaseCode, FeatureStatus status) {
+    public FeatureFilter(String productCode, String releaseCode, FeatureStatus status, String assignedTo) {
         this.productCode = productCode;
         this.releaseCode = releaseCode;
         this.status = status;
+        this.assignedTo = assignedTo;
     }
 
     public String getProductCode() {
