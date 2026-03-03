@@ -88,5 +88,17 @@ class CommentController {
         return ResponseEntity.ok(comments);
     }
 
-    ResponseEntity
+    @PutMapping("/{commentId}")
+    @Operation(
+            summary = "Update a comment",
+            description = "Update a comment by its id",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Comment updated successfully"),
+                @ApiResponse(responseCode = "400", description = "Comment not found")
+            })
+    ResponseEntity<Void> updateComment(@PathVariable Long commentId, @RequestBody String content) {
+        String username = SecurityUtils.getCurrentUsername();
+        commentService.updateComment(commentId, content, username);
+        return ResponseEntity.ok().build();
+    }
 }
