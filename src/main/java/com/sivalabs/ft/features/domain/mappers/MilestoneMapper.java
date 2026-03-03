@@ -10,6 +10,6 @@ public interface MilestoneMapper {
     @Mapping(target = "completedFeatures", source = "resolvedFeatures")
     MilestoneDto toDto(Milestone milestone);
 
-    @Mapping
+    @Mapping(target = "resolvedFeatures", source = "completedFeatures")
     Milestone toEntity(MilestoneDto dto);
 }
