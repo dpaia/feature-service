@@ -21,4 +21,5 @@ public class Priority {
     private int level;
     private String description;
 
+    public Priority() {}
 }
