@@ -6,10 +6,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "priorities")
 @Data
+@NoArgsConstructor
 public class Priority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
