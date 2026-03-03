@@ -22,10 +22,11 @@ public class ReleaseNote {
 
     private String author;
 
-    public ReleaseNote(Long id, String title, String content) {
+    public ReleaseNote(Long id, String title, String content, String author) {
         this.id = id;
         this.title = title;
         this.content = content;
+        this.author = author;
     }
 
     public Long getId() {
