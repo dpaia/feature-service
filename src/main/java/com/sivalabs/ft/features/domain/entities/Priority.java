@@ -21,4 +21,10 @@ public class Priority {
     private int level;
     private String description;
 
+    public Priority(Long id, String name, int level, String description) {
+        this.id = id;
+        this.name = name;
+        this.level = level;
+        this.description = description;
+    }
 }
