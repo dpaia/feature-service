@@ -88,5 +88,5 @@ class CommentController {
         return ResponseEntity.ok(comments);
     }
 
-    @Put
+    @PutMapping("/{commentId}")
 }
