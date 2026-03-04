@@ -136,7 +136,7 @@ public class FeatureService {
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
-        eventPublisher.publishFeatureUpdatedEvent(feature);
+        eventPublisher.publishFeatureUpdatedEvent(toEventDto(feature));
     }
 
     @Transactional
@@ -263,6 +263,7 @@ public class FeatureService {
         feature.setUpdatedAt(Instant.now());
 
         featureRepository.save(feature);
+        eventPublisher.publishFeatureUpdatedEvent(toEventDto(feature));
 
         log.info(
                 "Feature {} assigned to release {} by user {}", cmd.featureCode(), cmd.releaseCode(), cmd.assignedBy());
@@ -306,6 +307,7 @@ public class FeatureService {
         feature.setUpdatedAt(Instant.now());
 
         featureRepository.save(feature);
+        eventPublisher.publishFeatureUpdatedEvent(toEventDto(feature));
 
         log.info("Feature planning updated for feature {} by user {}", cmd.featureCode(), cmd.updatedBy());
     }
@@ -333,6 +335,7 @@ public class FeatureService {
         feature.setUpdatedAt(Instant.now());
 
         featureRepository.save(feature);
+        eventPublisher.publishFeatureUpdatedEvent(toEventDto(feature));
 
         log.info(
                 "Feature {} moved from {} to release {} by user {} with rationale: {}",
@@ -362,6 +365,7 @@ public class FeatureService {
         feature.setUpdatedAt(Instant.now());
 
         featureRepository.save(feature);
+        eventPublisher.publishFeatureUpdatedEvent(toEventDto(feature));
 
         log.info(
                 "Feature {} removed from release {} by user {} with rationale: {}",
@@ -369,5 +373,9 @@ public class FeatureService {
                 releaseCode,
                 cmd.removedBy(),
                 cmd.rationale());
+    }
+
+    private FeatureDto toEventDto(Feature feature) {
+        return featureMapper.toDto(feature).makeFavorite(false);
     }
 }

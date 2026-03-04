@@ -8,6 +8,8 @@ import com.sivalabs.ft.features.domain.dtos.MilestoneSummaryDto;
 import com.sivalabs.ft.features.domain.entities.Milestone;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
+import com.sivalabs.ft.features.domain.events.EventPublisher;
+import com.sivalabs.ft.features.domain.events.EventType;
 import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.MilestoneMapper;
@@ -27,16 +29,19 @@ public class MilestoneService {
     private final ProductRepository productRepository;
     private final ReleaseRepository releaseRepository;
     private final MilestoneMapper milestoneMapper;
+    private final EventPublisher eventPublisher;
 
     MilestoneService(
             MilestoneRepository milestoneRepository,
             ProductRepository productRepository,
             ReleaseRepository releaseRepository,
-            MilestoneMapper milestoneMapper) {
+            MilestoneMapper milestoneMapper,
+            EventPublisher eventPublisher) {
         this.milestoneRepository = milestoneRepository;
         this.productRepository = productRepository;
         this.releaseRepository = releaseRepository;
         this.milestoneMapper = milestoneMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -45,30 +50,7 @@ public class MilestoneService {
         if (milestoneOptional.isEmpty()) {
             return Optional.empty();
         }
-        Milestone milestone = milestoneOptional.get();
-        MilestoneDto dto = milestoneMapper.toDto(milestone);
-        Integer progress = calculateProgress(new ArrayList<>(milestone.getReleases()));
-        List<MilestoneReleaseDto> releaseDtos =
-                milestoneMapper.toReleaseDtoList(new ArrayList<>(milestone.getReleases()));
-        dto = new MilestoneDto(
-                dto.id(),
-                dto.code(),
-                dto.name(),
-                dto.description(),
-                dto.targetDate(),
-                dto.actualDate(),
-                dto.status(),
-                dto.productCode(),
-                dto.owner(),
-                dto.notes(),
-                progress,
-                releaseDtos,
-                dto.createdBy(),
-                dto.createdAt(),
-                dto.updatedBy(),
-                dto.updatedAt());
-
-        return Optional.of(dto);
+        return Optional.of(buildMilestoneDto(milestoneOptional.get()));
     }
 
     @Transactional(readOnly = true)
@@ -139,6 +121,9 @@ public class MilestoneService {
         milestone.setCreatedAt(Instant.now());
 
         milestoneRepository.save(milestone);
+        MilestoneDto dto = buildMilestoneDto(
+                milestoneRepository.findByCodeWithReleases(milestone.getCode()).orElseThrow());
+        eventPublisher.publishMilestoneEvent(dto, EventType.CREATED);
         return milestone.getCode();
     }
 
@@ -160,15 +145,22 @@ public class MilestoneService {
         milestone.setUpdatedAt(Instant.now());
 
         milestoneRepository.save(milestone);
+        MilestoneDto dto = buildMilestoneDto(
+                milestoneRepository.findByCodeWithReleases(milestone.getCode()).orElseThrow());
+        eventPublisher.publishMilestoneEvent(dto, EventType.UPDATED);
     }
 
     @Transactional
     public void deleteMilestone(String code) {
-        if (!milestoneRepository.existsByCode(code)) {
+        Optional<Milestone> milestoneOptional = milestoneRepository.findByCodeWithReleases(code);
+        if (milestoneOptional.isEmpty()) {
             throw new ResourceNotFoundException("Milestone with code %s not found".formatted(code));
         }
+        Milestone milestone = milestoneOptional.get();
+        MilestoneDto dto = buildMilestoneDto(milestone);
         releaseRepository.unsetMilestone(code);
         milestoneRepository.deleteByCode(code);
+        eventPublisher.publishMilestoneEvent(dto, EventType.DELETED);
     }
 
     private Integer calculateProgress(List<Release> releases) {
@@ -181,5 +173,29 @@ public class MilestoneService {
                 .count();
 
         return (int) Math.round((completedCount * 100.0) / releases.size());
+    }
+
+    private MilestoneDto buildMilestoneDto(Milestone milestone) {
+        MilestoneDto dto = milestoneMapper.toDto(milestone);
+        Integer progress = calculateProgress(new ArrayList<>(milestone.getReleases()));
+        List<MilestoneReleaseDto> releaseDtos =
+                milestoneMapper.toReleaseDtoList(new ArrayList<>(milestone.getReleases()));
+        return new MilestoneDto(
+                dto.id(),
+                dto.code(),
+                dto.name(),
+                dto.description(),
+                dto.targetDate(),
+                dto.actualDate(),
+                dto.status(),
+                dto.productCode(),
+                dto.owner(),
+                dto.notes(),
+                progress,
+                releaseDtos,
+                dto.createdBy(),
+                dto.createdAt(),
+                dto.updatedBy(),
+                dto.updatedAt());
     }
 }
