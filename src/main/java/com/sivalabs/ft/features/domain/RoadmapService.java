@@ -254,7 +254,7 @@ public class RoadmapService {
             return RiskLevel.ZERO;
         } else if (onHoldPercentage < 10.0) {
             return RiskLevel.LOW;
-        } else if (onHoldPercentage > 10.0 && onHoldPercentage <= 30.0) {
+        } else if (onHoldPercentage >= 10.0 && onHoldPercentage <= 30.0) {
             return RiskLevel.MEDIUM;
         } else {
             return RiskLevel.HIGH;
