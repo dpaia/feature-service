@@ -6,14 +6,12 @@ import com.sivalabs.ft.features.domain.FeatureUsageService;
 import com.sivalabs.ft.features.domain.dtos.*;
 import com.sivalabs.ft.features.domain.models.ActionType;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.net.URI;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -25,7 +23,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/usage")
@@ -42,20 +39,13 @@ public class FeatureUsageController {
     @PostMapping("")
     @Operation(
             summary = "Create Usage Event",
-            description = "Create a new feature usage event",
+            description = "Accept a new feature usage event for asynchronous processing",
             responses = {
-                @ApiResponse(
-                        responseCode = "201",
-                        description = "Usage event created successfully",
-                        headers = @Header(name = "Location", description = "URI of the created usage event"),
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = FeatureUsageDto.class))),
+                @ApiResponse(responseCode = "202", description = "Usage event accepted for asynchronous processing"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
                 @ApiResponse(responseCode = "401", description = "Unauthorized")
             })
-    public ResponseEntity<FeatureUsageDto> createUsageEvent(
+    public ResponseEntity<Void> createUsageEvent(
             @RequestBody @Valid CreateUsageEventPayload payload, HttpServletRequest request) {
 
         String username = SecurityUtils.getCurrentUsername();
@@ -66,7 +56,7 @@ public class FeatureUsageController {
         String ipAddress = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
 
-        FeatureUsageDto usageEvent = featureUsageService.createUsageEvent(
+        featureUsageService.logUsage(
                 username,
                 payload.featureCode(),
                 payload.productCode(),
@@ -76,15 +66,7 @@ public class FeatureUsageController {
                 ipAddress,
                 userAgent);
 
-        if (usageEvent != null) {
-            URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                    .path("/{id}")
-                    .buildAndExpand(usageEvent.id())
-                    .toUri();
-            return ResponseEntity.created(location).body(usageEvent);
-        }
-
-        return ResponseEntity.badRequest().build();
+        return ResponseEntity.accepted().build();
     }
 
     @GetMapping("/stats")

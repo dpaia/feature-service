@@ -39,6 +39,9 @@ public class FeatureUsage {
     @Column(name = "context", length = Integer.MAX_VALUE)
     private String context;
 
+    @Size(max = 36) @Column(name = "event_id", length = 36, unique = true)
+    private String eventId;
+
     public Long getId() {
         return id;
     }
@@ -101,5 +104,13 @@ public class FeatureUsage {
 
     public void setContext(String context) {
         this.context = context;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
 }

@@ -2,7 +2,10 @@ package com.sivalabs.ft.features.domain.events;
 
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.domain.entities.Feature;
+import com.sivalabs.ft.features.domain.models.ActionType;
 import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -62,5 +65,28 @@ public class EventPublisher {
                 deletedBy,
                 deletedAt);
         kafkaTemplate.send(properties.events().deletedFeatures(), event);
+    }
+
+    public void publishFeatureUsageEvent(
+            String userId,
+            String featureCode,
+            String productCode,
+            String releaseCode,
+            ActionType actionType,
+            Map<String, Object> context,
+            String ipAddress,
+            String userAgent) {
+        FeatureUsageEvent event = new FeatureUsageEvent(
+                UUID.randomUUID().toString(),
+                userId,
+                featureCode,
+                productCode,
+                releaseCode,
+                actionType,
+                Instant.now(),
+                context,
+                ipAddress,
+                userAgent);
+        kafkaTemplate.send(properties.events().featureUsage(), event);
     }
 }
