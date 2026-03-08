@@ -24,7 +24,13 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values
 (1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24'),
 (2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14'),
-(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14')
+(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14'),
+(4, 1, null, 'IDEA-4', 'Refactor inspections dashboard', 'Revamp the inspections dashboard layout and grouping', 'NEW', 'siva', 'marcobehler', '2024-02-28'),
+(5, 1, null, 'IDEA-5', 'Improve code completion ranking', 'Improve ranking for code completion suggestions', 'NEW', 'siva', 'marcobehler', '2024-03-02'),
+(6, 1, null, 'IDEA-6', 'Add in-editor hints for Kotlin', 'Provide in-editor hints for Kotlin parameters and types', 'NEW', 'siva', 'marcobehler', '2024-03-05'),
+(7, 1, null, 'IDEA-3', 'Improve debugger variable view', 'Improve debugger variable view and formatting', 'NEW', 'siva', 'marcobehler', '2024-03-06'),
+(8, 1, null, 'IDEA-8', 'Optimize indexing throughput', 'Optimize indexing throughput to reduce project open time', 'NEW', 'siva', 'marcobehler', '2024-03-10'),
+(9, 1, null, 'IDEA-7', 'Speed up project import', 'Improve performance of large project import', 'NEW', 'siva', 'marcobehler', '2024-03-07')
 ;
 
 insert into favorite_features (id, feature_id, user_id) values

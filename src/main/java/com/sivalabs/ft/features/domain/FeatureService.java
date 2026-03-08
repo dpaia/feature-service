@@ -211,10 +211,21 @@ public class FeatureService {
             validatePlanningStatusTransition(feature.getPlanningStatus(), cmd.planningStatus());
             feature.setPlanningStatus(cmd.planningStatus());
         }
-        feature.setPlannedCompletionDate(cmd.plannedCompletionDate());
-        feature.setFeatureOwner(cmd.featureOwner());
-        feature.setBlockageReason(cmd.blockageReason());
-        feature.setNotes(cmd.notes());
+        if (cmd.plannedCompletionDate() != null) {
+            feature.setPlannedCompletionDate(cmd.plannedCompletionDate());
+        }
+        if (cmd.featureOwner() != null) {
+            feature.setFeatureOwner(cmd.featureOwner());
+        }
+        if (cmd.blockageReason() != null) {
+            feature.setBlockageReason(cmd.blockageReason());
+        }
+        if (cmd.planningStatus() != null && cmd.planningStatus() != FeaturePlanningStatus.BLOCKED) {
+            feature.setBlockageReason(null);
+        }
+        if (cmd.notes() != null) {
+            feature.setNotes(cmd.notes());
+        }
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
