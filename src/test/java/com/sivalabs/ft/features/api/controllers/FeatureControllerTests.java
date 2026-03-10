@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -122,5 +123,87 @@ class FeatureControllerTests extends AbstractIT {
         // Verify deletion
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldUpdateFeatureWithPlanningFields() {
+        var payload =
+                """
+            {
+                "title": "Feature With Planning",
+                "description": "Description",
+                "status": "IN_PROGRESS",
+                "plannedCompletionAt": "2026-06-01T00:00:00Z",
+                "actualCompletionAt": null,
+                "featurePlanningStatus": "IN_PROGRESS",
+                "featureOwner": "planning.owner",
+                "blockageReason": null
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{code}", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        var updatedFeature = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
+        assertThat(updatedFeature)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(FeatureDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.featurePlanningStatus()).isEqualTo(FeaturePlanningStatus.IN_PROGRESS);
+                    assertThat(dto.featureOwner()).isEqualTo("planning.owner");
+                    assertThat(dto.plannedCompletionAt()).isNotNull();
+                    assertThat(dto.blockageReason()).isNull();
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldUpdateFeatureWithBlockedPlanningStatus() {
+        var payload =
+                """
+            {
+                "title": "Blocked Feature",
+                "description": "Description",
+                "status": "ON_HOLD",
+                "featurePlanningStatus": "BLOCKED",
+                "blockageReason": "Waiting for external API"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{code}", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        var updatedFeature = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
+        assertThat(updatedFeature)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(FeatureDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.featurePlanningStatus()).isEqualTo(FeaturePlanningStatus.BLOCKED);
+                    assertThat(dto.blockageReason()).isEqualTo("Waiting for external API");
+                });
+    }
+
+    @Test
+    void shouldReturnPlanningFieldsInGetFeaturesByRelease() {
+        var result = mvc.get()
+                .uri("/api/features?releaseCode={code}", "IDEA-2023.3.8")
+                .exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(2);
     }
 }
