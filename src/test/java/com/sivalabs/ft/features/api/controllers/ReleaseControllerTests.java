@@ -19,7 +19,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
     }
@@ -299,7 +299,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
 
@@ -307,7 +307,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data[0]")
+                .extractingPath("$.content[0]")
                 .convertTo(ReleaseDto.class)
                 .satisfies(release -> {
                     // Verify structure includes planning fields (even if null)
@@ -416,7 +416,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(6);
     }
@@ -427,7 +427,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(2);
         assertThat(result)
@@ -504,5 +504,21 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldRejectUnauthorizedDeleteRelease() {
         var result = mvc.delete().uri("/api/releases/{code}", "GO-2024.2.3").exchange();
         assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void shouldSupportEnhancedFiltersWithPagination() {
+        var result = mvc.get()
+                .uri("/api/releases?productCode={code}&status={status}&page=0&size=10", "intellij", "RELEASED")
+                .exchange();
+
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.content")
+                .asArray()
+                .hasSize(2)
+                .extracting("code")
+                .containsExactlyInAnyOrder("IDEA-2023.3.8", "IDEA-2024.2.3");
     }
 }
