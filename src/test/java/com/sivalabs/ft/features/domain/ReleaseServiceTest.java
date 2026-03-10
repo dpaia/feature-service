@@ -25,12 +25,15 @@ class ReleaseServiceTest {
     // ---- Status transition validation unit tests ----
 
     @Test
-    void draftCanTransitionToAnyStatus() {
-        for (ReleaseStatus target : ReleaseStatus.values()) {
-            assertThat(ReleaseStatus.DRAFT.canTransitionTo(target))
-                    .as("DRAFT should be able to transition to " + target)
-                    .isTrue();
-        }
+    void draftCanOnlyTransitionToPlannedOrCancelled() {
+        assertThat(ReleaseStatus.DRAFT.canTransitionTo(ReleaseStatus.PLANNED)).isTrue();
+        assertThat(ReleaseStatus.DRAFT.canTransitionTo(ReleaseStatus.CANCELLED)).isTrue();
+        assertThat(ReleaseStatus.DRAFT.canTransitionTo(ReleaseStatus.DRAFT)).isTrue();
+
+        assertThat(ReleaseStatus.DRAFT.canTransitionTo(ReleaseStatus.IN_PROGRESS))
+                .isFalse();
+        assertThat(ReleaseStatus.DRAFT.canTransitionTo(ReleaseStatus.COMPLETED)).isFalse();
+        assertThat(ReleaseStatus.DRAFT.canTransitionTo(ReleaseStatus.RELEASED)).isFalse();
     }
 
     @Test
@@ -81,9 +84,9 @@ class ReleaseServiceTest {
     }
 
     @Test
-    void inProgressCannotTransitionToPlanned() {
+    void inProgressCanTransitionToPlanned() {
         assertThat(ReleaseStatus.IN_PROGRESS.canTransitionTo(ReleaseStatus.PLANNED))
-                .isFalse();
+                .isTrue();
     }
 
     @Test

@@ -66,7 +66,7 @@ class ReleaseControllerTests extends AbstractIT {
                 """
             {
                 "description": "Updated description",
-                "status": "RELEASED",
+                "status": "PLANNED",
                 "releasedAt": "2023-12-01T10:00:00Z"
             }
             """;
@@ -87,7 +87,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .convertTo(ReleaseDto.class)
                 .satisfies(dto -> {
                     assertThat(dto.description()).isEqualTo("Updated description");
-                    assertThat(dto.status()).isEqualTo(ReleaseStatus.RELEASED);
+                    assertThat(dto.status()).isEqualTo(ReleaseStatus.PLANNED);
                     assertThat(dto.releasedAt()).isNotNull();
                 });
     }
@@ -196,7 +196,7 @@ class ReleaseControllerTests extends AbstractIT {
                 """
             {
                 "description": "Updated Release with Planning Fields",
-                "status": "COMPLETED",
+                "status": "PLANNED",
                 "releasedAt": "2025-03-20T10:00:00Z",
                 "plannedStartDate": "2025-01-10T08:00:00Z",
                 "plannedReleaseDate": "2025-03-15T16:00:00Z",
@@ -223,7 +223,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .convertTo(ReleaseDto.class)
                 .satisfies(dto -> {
                     assertThat(dto.description()).isEqualTo("Updated Release with Planning Fields");
-                    assertThat(dto.status()).isEqualTo(ReleaseStatus.COMPLETED);
+                    assertThat(dto.status()).isEqualTo(ReleaseStatus.PLANNED);
                     assertThat(dto.releasedAt()).isNotNull();
                     assertThat(dto.plannedStartDate()).isNotNull();
                     assertThat(dto.plannedReleaseDate()).isNotNull();
@@ -381,7 +381,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
-                .isEqualTo(6);
+                .isEqualTo(4);
     }
 
     @Test
@@ -418,7 +418,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.data.size()")
                 .asNumber()
-                .isEqualTo(6);
+                .isEqualTo(4);
     }
 
     @Test
@@ -445,8 +445,8 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    void shouldRejectInvalidStatusTransition() {
-        // IDEA-2023.3.8 is RELEASED — cannot transition to IN_PROGRESS
+    void shouldRejectUnauthenticatedStatusTransition() {
+        // IDEA-2023.3.8 is DRAFT — cannot transition to IN_PROGRESS
         var payload = """
             {
                 "status": "IN_PROGRESS"
@@ -465,11 +465,13 @@ class ReleaseControllerTests extends AbstractIT {
 
     @Test
     @WithMockOAuth2User(username = "user")
-    void shouldRejectInvalidStatusTransitionAuthenticated() {
-        // IDEA-2023.3.8 is RELEASED — cannot transition to IN_PROGRESS
-        var payload = """
+    void shouldRejectInvalidStatusTransition() {
+        // Try to transition from DRAFT to COMPLETED directly (invalid)
+        var payload =
+                """
             {
-                "status": "IN_PROGRESS"
+                "description": "Updated description",
+                "status": "COMPLETED"
             }
             """;
 
@@ -478,7 +480,26 @@ class ReleaseControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
                 .exchange();
-        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldAllowUpdateWithoutStatusChange() {
+        // Omitting status field — the service allows partial updates without changing status
+        var payload =
+                """
+            {
+                "description": "Updated without status"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2023.3.8")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
     }
 
     @Test

@@ -10,11 +10,12 @@ public enum ReleaseStatus {
     RELEASED;
 
     public boolean canTransitionTo(ReleaseStatus target) {
+        if (target == null) return false;
         if (this == target) return true;
         return switch (this) {
-            case DRAFT -> true;
-            case PLANNED -> target == IN_PROGRESS || target == DELAYED || target == CANCELLED;
-            case IN_PROGRESS -> target == COMPLETED || target == DELAYED || target == CANCELLED;
+            case DRAFT -> target == PLANNED || target == CANCELLED;
+            case PLANNED -> target == IN_PROGRESS || target == DELAYED || target == CANCELLED || target == DRAFT;
+            case IN_PROGRESS -> target == COMPLETED || target == DELAYED || target == CANCELLED || target == PLANNED;
             case COMPLETED -> target == RELEASED;
             case DELAYED -> target == PLANNED || target == IN_PROGRESS || target == CANCELLED;
             case CANCELLED, RELEASED -> false;
