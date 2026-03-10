@@ -12,13 +12,16 @@ insert into products (id, code, prefix, name, description, image_url, disabled, 
 (5, 'rider','RIDER','Rider', 'JetBrains IDE for .NET', 'https://resources.jetbrains.com/storage/products/company/brand/logos/Rider.png',false, 'admin','2024-03-01 00:00:00')
 ;
 
-insert into releases (id, product_id, code, description, status, created_by, created_at) values
-(1, 1, 'IDEA-2023.3.8', 'IntelliJ IDEA 2023.3.8', 'RELEASED', 'admin','2023-03-25'),
-(2, 1, 'IDEA-2024.2.3', 'IntelliJ IDEA 2024.2.4', 'RELEASED', 'admin','2024-02-25'),
-(3, 2, 'GO-2024.2.3', 'GoLand 2024.2.4', 'RELEASED', 'admin','2024-02-15'),
-(4, 3, 'WEB-2024.2.3', 'WebStorm 2024.2.4', 'RELEASED', 'admin','2024-02-20'),
-(5, 4, 'PY-2024.2.3', 'PyCharm 2024.2.4', 'RELEASED', 'admin','2024-02-20'),
-(6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16')
+insert into releases (id, product_id, code, description, status, planned_release_date, owner, created_by, created_at) values
+(1, 1, 'IDEA-2023.3.8', 'IntelliJ IDEA 2023.3.8', 'RELEASED', null, null, 'admin','2023-03-25'),
+(2, 1, 'IDEA-2024.2.3', 'IntelliJ IDEA 2024.2.4', 'RELEASED', null, null, 'admin','2024-02-25'),
+(3, 2, 'GO-2024.2.3', 'GoLand 2024.2.4', 'RELEASED', null, null, 'admin','2024-02-15'),
+(4, 3, 'WEB-2024.2.3', 'WebStorm 2024.2.4', 'RELEASED', null, null, 'admin','2024-02-20'),
+(5, 4, 'PY-2024.2.3', 'PyCharm 2024.2.4', 'RELEASED', null, null, 'admin','2024-02-20'),
+(6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', null, null, 'admin','2024-02-16'),
+(7, 1, 'IDEA-OVERDUE-1', 'Overdue Release', 'IN_PROGRESS', '2020-01-01 00:00:00', 'manager@example.com', 'admin', '2020-01-01'),
+(8, 1, 'IDEA-AT-RISK-1', 'At Risk Release', 'IN_PROGRESS', current_timestamp + interval '3 days', 'manager@example.com', 'admin', '2024-01-01'),
+(9, 2, 'GO-OWNED-1', 'Owner Filter Release', 'PLANNED', '2027-06-01 00:00:00', 'owner@example.com', 'admin', '2024-01-01')
 ;
 
 insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values

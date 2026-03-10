@@ -1,12 +1,14 @@
 package com.sivalabs.ft.features.api.controllers;
 
 import com.sivalabs.ft.features.api.models.CreateReleasePayload;
+import com.sivalabs.ft.features.api.models.PagedResult;
 import com.sivalabs.ft.features.api.models.UpdateReleasePayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.ReleaseService;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +47,24 @@ class ReleaseController {
 
     @GetMapping("")
     @Operation(
-            summary = "Find releases by product code",
-            description = "Find releases by product code",
+            summary = "Find releases with optional filters and pagination",
+            description = "Find releases with optional filters (productCode, status, owner, date range) and pagination",
+            responses = {@ApiResponse(responseCode = "200", description = "Successful response")})
+    PagedResult<ReleaseDto> getReleases(
+            @RequestParam(required = false) String productCode,
+            @RequestParam(required = false) ReleaseStatus status,
+            @RequestParam(required = false) String owner,
+            @RequestParam(required = false) Instant startDate,
+            @RequestParam(required = false) Instant endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findReleases(productCode, status, owner, startDate, endDate, page, size);
+    }
+
+    @GetMapping("/overdue")
+    @Operation(
+            summary = "Find overdue releases",
+            description = "Returns releases past plannedReleaseDate that are not completed",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -55,8 +74,76 @@ class ReleaseController {
                                         mediaType = "application/json",
                                         array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
             })
-    List<ReleaseDto> getProductReleases(@RequestParam("productCode") String productCode) {
-        return releaseService.findReleasesByProductCode(productCode);
+    List<ReleaseDto> getOverdueReleases() {
+        return releaseService.findOverdueReleases();
+    }
+
+    @GetMapping("/at-risk")
+    @Operation(
+            summary = "Find at-risk releases",
+            description = "Returns releases approaching their deadline within the given days threshold",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+            })
+    List<ReleaseDto> getAtRiskReleases(@RequestParam(defaultValue = "7") int daysThreshold) {
+        return releaseService.findAtRiskReleases(daysThreshold);
+    }
+
+    @GetMapping("/by-status")
+    @Operation(
+            summary = "Find releases by status",
+            description = "Returns releases filtered by the given status",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+            })
+    List<ReleaseDto> getReleasesByStatus(@RequestParam ReleaseStatus status) {
+        return releaseService.findReleasesByStatus(status);
+    }
+
+    @GetMapping("/by-owner")
+    @Operation(
+            summary = "Find releases by owner",
+            description = "Returns releases filtered by the given owner",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+            })
+    List<ReleaseDto> getReleasesByOwner(@RequestParam String owner) {
+        return releaseService.findReleasesByOwner(owner);
+    }
+
+    @GetMapping("/by-date-range")
+    @Operation(
+            summary = "Find releases by date range",
+            description = "Returns releases with plannedReleaseDate within the given range",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+            })
+    List<ReleaseDto> getReleasesByDateRange(@RequestParam Instant startDate, @RequestParam Instant endDate) {
+        return releaseService.findReleasesByDateRange(startDate, endDate);
     }
 
     @GetMapping("/{code}")

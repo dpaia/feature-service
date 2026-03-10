@@ -19,9 +19,9 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.data.size()")
                 .asNumber()
-                .isEqualTo(2);
+                .isEqualTo(4);
     }
 
     @Test
@@ -191,7 +191,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .content(createPayload)
                 .exchange();
 
-        // Then update with all planning fields
+        // Then update with all planning fields - DRAFT can transition to any state
         var updatePayload =
                 """
             {
@@ -299,15 +299,15 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.data.size()")
                 .asNumber()
-                .isEqualTo(2);
+                .isEqualTo(4);
 
         // Verify that releases include planning fields in the response by checking first release
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$[0]")
+                .extractingPath("$.data[0]")
                 .convertTo(ReleaseDto.class)
                 .satisfies(release -> {
                     // Verify structure includes planning fields (even if null)
@@ -347,5 +347,162 @@ class ReleaseControllerTests extends AbstractIT {
         // Verify deletion
         var getResult = mvc.get().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    // ---- New query endpoint tests ----
+
+    @Test
+    void shouldGetOverdueReleases() {
+        var result = mvc.get().uri("/api/releases/overdue").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(1);
+    }
+
+    @Test
+    void shouldGetAtRiskReleases() {
+        var result = mvc.get().uri("/api/releases/at-risk?daysThreshold=7").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(1);
+    }
+
+    @Test
+    void shouldGetReleasesByStatus() {
+        var result = mvc.get().uri("/api/releases/by-status?status=RELEASED").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(6);
+    }
+
+    @Test
+    void shouldGetReleasesByOwner() {
+        var result = mvc.get()
+                .uri("/api/releases/by-owner?owner={owner}", "owner@example.com")
+                .exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(1);
+    }
+
+    @Test
+    void shouldGetReleasesByDateRange() {
+        var result = mvc.get()
+                .uri("/api/releases/by-date-range?startDate=2027-01-01T00:00:00Z&endDate=2028-01-01T00:00:00Z")
+                .exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(1);
+    }
+
+    @Test
+    void shouldGetReleasesWithStatusFilter() {
+        var result = mvc.get().uri("/api/releases?status=RELEASED").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.data.size()")
+                .asNumber()
+                .isEqualTo(6);
+    }
+
+    @Test
+    void shouldGetReleasesWithPagination() {
+        var result = mvc.get().uri("/api/releases?page=0&size=2").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.data.size()")
+                .asNumber()
+                .isEqualTo(2);
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.pageSize")
+                .asNumber()
+                .isEqualTo(2);
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.totalElements")
+                .asNumber()
+                .isEqualTo(9);
+    }
+
+    @Test
+    void shouldRejectInvalidStatusTransition() {
+        // IDEA-2023.3.8 is RELEASED — cannot transition to IN_PROGRESS
+        var payload = """
+            {
+                "status": "IN_PROGRESS"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2023.3.8")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        // Unauthorized without auth, but security config allows PUT only for authenticated users
+        // Without auth token, we expect 403 or 401
+        assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldRejectInvalidStatusTransitionAuthenticated() {
+        // IDEA-2023.3.8 is RELEASED — cannot transition to IN_PROGRESS
+        var payload = """
+            {
+                "status": "IN_PROGRESS"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2023.3.8")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void shouldRejectUnauthorizedCreateRelease() {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-UNAUTH-TEST",
+                "description": "Unauthorized test"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void shouldRejectUnauthorizedDeleteRelease() {
+        var result = mvc.delete().uri("/api/releases/{code}", "GO-2024.2.3").exchange();
+        assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 }
