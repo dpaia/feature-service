@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -101,9 +102,10 @@ public class FeatureService {
             boolean overdue,
             boolean blocked) {
         List<Feature> features = featureRepository.findByReleaseCode(releaseCode);
+        String ownerFilter = normalizeOwnerFilter(owner);
         List<Feature> filtered = features.stream()
                 .filter(f -> planningStatus == null || planningStatus == f.getPlanningStatus())
-                .filter(f -> owner == null || owner.equals(f.getFeatureOwner()))
+                .filter(f -> ownerFilter == null || matchesOwnerFilter(f.getFeatureOwner(), ownerFilter))
                 .filter(f -> !overdue
                         || (f.getPlannedCompletionDate() != null
                                 && f.getPlannedCompletionDate().isBefore(LocalDate.now())
@@ -111,6 +113,24 @@ public class FeatureService {
                 .filter(f -> !blocked || f.getPlanningStatus() == FeaturePlanningStatus.BLOCKED)
                 .toList();
         return updateFavoriteStatus(filtered, username);
+    }
+
+    private String normalizeOwnerFilter(String owner) {
+        if (owner == null) {
+            return null;
+        }
+        String trimmed = owner.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.toLowerCase(Locale.ROOT);
+    }
+
+    private boolean matchesOwnerFilter(String featureOwner, String ownerFilter) {
+        if (featureOwner == null) {
+            return false;
+        }
+        return featureOwner.toLowerCase(Locale.ROOT).contains(ownerFilter);
     }
 
     private List<FeatureDto> updateFavoriteStatus(List<Feature> features, String username) {

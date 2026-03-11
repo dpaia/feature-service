@@ -24,7 +24,12 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values
 (1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24'),
 (2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14'),
-(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14')
+(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14'),
+(4, 1, null, 'IDEA-4', 'Test Feature IDEA-4', 'Seeded feature for integration tests', 'NEW', 'admin', 'admin', '2024-03-20'),
+(5, 1, null, 'IDEA-5', 'Test Feature IDEA-5', 'Seeded feature for integration tests', 'NEW', 'admin', 'admin', '2024-03-20'),
+(6, 1, null, 'IDEA-6', 'Test Feature IDEA-6', 'Seeded feature for integration tests', 'NEW', 'admin', 'admin', '2024-03-20'),
+(7, 1, null, 'IDEA-7', 'Test Feature IDEA-7', 'Seeded feature for integration tests', 'NEW', 'admin', 'admin', '2024-03-20'),
+(8, 1, null, 'IDEA-8', 'Test Feature IDEA-8', 'Seeded feature for integration tests', 'NEW', 'admin', 'admin', '2024-03-20')
 ;
 
 insert into favorite_features (id, feature_id, user_id) values
