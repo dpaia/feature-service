@@ -12,7 +12,7 @@ insert into products (id, code, prefix, name, description, image_url, disabled, 
 (5, 'rider','RIDER','Rider', 'JetBrains IDE for .NET', 'https://resources.jetbrains.com/storage/products/company/brand/logos/Rider.png',false, 'admin','2024-03-01 00:00:00')
 ;
 
-insert into releases (id, product_id, code, description, status, planned_release_date, release_owner, created_by, created_at) values
+insert into releases (id, product_id, code, description, status, planned_release_date, owner, created_by, created_at) values
 (1, 1, 'IDEA-2023.3.8', 'IntelliJ IDEA 2023.3.8', 'DRAFT', '2024-06-01 00:00:00', 'john.doe', 'admin','2023-03-25'),
 (2, 1, 'IDEA-2024.2.3', 'IntelliJ IDEA 2024.2.4', 'PLANNED', '2024-12-15 00:00:00', 'jane.smith', 'admin','2024-02-25'),
 (3, 2, 'GO-2024.2.3', 'GoLand 2024.2.4', 'IN_PROGRESS', '2024-11-30 00:00:00', 'bob.wilson', 'admin','2024-02-15'),

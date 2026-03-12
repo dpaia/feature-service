@@ -27,7 +27,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "OVERDUE-TEST-1",
                 "description": "Overdue release",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "testuser"
+                "owner": "testuser"
             }
             """,
                 pastDate);
@@ -127,7 +127,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "ATRISK-TEST-1",
                 "description": "At-risk release",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "testuser"
+                "owner": "testuser"
             }
             """,
                 futureDate);
@@ -162,7 +162,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "FAR-FUTURE-1",
                 "description": "Far future release",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "testuser"
+                "owner": "testuser"
             }
             """,
                 farFutureDate);
@@ -196,7 +196,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "BOUNDARY-7-DAYS",
                 "description": "Exactly 7 days boundary test",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "testuser"
+                "owner": "testuser"
             }
             """,
                 exactBoundaryDate);
@@ -216,7 +216,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "BEYOND-8-DAYS",
                 "description": "Beyond 7 days boundary test",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "testuser"
+                "owner": "testuser"
             }
             """,
                 beyondBoundaryDate);
@@ -298,7 +298,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "productCode": "intellij",
                 "code": "OWNER-TEST-1",
                 "description": "Owner test release",
-                "releaseOwner": "john.doe"
+                "owner": "john.doe"
             }
             """;
 
@@ -312,7 +312,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
         assertThat(result)
                 .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.content[*].releaseOwner")
+                .extractingPath("$.content[*].owner")
                 .asArray()
                 .allMatch(owner -> owner.equals("john.doe"));
     }
@@ -331,7 +331,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "DATE-RANGE-TEST-1",
                 "description": "Date range test release",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "testuser"
+                "owner": "testuser"
             }
             """,
                 testDate.toString());
@@ -712,7 +712,7 @@ class ReleaseQueryEndpointsIT extends AbstractIT {
                 "code": "PRESERVE-DATE-TEST",
                 "description": "Test preserve date",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "test.user"
+                "owner": "test.user"
             }
             """,
                 plannedDate);

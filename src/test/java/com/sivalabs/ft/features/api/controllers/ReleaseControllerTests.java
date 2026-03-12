@@ -130,7 +130,7 @@ class ReleaseControllerTests extends AbstractIT {
                 "code": "ATRISK-30-DAYS",
                 "description": "At-risk release in 30 days",
                 "plannedReleaseDate": "2025-12-31T00:00:00Z",
-                "releaseOwner": "risk.manager"
+                "owner": "risk.manager"
             }
             """;
 
@@ -142,7 +142,7 @@ class ReleaseControllerTests extends AbstractIT {
                 "code": "SAFE-400-DAYS",
                 "description": "Safe release in 400+ days",
                 "plannedReleaseDate": "2027-01-05T00:00:00Z",
-                "releaseOwner": "safe.manager"
+                "owner": "safe.manager"
             }
             """;
 

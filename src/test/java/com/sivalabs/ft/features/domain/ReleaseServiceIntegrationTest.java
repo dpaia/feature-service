@@ -27,7 +27,7 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
                 "code": "LIFECYCLE-TEST-1",
                 "description": "Test release lifecycle",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "test.user"
+                "owner": "test.user"
             }
             """,
                 Instant.now().plus(30, ChronoUnit.DAYS));
@@ -160,7 +160,7 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
                 "code": "OVERDUE-API-TEST",
                 "description": "Overdue test",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "test.user"
+                "owner": "test.user"
             }
             """,
                 pastDate);
@@ -223,7 +223,7 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
                 "code": "ATRISK-API-TEST",
                 "description": "At-risk test",
                 "plannedReleaseDate": "%s",
-                "releaseOwner": "test.user"
+                "owner": "test.user"
             }
             """,
                 futureDate);
@@ -271,7 +271,7 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
                 "productCode": "intellij",
                 "code": "OWNER-API-TEST",
                 "description": "Owner filter test",
-                "releaseOwner": "specific.owner"
+                "owner": "specific.owner"
             }
             """;
 
@@ -287,7 +287,7 @@ class ReleaseServiceIntegrationTest extends AbstractIT {
         assertThat(result)
                 .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.content[*].releaseOwner")
+                .extractingPath("$.content[*].owner")
                 .asArray()
                 .allMatch(owner -> owner.equals("specific.owner"));
     }
