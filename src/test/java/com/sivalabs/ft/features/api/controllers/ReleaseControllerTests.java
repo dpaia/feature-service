@@ -6,6 +6,8 @@ import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
+import java.time.Instant;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,7 +21,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
     }
@@ -299,7 +301,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
 
@@ -307,7 +309,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data[0]")
+                .extractingPath("$.content[0]")
                 .convertTo(ReleaseDto.class)
                 .satisfies(release -> {
                     // Verify structure includes planning fields (even if null)
@@ -416,7 +418,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(6);
     }
@@ -427,7 +429,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(2);
         assertThat(result)
@@ -504,5 +506,66 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldRejectUnauthorizedDeleteRelease() {
         var result = mvc.delete().uri("/api/releases/{code}", "GO-2024.2.3").exchange();
         assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void shouldGetReleasesByProductCode_Golden() {
+        var result =
+                mvc.get().uri("/api/releases?productCode={code}", "intellij").exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$.content")
+                .asArray()
+                .anySatisfy(item -> assertThat(item.toString()).contains("code", "IDEA"));
+    }
+
+    @Test
+    void shouldSupportEnhancedFiltersWithPagination() {
+        var result = mvc.get()
+                .uri("/api/releases?productCode=intellij&status=DRAFT&page=0&size=10")
+                .exchange();
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$.content")
+                .asArray()
+                .allMatch(item ->
+                        item.toString().contains("IDEA") && item.toString().contains("DRAFT"));
+    }
+
+    @Test
+    @DisplayName("Should use multi-filter query")
+    @WithMockOAuth2User(username = "user")
+    void testFindWithMultipleFilters() {
+        var createPayload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "MULTI-FILTER-TEST",
+                "description": "Multi filter test",
+                "plannedReleaseDate": "2024-06-01T00:00:00Z"
+            }
+            """;
+
+        mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createPayload)
+                .exchange();
+
+        Instant start = Instant.parse("2024-01-01T00:00:00Z");
+        Instant end = Instant.parse("2024-12-31T23:59:59Z");
+
+        var result = mvc.get()
+                .uri("/api/releases?productCode=intellij&status=DRAFT&startDate={start}&endDate={end}", start, end)
+                .exchange();
+
+        assertThat(result)
+                .hasStatus2xxSuccessful()
+                .bodyJson()
+                .extractingPath("$.content[*].status")
+                .asArray()
+                .anySatisfy(status -> assertThat(status.toString()).isEqualTo("DRAFT"));
     }
 }

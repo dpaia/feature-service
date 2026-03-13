@@ -190,7 +190,7 @@ class ReleaseServiceTest {
     @Test
     void shouldFindReleasesWithPagination() {
         var result = releaseService.findReleases(null, null, null, null, null, 0, 2);
-        assertThat(result.data()).hasSize(2);
+        assertThat(result.content()).hasSize(2);
         assertThat(result.pageSize()).isEqualTo(2);
         assertThat(result.totalElements()).isGreaterThanOrEqualTo(2);
     }
@@ -198,9 +198,9 @@ class ReleaseServiceTest {
     @Test
     void shouldFindReleasesFilteredByProductCode() {
         var result = releaseService.findReleases("intellij", null, null, null, null, 0, 20);
-        assertThat(result.data()).isNotEmpty();
+        assertThat(result.content()).isNotEmpty();
         // All releases should belong to intellij product (IDEA- prefix)
-        assertThat(result.data()).allMatch(r -> r.code().startsWith("IDEA-"));
+        assertThat(result.content()).allMatch(r -> r.code().startsWith("IDEA-"));
     }
 
     @Test
