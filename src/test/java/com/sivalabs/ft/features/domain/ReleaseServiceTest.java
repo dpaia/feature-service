@@ -153,44 +153,47 @@ class ReleaseServiceTest {
 
     @Test
     void shouldFindOverdueReleases() {
-        var overdueReleases = releaseService.findOverdueReleases();
-        assertThat(overdueReleases).isNotEmpty();
-        assertThat(overdueReleases).anyMatch(r -> r.code().equals("IDEA-OVERDUE-1"));
+        var overdueReleases = releaseService.findOverdueReleases(0, 10);
+        assertThat(overdueReleases.content()).isNotEmpty();
+        assertThat(overdueReleases.content()).anyMatch(r -> r.code().equals("IDEA-OVERDUE-1"));
     }
 
     @Test
     void shouldFindAtRiskReleases() {
-        var atRiskReleases = releaseService.findAtRiskReleases(7);
-        assertThat(atRiskReleases).isNotEmpty();
-        assertThat(atRiskReleases).anyMatch(r -> r.code().equals("IDEA-AT-RISK-1"));
+        var atRiskReleases = releaseService.findAtRiskReleases(7, 0, 10);
+        assertThat(atRiskReleases.content()).isNotEmpty();
+        assertThat(atRiskReleases.content()).anyMatch(r -> r.code().equals("IDEA-AT-RISK-1"));
     }
 
     @Test
     void shouldFindReleasesByStatus() {
-        var releasedReleases = releaseService.findReleasesByStatus(ReleaseStatus.RELEASED);
-        assertThat(releasedReleases).isNotEmpty();
-        assertThat(releasedReleases).allMatch(r -> r.status() == ReleaseStatus.RELEASED);
+        var releasedReleases = releaseService.findReleasesByStatus(ReleaseStatus.RELEASED, 0, 10);
+        assertThat(releasedReleases.content()).isNotEmpty();
+        assertThat(releasedReleases.content()).allMatch(r -> r.status() == ReleaseStatus.RELEASED);
     }
 
     @Test
     void shouldFindReleasesByOwner() {
-        var ownerReleases = releaseService.findReleasesByOwner("owner@example.com");
-        assertThat(ownerReleases).isNotEmpty();
-        assertThat(ownerReleases).anyMatch(r -> r.code().equals("GO-OWNED-1"));
+        var ownerReleases = releaseService.findReleasesByOwner("owner@example.com", 0, 10);
+        assertThat(ownerReleases.content()).isNotEmpty();
+        assertThat(ownerReleases.content()).anyMatch(r -> r.code().equals("GO-OWNED-1"));
     }
 
     @Test
     void shouldFindReleasesByDateRange() {
-        var releases = releaseService.findReleasesByDateRange(
-                java.time.Instant.parse("2026-01-01T00:00:00Z"), java.time.Instant.parse("2028-01-01T00:00:00Z"));
-        assertThat(releases).isNotEmpty();
-        assertThat(releases).anyMatch(r -> r.code().equals("GO-OWNED-1"));
+        var result = releaseService.findReleasesByDateRange(
+                java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                java.time.Instant.parse("2028-01-01T00:00:00Z"),
+                0,
+                10);
+        assertThat(result.content()).isNotEmpty();
+        assertThat(result.content()).anyMatch(r -> r.code().equals("GO-OWNED-1"));
     }
 
     @Test
     void shouldFindReleasesWithPagination() {
         var result = releaseService.findReleases(null, null, null, null, null, 0, 2);
-        assertThat(result.data()).hasSize(2);
+        assertThat(result.content()).hasSize(2);
         assertThat(result.pageSize()).isEqualTo(2);
         assertThat(result.totalElements()).isGreaterThanOrEqualTo(2);
     }
@@ -198,9 +201,9 @@ class ReleaseServiceTest {
     @Test
     void shouldFindReleasesFilteredByProductCode() {
         var result = releaseService.findReleases("intellij", null, null, null, null, 0, 20);
-        assertThat(result.data()).isNotEmpty();
+        assertThat(result.content()).isNotEmpty();
         // All releases should belong to intellij product (IDEA- prefix)
-        assertThat(result.data()).allMatch(r -> r.code().startsWith("IDEA-"));
+        assertThat(result.content()).allMatch(r -> r.code().startsWith("IDEA-"));
     }
 
     @Test

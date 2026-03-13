@@ -6,6 +6,8 @@ import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,7 +21,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
     }
@@ -67,9 +69,10 @@ class ReleaseControllerTests extends AbstractIT {
             {
                 "description": "Updated description",
                 "status": "RELEASED",
-                "releasedAt": "2023-12-01T10:00:00Z"
+                "releasedAt": "%s"
             }
-            """;
+            """
+                        .formatted(Instant.now().toString());
 
         var result = mvc.put()
                 .uri("/api/releases/{code}", "IDEA-2023.3.8")
@@ -101,12 +104,15 @@ class ReleaseControllerTests extends AbstractIT {
                 "productCode": "intellij",
                 "code": "IDEA-PLANNING-2025.1",
                 "description": "IntelliJ IDEA 2025.1 with Planning Fields",
-                "plannedStartDate": "2025-01-15T09:00:00Z",
-                "plannedReleaseDate": "2025-03-15T17:00:00Z",
+                "plannedStartDate": "%s",
+                "plannedReleaseDate": "%s",
                 "owner": "release.manager@company.com",
                 "notes": "Major release with new AI features and performance improvements"
             }
-            """;
+            """
+                        .formatted(
+                                Instant.now().minus(30, ChronoUnit.DAYS).toString(),
+                                Instant.now().plus(60, ChronoUnit.DAYS).toString());
 
         var result = mvc.post()
                 .uri("/api/releases")
@@ -197,14 +203,19 @@ class ReleaseControllerTests extends AbstractIT {
             {
                 "description": "Updated Release with Planning Fields",
                 "status": "COMPLETED",
-                "releasedAt": "2025-03-20T10:00:00Z",
-                "plannedStartDate": "2025-01-10T08:00:00Z",
-                "plannedReleaseDate": "2025-03-15T16:00:00Z",
-                "actualReleaseDate": "2025-03-18T14:30:00Z",
+                "releasedAt": "%s",
+                "plannedStartDate": "%s",
+                "plannedReleaseDate": "%s",
+                "actualReleaseDate": "%s",
                 "owner": "updated.owner@company.com",
                 "notes": "Updated with comprehensive planning information and actual delivery dates"
             }
-            """;
+            """
+                        .formatted(
+                                Instant.now().toString(),
+                                Instant.now().minus(60, ChronoUnit.DAYS).toString(),
+                                Instant.now().minus(5, ChronoUnit.DAYS).toString(),
+                                Instant.now().minus(2, ChronoUnit.DAYS).toString());
 
         var result = mvc.put()
                 .uri("/api/releases/{code}", "IDEA-UPDATE-PLANNING-2025.1")
@@ -299,7 +310,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
 
@@ -307,7 +318,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data[0]")
+                .extractingPath("$.content[0]")
                 .convertTo(ReleaseDto.class)
                 .satisfies(release -> {
                     // Verify structure includes planning fields (even if null)
@@ -355,59 +366,125 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldGetOverdueReleases() {
         var result = mvc.get().uri("/api/releases/overdue").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(1);
+
+        assertThat(result).bodyJson().extractingPath("$.content").asArray().anySatisfy(item -> assertThat(
+                        item.toString())
+                .contains("code", "status"));
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldGetAtRiskReleases() {
-        var result = mvc.get().uri("/api/releases/at-risk?daysThreshold=7").exchange();
+        // Release 1: At risk (30 days from now)
+        String atRiskDate = Instant.now().plus(30, ChronoUnit.DAYS).toString();
+        var atRiskPayload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "ATRISK-30-DAYS",
+                "description": "At-risk release in 30 days",
+                "plannedReleaseDate": "%s",
+                "owner": "risk.manager"
+            }
+            """
+                        .formatted(atRiskDate);
+
+        // Release 2: Not at risk (400 days from now)
+        String safeDate = Instant.now().plus(400, ChronoUnit.DAYS).toString();
+        var safePayload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "SAFE-400-DAYS",
+                "description": "Safe release in 400+ days",
+                "plannedReleaseDate": "%s",
+                "owner": "safe.manager"
+            }
+            """
+                        .formatted(safeDate);
+
+        var createAtRiskResponse = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(atRiskPayload)
+                .exchange();
+        assertThat(createAtRiskResponse).hasStatus2xxSuccessful();
+
+        var createSafeResponse = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(safePayload)
+                .exchange();
+        assertThat(createSafeResponse).hasStatus2xxSuccessful();
+
+        // Query at-risk releases with 365-day threshold
+        var result = mvc.get().uri("/api/releases/at-risk?daysThreshold=365").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
-                .isEqualTo(1);
+                .isEqualTo(2);
+
+        assertThat(result)
+                .bodyJson()
+                .extractingPath("$.content")
+                .asArray()
+                .anySatisfy(item -> assertThat(item.toString()).contains("IDEA-ATRISK-30-DAYS"))
+                .noneSatisfy(item -> assertThat(item.toString()).contains("IDEA-SAFE-400-DAYS"));
     }
 
     @Test
     void shouldGetReleasesByStatus() {
         var result = mvc.get().uri("/api/releases/by-status?status=RELEASED").exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(6);
+
+        assertThat(result).bodyJson().extractingPath("$.content").asArray().allMatch(item -> item.toString()
+                .contains("RELEASED"));
     }
 
     @Test
     void shouldGetReleasesByOwner() {
         var result = mvc.get()
-                .uri("/api/releases/by-owner?owner={owner}", "owner@example.com")
+                .uri("/api/releases/by-owner?owner=manager@example.com")
                 .exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
-                .isEqualTo(1);
+                .isEqualTo(2);
+
+        assertThat(result).bodyJson().extractingPath("$.content").asArray().allMatch(item -> item.toString()
+                .contains("manager@example.com"));
     }
 
     @Test
     void shouldGetReleasesByDateRange() {
+        // IDEA-OVERDUE-1 is 2020-01-01
         var result = mvc.get()
                 .uri("/api/releases/by-date-range?startDate=2027-01-01T00:00:00Z&endDate=2028-01-01T00:00:00Z")
                 .exchange();
         assertThat(result)
-                .hasStatusOk()
+                .hasStatus2xxSuccessful()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(1);
+
+        assertThat(result).bodyJson().extractingPath("$.content").asArray().anySatisfy(item -> assertThat(
+                        item.toString())
+                .contains("code", "plannedReleaseDate"));
     }
 
     @Test
@@ -416,7 +493,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(6);
     }
@@ -427,7 +504,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(2);
         assertThat(result)
@@ -442,6 +519,46 @@ class ReleaseControllerTests extends AbstractIT {
                 .extractingPath("$.totalElements")
                 .asNumber()
                 .isEqualTo(9);
+    }
+
+    @Test
+    void shouldGetReleasesWithPaginationNextPage() {
+        var result = mvc.get().uri("/api/releases?page=1&size=2").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.content.size()")
+                .asNumber()
+                .isEqualTo(2);
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.pageNumber")
+                .asNumber()
+                .isEqualTo(1);
+    }
+
+    @Test
+    void shouldGetReleasesWithPageSizeOneAndRequestedPage() {
+        var result = mvc.get().uri("/api/releases?page=2&size=1").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.content.size()")
+                .asNumber()
+                .isEqualTo(1);
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.pageNumber")
+                .asNumber()
+                .isEqualTo(2);
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.pageSize")
+                .asNumber()
+                .isEqualTo(1);
     }
 
     @Test
