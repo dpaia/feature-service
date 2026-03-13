@@ -1,0 +1,25 @@
+package com.sivalabs.ft.features.domain.events;
+
+import com.sivalabs.ft.features.domain.dtos.MilestoneReleaseDto;
+import com.sivalabs.ft.features.domain.models.MilestoneStatus;
+import java.time.Instant;
+import java.util.List;
+
+public record MilestoneEvent(
+        Long id,
+        String code,
+        String name,
+        String description,
+        Instant targetDate,
+        Instant actualDate,
+        MilestoneStatus status,
+        String productCode,
+        String owner,
+        String notes,
+        Integer progress,
+        List<MilestoneReleaseDto> releases,
+        String createdBy,
+        Instant createdAt,
+        String updatedBy,
+        Instant updatedAt,
+        String eventType) {}

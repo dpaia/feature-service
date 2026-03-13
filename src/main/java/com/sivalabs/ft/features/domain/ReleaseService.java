@@ -6,6 +6,7 @@ import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.entities.Milestone;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
+import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.ReleaseMapper;
@@ -24,18 +25,21 @@ public class ReleaseService {
     private final FeatureRepository featureRepository;
     private final ReleaseMapper releaseMapper;
     private final MilestoneRepository milestoneRepository;
+    private final EventPublisher eventPublisher;
 
     ReleaseService(
             ReleaseRepository releaseRepository,
             ProductRepository productRepository,
             FeatureRepository featureRepository,
             ReleaseMapper releaseMapper,
-            MilestoneRepository milestoneRepository) {
+            MilestoneRepository milestoneRepository,
+            EventPublisher eventPublisher) {
         this.releaseRepository = releaseRepository;
         this.productRepository = productRepository;
         this.featureRepository = featureRepository;
         this.releaseMapper = releaseMapper;
         this.milestoneRepository = milestoneRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -70,6 +74,11 @@ public class ReleaseService {
         release.setCreatedBy(cmd.createdBy());
         release.setCreatedAt(Instant.now());
         releaseRepository.save(release);
+
+        // Publish release created event
+        ReleaseDto releaseDto = releaseMapper.toDto(release);
+        eventPublisher.publishReleaseCreatedEvent(releaseDto);
+
         return code;
     }
 
@@ -96,6 +105,10 @@ public class ReleaseService {
         release.setUpdatedBy(cmd.updatedBy());
         release.setUpdatedAt(Instant.now());
         releaseRepository.save(release);
+
+        // Publish release updated event
+        ReleaseDto releaseDto = releaseMapper.toDto(release);
+        eventPublisher.publishReleaseUpdatedEvent(releaseDto);
     }
 
     @Transactional
