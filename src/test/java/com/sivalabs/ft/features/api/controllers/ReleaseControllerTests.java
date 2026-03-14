@@ -505,4 +505,11 @@ class ReleaseControllerTests extends AbstractIT {
         var result = mvc.delete().uri("/api/releases/{code}", "GO-2024.2.3").exchange();
         assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
     }
+
+    @Test
+    void shouldRejectInvalidStatus() {
+        var result =
+                mvc.get().uri("/api/releases/by-status?status=INVALID_STATUS").exchange();
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
 }
