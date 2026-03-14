@@ -19,7 +19,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
     }
@@ -299,7 +299,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(4);
 
@@ -307,7 +307,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data[0]")
+                .extractingPath("$.content[0]")
                 .convertTo(ReleaseDto.class)
                 .satisfies(release -> {
                     // Verify structure includes planning fields (even if null)
@@ -357,7 +357,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(1);
     }
@@ -368,7 +368,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(1);
     }
@@ -379,7 +379,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(6);
     }
@@ -392,7 +392,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(1);
     }
@@ -405,7 +405,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(1);
     }
@@ -416,7 +416,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(6);
     }
@@ -427,7 +427,7 @@ class ReleaseControllerTests extends AbstractIT {
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$.data.size()")
+                .extractingPath("$.content.size()")
                 .asNumber()
                 .isEqualTo(2);
         assertThat(result)
@@ -504,5 +504,15 @@ class ReleaseControllerTests extends AbstractIT {
     void shouldRejectUnauthorizedDeleteRelease() {
         var result = mvc.delete().uri("/api/releases/{code}", "GO-2024.2.3").exchange();
         assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void shouldRejectInvalidDateRange() {
+        var startDate = "2024-12-31T23:59:59Z";
+        var endDate = "2024-01-01T00:00:00Z";
+        var result = mvc.get()
+                .uri("/api/releases?startDate={start}&endDate={end}", startDate, endDate)
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
     }
 }

@@ -57,6 +57,9 @@ public class ReleaseService {
             Instant endDate,
             int page,
             int size) {
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new BadRequestException("Start date cannot be after end date");
+        }
         Pageable pageable = PageRequest.of(page, size);
         Specification<Release> spec = buildSpecification(productCode, status, owner, startDate, endDate);
         var pageResult = releaseRepository.findAll(spec, pageable);
@@ -79,40 +82,68 @@ public class ReleaseService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReleaseDto> findOverdueReleases() {
-        return releaseRepository.findOverdue(Instant.now(), TERMINAL_STATUSES).stream()
-                .map(releaseMapper::toDto)
-                .toList();
+    public PagedResult<ReleaseDto> findOverdueReleases(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var pageResult = releaseRepository.findOverdue(Instant.now(), TERMINAL_STATUSES, pageable);
+        return new PagedResult<>(
+                pageResult.getContent().stream().map(releaseMapper::toDto).toList(),
+                pageResult.getTotalElements(),
+                pageResult.getTotalPages(),
+                page,
+                size);
     }
 
     @Transactional(readOnly = true)
-    public List<ReleaseDto> findAtRiskReleases(int daysThreshold) {
+    public PagedResult<ReleaseDto> findAtRiskReleases(int daysThreshold, int page, int size) {
         Instant now = Instant.now();
         Instant deadline = now.plus(daysThreshold, ChronoUnit.DAYS);
-        return releaseRepository.findAtRisk(now, deadline, TERMINAL_STATUSES).stream()
-                .map(releaseMapper::toDto)
-                .toList();
+        Pageable pageable = PageRequest.of(page, size);
+        var pageResult = releaseRepository.findAtRisk(now, deadline, TERMINAL_STATUSES, pageable);
+        return new PagedResult<>(
+                pageResult.getContent().stream().map(releaseMapper::toDto).toList(),
+                pageResult.getTotalElements(),
+                pageResult.getTotalPages(),
+                page,
+                size);
     }
 
     @Transactional(readOnly = true)
-    public List<ReleaseDto> findReleasesByStatus(ReleaseStatus status) {
-        return releaseRepository.findByStatus(status).stream()
-                .map(releaseMapper::toDto)
-                .toList();
+    public PagedResult<ReleaseDto> findReleasesByStatus(ReleaseStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var pageResult = releaseRepository.findByStatus(status, pageable);
+        return new PagedResult<>(
+                pageResult.getContent().stream().map(releaseMapper::toDto).toList(),
+                pageResult.getTotalElements(),
+                pageResult.getTotalPages(),
+                page,
+                size);
     }
 
     @Transactional(readOnly = true)
-    public List<ReleaseDto> findReleasesByOwner(String owner) {
-        return releaseRepository.findByOwner(owner).stream()
-                .map(releaseMapper::toDto)
-                .toList();
+    public PagedResult<ReleaseDto> findReleasesByOwner(String owner, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var pageResult = releaseRepository.findByOwner(owner, pageable);
+        return new PagedResult<>(
+                pageResult.getContent().stream().map(releaseMapper::toDto).toList(),
+                pageResult.getTotalElements(),
+                pageResult.getTotalPages(),
+                page,
+                size);
     }
 
     @Transactional(readOnly = true)
-    public List<ReleaseDto> findReleasesByDateRange(Instant startDate, Instant endDate) {
-        return releaseRepository.findByPlannedReleaseDateBetween(startDate, endDate).stream()
-                .map(releaseMapper::toDto)
-                .toList();
+    public PagedResult<ReleaseDto> findReleasesByDateRange(Instant startDate, Instant endDate, int page, int size) {
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new BadRequestException("Start date cannot be after end date");
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        var pageResult = releaseRepository.findByPlannedReleaseDateBetween(startDate, endDate, pageable);
+        return new PagedResult<>(
+                pageResult.getContent().stream().map(releaseMapper::toDto).toList(),
+                pageResult.getTotalElements(),
+                pageResult.getTotalPages(),
+                page,
+                size);
     }
 
     @Transactional

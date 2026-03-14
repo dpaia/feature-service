@@ -11,7 +11,6 @@ import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,7 +18,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.Instant;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -72,10 +70,11 @@ class ReleaseController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                                        schema = @Schema(implementation = PagedResult.class)))
             })
-    List<ReleaseDto> getOverdueReleases() {
-        return releaseService.findOverdueReleases();
+    PagedResult<ReleaseDto> getOverdueReleases(
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findOverdueReleases(page, size);
     }
 
     @GetMapping("/at-risk")
@@ -89,10 +88,13 @@ class ReleaseController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                                        schema = @Schema(implementation = PagedResult.class)))
             })
-    List<ReleaseDto> getAtRiskReleases(@RequestParam(defaultValue = "7") int daysThreshold) {
-        return releaseService.findAtRiskReleases(daysThreshold);
+    PagedResult<ReleaseDto> getAtRiskReleases(
+            @RequestParam(defaultValue = "7") int daysThreshold,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findAtRiskReleases(daysThreshold, page, size);
     }
 
     @GetMapping("/by-status")
@@ -106,10 +108,13 @@ class ReleaseController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                                        schema = @Schema(implementation = PagedResult.class)))
             })
-    List<ReleaseDto> getReleasesByStatus(@RequestParam ReleaseStatus status) {
-        return releaseService.findReleasesByStatus(status);
+    PagedResult<ReleaseDto> getReleasesByStatus(
+            @RequestParam ReleaseStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findReleasesByStatus(status, page, size);
     }
 
     @GetMapping("/by-owner")
@@ -123,10 +128,13 @@ class ReleaseController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                                        schema = @Schema(implementation = PagedResult.class)))
             })
-    List<ReleaseDto> getReleasesByOwner(@RequestParam String owner) {
-        return releaseService.findReleasesByOwner(owner);
+    PagedResult<ReleaseDto> getReleasesByOwner(
+            @RequestParam String owner,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findReleasesByOwner(owner, page, size);
     }
 
     @GetMapping("/by-date-range")
@@ -140,10 +148,14 @@ class ReleaseController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                                        schema = @Schema(implementation = PagedResult.class)))
             })
-    List<ReleaseDto> getReleasesByDateRange(@RequestParam Instant startDate, @RequestParam Instant endDate) {
-        return releaseService.findReleasesByDateRange(startDate, endDate);
+    PagedResult<ReleaseDto> getReleasesByDateRange(
+            @RequestParam Instant startDate,
+            @RequestParam Instant endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findReleasesByDateRange(startDate, endDate, page, size);
     }
 
     @GetMapping("/{code}")
