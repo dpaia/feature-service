@@ -20,7 +20,7 @@ public class Comment {
     private Feature feature;
 
     @Column(name = "created_by", nullable = false)
-    private String createdBy;
+    private String author;
 
     @Column(name = "content", nullable = false)
     private String content;
@@ -31,9 +31,9 @@ public class Comment {
 
     public Comment() {}
 
-    public Comment(Feature feature, String createdBy, String content) {
+    public Comment(Feature feature, String author, String content) {
         this.feature = feature;
-        this.createdBy = createdBy;
+        this.author = author;
         this.content = content;
         this.createdAt = Instant.now();
     }
