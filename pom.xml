@@ -192,6 +192,9 @@
                                 <requireJavaVersion>
                                     <version>1.8</version>
                                 </requireJavaVersion>
+                                <requireActiveProfiles>
+                                    <activeProfiles>dev</activeProfiles>
+                                </requireActiveProfiles>
                             </rules>
                         </configuration>
                     </execution>
