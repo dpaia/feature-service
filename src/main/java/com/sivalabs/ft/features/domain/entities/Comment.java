@@ -28,10 +28,9 @@ public class Comment {
 
     public Comment() {}
 
-    public Comment(Feature feature, String createdBy, String content) {
+    public Comment(Feature feature, String createdBy) {
         this.feature = feature;
         this.createdBy = createdBy;
-        this.content = content;
         this.createdAt = Instant.now();
     }
 
