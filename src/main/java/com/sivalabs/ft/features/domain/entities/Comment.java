@@ -22,19 +22,15 @@ public class Comment {
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
-    @Column(name = "content", nullable = false)
-    private String content;
-
     @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     public Comment() {}
 
-    public Comment(Feature feature, String createdBy, String content) {
+    public Comment(Feature feature, String createdBy) {
         this.feature = feature;
         this.createdBy = createdBy;
-        this.content = content;
         this.createdAt = Instant.now();
     }
 
