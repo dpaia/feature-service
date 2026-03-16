@@ -25,16 +25,20 @@ public class Comment {
     @Column(name = "content", nullable = false)
     private String content;
 
+    @Column(name = "updated_by")
+    private String updatedBy;
+
     @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     public Comment() {}
 
-    public Comment(Feature feature, String createdBy, String content) {
+    public Comment(Feature feature, String createdBy, String content, String updatedBy) {
         this.feature = feature;
         this.createdBy = createdBy;
         this.content = content;
+        this.updatedBy = updatedBy;
         this.createdAt = Instant.now();
     }
 
