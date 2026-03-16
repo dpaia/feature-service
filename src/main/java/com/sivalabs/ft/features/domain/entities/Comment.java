@@ -20,7 +20,7 @@ public class Comment {
     private Feature feature;
 
     @Column(name = "created_by", nullable = false)
-    private String author;
+    private String author<rename>;
 
     @Column(name = "content", nullable = false)
     private String content;
