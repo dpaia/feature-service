@@ -3,8 +3,10 @@ package com.sivalabs.ft.features.domain.entities;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import lombok.Data;
 import org.hibernate.annotations.ColumnDefault;
 
+@Data
 @Entity
 @Table(name = "comments")
 public class Comment {
@@ -25,56 +27,20 @@ public class Comment {
     @Column(name = "content", nullable = false)
     private String content;
 
+    @Column(name = "updated_by")
+    private String updatedBy;
+
     @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     public Comment() {}
 
-    public Comment(Feature feature, String createdBy, String content) {
+    public Comment(Feature feature, String createdBy, String content, String updatedBy) {
         this.feature = feature;
         this.createdBy = createdBy;
         this.content = content;
+        this.updatedBy = updatedBy;
         this.createdAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Feature getFeature() {
-        return feature;
-    }
-
-    public void setFeature(Feature feature) {
-        this.feature = feature;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 }
