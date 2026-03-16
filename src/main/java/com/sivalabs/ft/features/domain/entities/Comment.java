@@ -58,14 +58,6 @@ public class Comment {
         this.createdBy = createdBy;
     }
 
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
     public Instant getCreatedAt() {
         return createdAt;
     }
