@@ -22,9 +22,6 @@ public class Comment {
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
-    @Column(name = "content", nullable = false)
-    private String content;
-
     @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
