@@ -8,8 +8,10 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -38,6 +40,26 @@ class GlobalExceptionHandler {
     ProblemDetail handle(BadRequestException e) {
         log.error("Bad Request", e);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handle(MethodArgumentTypeMismatchException e) {
+        log.error("Invalid parameter type", e);
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Invalid value for parameter: " + e.getName());
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ProblemDetail handle(MissingServletRequestParameterException e) {
+        log.error("Missing required parameter", e);
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Required parameter missing: " + e.getParameterName());
         problemDetail.setTitle("Bad Request");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;
