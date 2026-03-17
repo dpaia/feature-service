@@ -505,4 +505,62 @@ class ReleaseControllerTests extends AbstractIT {
         var result = mvc.delete().uri("/api/releases/{code}", "GO-2024.2.3").exchange();
         assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
     }
+
+    @Test
+    void shouldRejectInvalidDateRange() {
+        var startDate = "2024-12-31T23:59:59Z";
+        var endDate = "2024-01-01T00:00:00Z";
+        var result = mvc.get()
+                .uri("/api/releases/by-date-range?startDate={start}&endDate={end}", startDate, endDate)
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldRejectInvalidDateRangeOnMainEndpoint() {
+        var startDate = "2024-12-31T23:59:59Z";
+        var endDate = "2024-01-01T00:00:00Z";
+        var result = mvc.get()
+                .uri("/api/releases?startDate={start}&endDate={end}", startDate, endDate)
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldHandleSameStartAndEndDateRange() {
+        var date = "2024-01-01T00:00:00Z";
+        var result = mvc.get()
+                .uri("/api/releases/by-date-range?startDate={date}&endDate={date}", date, date)
+                .exchange();
+        assertThat(result).hasStatusOk();
+    }
+
+    @Test
+    void shouldRejectMissingStartDateInDateRange() {
+        var result = mvc.get()
+                .uri("/api/releases/by-date-range?endDate=2024-01-01T00:00:00Z")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldRejectMissingEndDateInDateRange() {
+        var result = mvc.get()
+                .uri("/api/releases/by-date-range?startDate=2024-01-01T00:00:00Z")
+                .exchange();
+        assertThat(result).hasStatus4xxClientError();
+    }
+
+    @Test
+    void shouldAcceptOnlyStartDateOnMainEndpoint() {
+        var result =
+                mvc.get().uri("/api/releases?startDate=2024-01-01T00:00:00Z").exchange();
+        assertThat(result).hasStatusOk();
+    }
+
+    @Test
+    void shouldAcceptOnlyEndDateOnMainEndpoint() {
+        var result = mvc.get().uri("/api/releases?endDate=2024-01-01T00:00:00Z").exchange();
+        assertThat(result).hasStatusOk();
+    }
 }

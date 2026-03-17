@@ -57,6 +57,7 @@ public class ReleaseService {
             Instant endDate,
             int page,
             int size) {
+        validateDateRange(startDate, endDate);
         Pageable pageable = PageRequest.of(page, size);
         Specification<Release> spec = buildSpecification(productCode, status, owner, startDate, endDate);
         var pageResult = releaseRepository.findAll(spec, pageable);
@@ -110,9 +111,16 @@ public class ReleaseService {
 
     @Transactional(readOnly = true)
     public List<ReleaseDto> findReleasesByDateRange(Instant startDate, Instant endDate) {
+        validateDateRange(startDate, endDate);
         return releaseRepository.findByPlannedReleaseDateBetween(startDate, endDate).stream()
                 .map(releaseMapper::toDto)
                 .toList();
+    }
+
+    private void validateDateRange(Instant startDate, Instant endDate) {
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new BadRequestException("startDate cannot be after endDate");
+        }
     }
 
     @Transactional
