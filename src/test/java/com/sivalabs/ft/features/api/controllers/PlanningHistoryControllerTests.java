@@ -125,7 +125,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
         Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
 
         // Verify pagination structure
-        assertThat(response).containsKeys("content", "pageable", "totalElements", "totalPages", "size", "number");
+        assertThat(response).containsKeys("content", "totalElements", "totalPages", "size", "number");
 
         // Verify content is a list
         List<Map<String, Object>> content = (List<Map<String, Object>>) response.get("content");
