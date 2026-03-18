@@ -80,6 +80,7 @@ class RoadmapControllerTests extends AbstractIT {
         assertThat(result).bodyJson().convertTo(RoadmapResponse.class).satisfies(response -> {
             assertThat(response.roadmapItems()).isEmpty();
             assertThat(response.summary().totalReleases()).isEqualTo(0);
+            assertThat(response.summary().overallCompletionPercentage()).isEqualTo(0.0);
         });
     }
 
