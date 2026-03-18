@@ -1,4 +1,3 @@
-delete from planning_history;
 delete from favorite_features;
 delete from comments;
 delete from features;
@@ -36,12 +35,3 @@ insert into comments (id, feature_id, created_by, content) values
 (1, 1, 'user', 'This is a comment on feature IDEA-1'),
 (2,  1, 'user', 'This is a comment on feature IDEA-2'),
 (3, 1, 'user', 'This is a comment on feature GO-3');
-
-insert into planning_history (id, entity_type, entity_id, entity_code, change_type, field_name, old_value, new_value, rationale, changed_by, changed_at) values
-(1,  'FEATURE', 1, 'IDEA-1', 'CREATED',       null,     null,          null,           null, 'siva',  '2024-02-24 00:00:00'),
-(2,  'FEATURE', 2, 'IDEA-2', 'CREATED',       null,     null,          null,           null, 'daniiltsarev', '2024-03-14 00:00:00'),
-(3,  'FEATURE', 1, 'IDEA-1', 'STATUS_CHANGED','status', 'NEW',         'IN_PROGRESS',  null, 'siva',  '2024-02-25 10:00:00'),
-(4,  'FEATURE', 1, 'IDEA-1', 'ASSIGNED',      'assignedTo', null,      'marcobehler',  null, 'siva',  '2024-02-25 10:05:00'),
-(5,  'RELEASE', 1, 'IDEA-2023.3.8', 'CREATED',null,     null,          null,           null, 'admin', '2023-03-25 00:00:00'),
-(6,  'RELEASE', 1, 'IDEA-2023.3.8', 'STATUS_CHANGED','status','DRAFT', 'RELEASED',     null, 'admin', '2023-04-10 00:00:00')
-;
