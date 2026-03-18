@@ -5,6 +5,7 @@ import com.sivalabs.ft.features.domain.dtos.MilestoneReleaseDto;
 import com.sivalabs.ft.features.domain.dtos.MilestoneSummaryDto;
 import com.sivalabs.ft.features.domain.entities.Milestone;
 import com.sivalabs.ft.features.domain.entities.Release;
+import java.util.Collection;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -22,5 +23,5 @@ public interface MilestoneMapper {
 
     MilestoneReleaseDto toReleaseDto(Release release);
 
-    List<MilestoneReleaseDto> toReleaseDtoList(List<Release> releases);
+    List<MilestoneReleaseDto> toReleaseDtoList(Collection<Release> releases);
 }

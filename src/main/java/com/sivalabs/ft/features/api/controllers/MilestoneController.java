@@ -170,9 +170,6 @@ class MilestoneController {
                 @ApiResponse(responseCode = "404", description = "Milestone not found")
             })
     ResponseEntity<Void> deleteMilestone(@PathVariable String code) {
-        if (!milestoneService.isMilestoneExists(code)) {
-            return ResponseEntity.notFound().build();
-        }
         milestoneService.deleteMilestone(code);
         return ResponseEntity.ok().build();
     }

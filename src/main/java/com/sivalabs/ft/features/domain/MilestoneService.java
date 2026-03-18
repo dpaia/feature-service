@@ -16,9 +16,11 @@ import com.sivalabs.ft.features.domain.models.MilestoneStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,35 +28,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class MilestoneService {
     private final MilestoneRepository milestoneRepository;
     private final ProductRepository productRepository;
-    private final ReleaseRepository releaseRepository;
     private final MilestoneMapper milestoneMapper;
     private final EventPublisher eventPublisher;
 
     MilestoneService(
             MilestoneRepository milestoneRepository,
             ProductRepository productRepository,
-            ReleaseRepository releaseRepository,
             MilestoneMapper milestoneMapper,
             EventPublisher eventPublisher) {
         this.milestoneRepository = milestoneRepository;
         this.productRepository = productRepository;
-        this.releaseRepository = releaseRepository;
         this.milestoneMapper = milestoneMapper;
         this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
     public Optional<MilestoneDto> findMilestoneByCode(String code) {
-        Optional<Milestone> milestoneOptional = milestoneRepository.findByCodeWithReleases(code);
-        if (milestoneOptional.isEmpty()) {
-            return Optional.empty();
-        }
-        Milestone milestone = milestoneOptional.get();
+        return milestoneRepository.findByCode(code).map(this::toDto);
+    }
+
+    private @NonNull MilestoneDto toDto(Milestone milestone) {
         MilestoneDto dto = milestoneMapper.toDto(milestone);
-        Integer progress = calculateProgress(new ArrayList<>(milestone.getReleases()));
-        List<MilestoneReleaseDto> releaseDtos =
-                milestoneMapper.toReleaseDtoList(new ArrayList<>(milestone.getReleases()));
-        dto = new MilestoneDto(
+        Integer progress = calculateProgress(milestone.getReleases());
+        List<MilestoneReleaseDto> releaseDtos = milestoneMapper.toReleaseDtoList(milestone.getReleases());
+        return new MilestoneDto(
                 dto.id(),
                 dto.code(),
                 dto.name(),
@@ -71,8 +68,6 @@ public class MilestoneService {
                 dto.createdAt(),
                 dto.updatedBy(),
                 dto.updatedAt());
-
-        return Optional.of(dto);
     }
 
     @Transactional(readOnly = true)
@@ -115,11 +110,6 @@ public class MilestoneService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public boolean isMilestoneExists(String code) {
-        return milestoneRepository.existsByCode(code);
-    }
-
     @Transactional
     public String createMilestone(CreateMilestoneCommand cmd) {
         if (milestoneRepository.existsByCode(cmd.code())) {
@@ -142,11 +132,9 @@ public class MilestoneService {
         milestone.setCreatedBy(cmd.createdBy());
         milestone.setCreatedAt(Instant.now());
 
-        milestoneRepository.save(milestone);
+        milestone = milestoneRepository.save(milestone);
 
-        // Publish milestone created event
-        Optional<MilestoneDto> milestoneDto = findMilestoneByCode(milestone.getCode());
-        milestoneDto.ifPresent(eventPublisher::publishMilestoneCreatedEvent);
+        eventPublisher.publishMilestoneCreatedEvent(toDto(milestone));
 
         return milestone.getCode();
     }
@@ -168,31 +156,23 @@ public class MilestoneService {
         milestone.setUpdatedBy(cmd.updatedBy());
         milestone.setUpdatedAt(Instant.now());
 
-        milestoneRepository.save(milestone);
+        milestone = milestoneRepository.save(milestone);
 
-        // Publish milestone updated event
-        Optional<MilestoneDto> milestoneDto = findMilestoneByCode(milestone.getCode());
-        milestoneDto.ifPresent(eventPublisher::publishMilestoneUpdatedEvent);
+        eventPublisher.publishMilestoneUpdatedEvent(toDto(milestone));
     }
 
     @Transactional
     public void deleteMilestone(String code) {
-        if (!milestoneRepository.existsByCode(code)) {
-            throw new ResourceNotFoundException("Milestone with code %s not found".formatted(code));
-        }
+        Milestone milestone = milestoneRepository
+                .findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Milestone with code %s not found".formatted(code)));
 
-        // TODO: Implement milestone deleted event publishing
-        // Currently disabled due to Hibernate TransientObjectException
-        // when trying to access milestone with releases after unsetMilestone operation
-
-        releaseRepository.unsetMilestone(code);
-        milestoneRepository.deleteByCode(code);
-
-        // Note: Milestone deleted event publishing is temporarily disabled
-        // to avoid Hibernate issues. This should be implemented in a separate task.
+        milestone.getReleases().forEach(release -> release.setMilestone(null));
+        milestoneRepository.delete(milestone);
+        eventPublisher.publishMilestoneDeletedEvent(toDto(milestone));
     }
 
-    private Integer calculateProgress(List<Release> releases) {
+    private Integer calculateProgress(Collection<Release> releases) {
         if (releases == null || releases.isEmpty()) {
             return 0;
         }
