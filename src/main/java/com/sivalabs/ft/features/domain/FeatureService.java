@@ -9,10 +9,12 @@ import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
+import com.sivalabs.ft.features.domain.models.ChangeType;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ public class FeatureService {
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
     private final FeatureMapper featureMapper;
+    private final PlanningHistoryService planningHistoryService;
 
     FeatureService(
             FavoriteFeatureService favoriteFeatureService,
@@ -37,7 +40,8 @@ public class FeatureService {
             ProductRepository productRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
             EventPublisher eventPublisher,
-            FeatureMapper featureMapper) {
+            FeatureMapper featureMapper,
+            PlanningHistoryService planningHistoryService) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
@@ -45,6 +49,7 @@ public class FeatureService {
         this.eventPublisher = eventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
         this.featureMapper = featureMapper;
+        this.planningHistoryService = planningHistoryService;
     }
 
     @Transactional(readOnly = true)
@@ -105,6 +110,7 @@ public class FeatureService {
         feature.setCreatedBy(cmd.createdBy());
         feature.setCreatedAt(Instant.now());
         featureRepository.save(feature);
+        planningHistoryService.recordFeatureCreated(feature);
         eventPublisher.publishFeatureCreatedEvent(feature);
         return code;
     }
@@ -112,6 +118,12 @@ public class FeatureService {
     @Transactional
     public void updateFeature(UpdateFeatureCommand cmd) {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
+
+        String oldAssignedTo = feature.getAssignedTo();
+        String oldStatus = feature.getStatus() != null ? feature.getStatus().name() : null;
+        String oldReleaseCode =
+                feature.getRelease() != null ? feature.getRelease().getCode() : null;
+
         feature.setTitle(cmd.title());
         feature.setDescription(cmd.description());
         if (cmd.releaseCode() != null) {
@@ -130,12 +142,29 @@ public class FeatureService {
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
+
+        String newStatus = cmd.status() != null ? cmd.status().name() : null;
+        String newReleaseCode = cmd.releaseCode();
+        if (!Objects.equals(oldStatus, newStatus)) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature, "status", oldStatus, newStatus, ChangeType.STATUS_CHANGED, cmd.updatedBy());
+        }
+        if (!Objects.equals(oldAssignedTo, cmd.assignedTo())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature, "assignedTo", oldAssignedTo, cmd.assignedTo(), ChangeType.ASSIGNED, cmd.updatedBy());
+        }
+        if (!Objects.equals(oldReleaseCode, newReleaseCode)) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature, "releaseCode", oldReleaseCode, newReleaseCode, ChangeType.MOVED, cmd.updatedBy());
+        }
+
         eventPublisher.publishFeatureUpdatedEvent(feature);
     }
 
     @Transactional
     public void deleteFeature(DeleteFeatureCommand cmd) {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
+        planningHistoryService.recordFeatureDeleted(feature, cmd.deletedBy());
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
