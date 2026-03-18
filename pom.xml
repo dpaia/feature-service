@@ -22,6 +22,7 @@
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <spotless-maven-plugin.version>3.0.0</spotless-maven-plugin.version>
         <palantir-java-format.version>2.74.0</palantir-java-format.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <dockerImageName>sivaprasadreddy/ft-feature-service</dockerImageName>
     </properties>
     <dependencies>
