@@ -265,8 +265,7 @@ public class FeatureService {
         featureRepository.save(feature);
 
         // Publish enhanced feature updated event
-        FeatureDto featureDto = featureMapper.toDto(feature);
-        eventPublisher.publishEnhancedFeatureUpdatedEvent(featureDto);
+        eventPublisher.publishFeatureUpdatedEvent(feature);
 
         log.info(
                 "Feature {} assigned to release {} by user {}", cmd.featureCode(), cmd.releaseCode(), cmd.assignedBy());
@@ -312,8 +311,7 @@ public class FeatureService {
         featureRepository.save(feature);
 
         // Publish enhanced feature updated event
-        FeatureDto featureDto = featureMapper.toDto(feature);
-        eventPublisher.publishEnhancedFeatureUpdatedEvent(featureDto);
+        eventPublisher.publishFeatureUpdatedEvent(feature);
 
         log.info("Feature planning updated for feature {} by user {}", cmd.featureCode(), cmd.updatedBy());
     }
@@ -343,8 +341,7 @@ public class FeatureService {
         featureRepository.save(feature);
 
         // Publish enhanced feature updated event
-        FeatureDto featureDto = featureMapper.toDto(feature);
-        eventPublisher.publishEnhancedFeatureUpdatedEvent(featureDto);
+        eventPublisher.publishFeatureUpdatedEvent(feature);
 
         log.info(
                 "Feature {} moved from {} to release {} by user {} with rationale: {}",
@@ -376,8 +373,7 @@ public class FeatureService {
         featureRepository.save(feature);
 
         // Publish enhanced feature updated event
-        FeatureDto featureDto = featureMapper.toDto(feature);
-        eventPublisher.publishEnhancedFeatureUpdatedEvent(featureDto);
+        eventPublisher.publishFeatureUpdatedEvent(feature);
 
         log.info(
                 "Feature {} removed from release {} by user {} with rationale: {}",

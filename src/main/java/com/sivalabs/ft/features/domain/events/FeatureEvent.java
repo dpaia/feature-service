@@ -12,7 +12,6 @@ public record FeatureEvent(
         String description,
         FeatureStatus status,
         String releaseCode,
-        boolean isFavorite,
         String assignedTo,
         String createdBy,
         Instant createdAt,

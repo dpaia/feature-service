@@ -1,7 +1,6 @@
 package com.sivalabs.ft.features.domain.events;
 
 import com.sivalabs.ft.features.ApplicationProperties;
-import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.dtos.MilestoneDto;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.entities.Feature;
@@ -33,22 +32,6 @@ public class EventPublisher {
         kafkaTemplate.send(properties.events().newFeatures(), event);
     }
 
-    public void publishFeatureUpdatedEvent(Feature feature) {
-        FeatureUpdatedEvent event = new FeatureUpdatedEvent(
-                feature.getId(),
-                feature.getCode(),
-                feature.getTitle(),
-                feature.getDescription(),
-                feature.getStatus(),
-                feature.getRelease() == null ? null : feature.getRelease().getCode(),
-                feature.getAssignedTo(),
-                feature.getCreatedBy(),
-                feature.getCreatedAt(),
-                feature.getUpdatedBy(),
-                feature.getUpdatedAt());
-        kafkaTemplate.send(properties.events().updatedFeatures(), event);
-    }
-
     public void publishFeatureDeletedEvent(Feature feature, String deletedBy, Instant deletedAt) {
         FeatureDeletedEvent event = new FeatureDeletedEvent(
                 feature.getId(),
@@ -67,26 +50,24 @@ public class EventPublisher {
         kafkaTemplate.send(properties.events().deletedFeatures(), event);
     }
 
-    // Enhanced feature event publishing using FeatureDto
-    public void publishEnhancedFeatureUpdatedEvent(FeatureDto featureDto) {
+    public void publishFeatureUpdatedEvent(Feature feature) {
         FeatureEvent event = new FeatureEvent(
-                featureDto.id(),
-                featureDto.code(),
-                featureDto.title(),
-                featureDto.description(),
-                featureDto.status(),
-                featureDto.releaseCode(),
-                featureDto.isFavorite(),
-                featureDto.assignedTo(),
-                featureDto.createdBy(),
-                featureDto.createdAt(),
-                featureDto.updatedBy(),
-                featureDto.updatedAt(),
-                featureDto.plannedCompletionDate(),
-                featureDto.planningStatus(),
-                featureDto.featureOwner(),
-                featureDto.notes(),
-                featureDto.blockageReason(),
+                feature.getId(),
+                feature.getCode(),
+                feature.getTitle(),
+                feature.getDescription(),
+                feature.getStatus(),
+                feature.getRelease() == null ? null : feature.getRelease().getCode(),
+                feature.getAssignedTo(),
+                feature.getCreatedBy(),
+                feature.getCreatedAt(),
+                feature.getUpdatedBy(),
+                feature.getUpdatedAt(),
+                feature.getPlannedCompletionDate(),
+                feature.getPlanningStatus(),
+                feature.getFeatureOwner(),
+                feature.getNotes(),
+                feature.getBlockageReason(),
                 "UPDATED");
         kafkaTemplate.send(properties.events().updatedFeatures(), event);
     }
