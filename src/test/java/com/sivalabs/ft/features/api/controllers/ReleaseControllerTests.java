@@ -40,7 +40,9 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldCreateNewRelease() {
         var payload =
                 """
@@ -60,7 +62,9 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldUpdateRelease() {
         var payload =
                 """
@@ -93,7 +97,9 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"ADMIN"})
     void shouldDeleteRelease() {
         var result = mvc.delete().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(result).hasStatusOk();

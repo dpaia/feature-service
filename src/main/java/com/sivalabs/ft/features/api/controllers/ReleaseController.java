@@ -113,6 +113,7 @@ class ReleaseController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> createRelease(@RequestBody @Valid CreateReleasePayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new CreateReleaseCommand(payload.productCode(), payload.code(), payload.description(), username);
         String code = releaseService.createRelease(cmd);
@@ -135,6 +136,7 @@ class ReleaseController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     void updateRelease(@PathVariable String code, @RequestBody UpdateReleasePayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new UpdateReleaseCommand(
                 code, payload.description(), payload.status(), payload.releasedAt(), payload.milestoneCode(), username);
@@ -152,6 +154,7 @@ class ReleaseController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> deleteRelease(@PathVariable String code) {
+        SecurityUtils.requireRole("ADMIN");
         if (!releaseService.isReleaseExists(code)) {
             return ResponseEntity.notFound().build();
         }
@@ -173,6 +176,7 @@ class ReleaseController {
             })
     ResponseEntity<Void> assignFeatureToRelease(
             @PathVariable String releaseCode, @RequestBody @Valid AssignFeatureToReleasePayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new AssignFeatureToReleaseCommand(
                 payload.featureCode(),
@@ -241,6 +245,7 @@ class ReleaseController {
             @PathVariable String releaseCode,
             @PathVariable String featureCode,
             @RequestBody UpdateFeaturePlanningPayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new UpdateFeaturePlanningCommand(
                 featureCode,
@@ -271,6 +276,7 @@ class ReleaseController {
             @PathVariable String targetReleaseCode,
             @PathVariable String featureCode,
             @RequestBody MoveFeaturePayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new MoveFeatureToReleaseCommand(featureCode, targetReleaseCode, payload.rationale(), username);
         featureService.moveFeatureToRelease(cmd);
@@ -297,6 +303,7 @@ class ReleaseController {
             @PathVariable String releaseCode,
             @PathVariable String featureCode,
             @RequestBody(required = false) RemoveFeaturePayload payload) {
+        SecurityUtils.requireRole("ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var rationale = payload != null ? payload.rationale() : null;
         var cmd = new RemoveFeatureFromReleaseCommand(featureCode, rationale, username);

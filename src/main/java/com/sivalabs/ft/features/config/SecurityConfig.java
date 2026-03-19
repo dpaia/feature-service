@@ -34,6 +34,8 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/milestones/**")
+                        .permitAll()
                         .anyRequest()
                         .authenticated())
                 .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -24,7 +24,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should assign feature to release")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAssignFeatureToRelease() throws JsonMappingException, JsonProcessingException {
         var payload =
                 """
@@ -80,7 +82,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject duplicate feature assignment")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldRejectDuplicateFeatureAssignment() throws JsonMappingException, JsonProcessingException {
         // First assignment should succeed
         var payload =
@@ -133,7 +137,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when assigning to release")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleFeatureNotFoundWhenAssigningToRelease() {
         var payload =
                 """
@@ -154,7 +160,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle release not found when assigning feature")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleReleaseNotFoundWhenAssigningFeature() {
         var payload =
                 """
@@ -217,7 +225,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should update feature planning")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldUpdateFeaturePlanning() throws JsonMappingException, JsonProcessingException {
         // First assign a feature
         var assignPayload =
@@ -270,7 +280,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when updating planning")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleFeatureNotFoundWhenUpdatingPlanning() {
         var updatePayload = """
         {
@@ -287,7 +299,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject invalid status transition from NOT_STARTED to DONE")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldRejectInvalidStatusTransition() {
         // First assign a feature
         var assignPayload =
@@ -320,7 +334,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow transition from BLOCKED to IN_PROGRESS")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowTransitionFromBlockedToInProgress() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-3";
         // Assign and move to BLOCKED
@@ -388,7 +404,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow transition from IN_PROGRESS to DONE")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowTransitionFromInProgressToDone() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-4";
         // Assign and move to IN_PROGRESS
@@ -454,7 +472,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow transition from IN_PROGRESS to BLOCKED with blockage reason")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowTransitionFromInProgressToBlocked() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-5";
         // Assign and move to IN_PROGRESS
@@ -523,7 +543,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate status transition from NOT_STARTED to BLOCKED")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateStatusTransitionFromNotStartedToBlocked() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-6";
         // Assign feature (defaults to NOT_STARTED)
@@ -572,7 +594,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should preserve existing values when partial update")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldPreserveExistingValuesWhenPartialUpdate() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-8";
         // Assign and move to IN_PROGRESS with specific values
@@ -640,7 +664,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow same status transition with field updates")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowSameStatusTransitionWithUpdates() throws JsonMappingException, JsonProcessingException {
         var featureCode = "GO-3";
         // Assign and move to IN_PROGRESS
@@ -712,7 +738,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should move feature between releases")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldMoveFeatureBetweenReleases() throws JsonMappingException, JsonProcessingException {
         // First assign a feature to a release
         var assignPayload =
@@ -787,7 +815,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle move of unassigned feature to release")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleMoveOfUnassignedFeatureToRelease() throws JsonMappingException, JsonProcessingException {
         // Use a feature that's not assigned to any release (like IDEA-1 from test data)
         var movePayload =
@@ -818,7 +848,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle release not found when moving feature")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleReleaseNotFoundWhenMovingFeature() {
         var movePayload =
                 """
@@ -837,7 +869,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when moving")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleFeatureNotFoundWhenMoving() {
         var movePayload =
                 """
@@ -859,7 +893,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should remove feature from release")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"ADMIN"})
     void shouldRemoveFeatureFromRelease() throws JsonMappingException, JsonProcessingException {
         // First assign a feature
         // Use a unique feature code for isolation
@@ -916,7 +952,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle removal of unassigned feature gracefully")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"ADMIN"})
     void shouldHandleRemovalOfUnassignedFeatureGracefully() {
         // Try to remove a feature that's not assigned to any release
         var removePayload = """
@@ -941,7 +979,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should properly clear all planning data when removing feature")
-    @WithMockOAuth2User(username = "testuser")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"ADMIN"})
     void shouldProperlyClearAllPlanningDataWhenRemovingFeature() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-3";
         // First assign and fully plan a feature
@@ -1004,7 +1044,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when removing")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"ADMIN"})
     void shouldHandleFeatureNotFoundWhenRemoving() {
         var removePayload = """
         {
@@ -1021,7 +1063,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate required fields in assign feature payload")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateRequiredFieldsInAssignFeaturePayload() {
         var invalidPayload =
                 """
@@ -1041,7 +1085,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate date format in assign feature payload")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateDateFormatInAssignFeaturePayload() {
         var invalidDatePayload =
                 """
@@ -1062,7 +1108,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate date format in update feature planning payload")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateDateFormatInUpdateFeaturePlanningPayload() {
         var invalidDatePayload =
                 """
@@ -1081,7 +1129,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate status enum in update feature planning payload")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateStatusEnumInUpdateFeaturePlanningPayload() {
         var invalidStatusPayload = """
         {
@@ -1098,7 +1148,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate empty payload structure")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateEmptyPayloadStructure() {
         // Test assign feature with empty payload - this is different from missing required fields
         var result = mvc.post()
@@ -1111,7 +1163,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by planning status")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldFilterFeaturesByPlanningStatus() throws JsonMappingException, JsonProcessingException {
         // Assign multiple features with different statuses
         var feature1Payload =
@@ -1181,7 +1235,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by owner")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldFilterFeaturesByOwner() throws JsonMappingException, JsonProcessingException {
         // Assign features with different owners
         var feature1Payload =
@@ -1241,7 +1297,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by overdue status")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldFilterFeaturesByOverdueStatus() throws JsonMappingException, JsonProcessingException {
         // Assign features with past and future dates
         var overdueFeaturePayload =
@@ -1291,7 +1349,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by blocked status")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldFilterFeaturesByBlockedStatus() throws JsonMappingException, JsonProcessingException {
         // Assign features using unique codes (tests run in isolation but share database state)
         var feature1Payload =
@@ -1347,7 +1407,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle multiple filters combined")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleMultipleFiltersCombined() throws JsonMappingException, JsonProcessingException {
         // Assign features with different combinations
         var feature1Payload =
@@ -1406,7 +1468,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
     // Planning Status Transition Tests
     @Test
     @DisplayName("Should allow NOT_STARTED → IN_PROGRESS transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowNotStartedToInProgressTransition() throws JsonMappingException, JsonProcessingException {
         // Assign feature with NOT_STARTED status
         var assignPayload =
@@ -1441,7 +1505,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow NOT_STARTED → BLOCKED transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowNotStartedToBlockedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
@@ -1477,7 +1543,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow IN_PROGRESS → DONE transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowInProgressToDoneTransition() throws JsonMappingException, JsonProcessingException {
         // Assign and set to IN_PROGRESS
         var assignPayload =
@@ -1512,7 +1580,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow IN_PROGRESS → BLOCKED transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowInProgressToBlockedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
@@ -1545,7 +1615,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow IN_PROGRESS → NOT_STARTED transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowInProgressToNotStartedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
@@ -1578,7 +1650,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow BLOCKED → IN_PROGRESS transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowBlockedToInProgressTransition() throws JsonMappingException, JsonProcessingException {
         // First assign GO-3 to release
         var assignPayload =
@@ -1613,7 +1687,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow BLOCKED → NOT_STARTED transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowBlockedToNotStartedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
@@ -1646,7 +1722,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow DONE → NOT_STARTED transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowDoneToNotStartedTransition() throws JsonMappingException, JsonProcessingException {
         mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-2")
@@ -1670,7 +1748,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow DONE → IN_PROGRESS transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAllowDoneToInProgressTransition() throws JsonMappingException, JsonProcessingException {
         // Need a new feature for this test - let's create a release without IDEA-2023.3.8
         // Since all unassigned features are used, we'll use IDEA-1 which is already assigned
@@ -1700,7 +1780,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject NOT_STARTED → DONE transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldRejectNotStartedToDoneTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
@@ -1726,7 +1808,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject BLOCKED → DONE transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldRejectBlockedToDoneTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
@@ -1757,7 +1841,9 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject DONE → BLOCKED transition")
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldRejectDoneToBlockedTransition() throws JsonMappingException, JsonProcessingException {
         // Use IDEA-2 which is already assigned to IDEA-2023.3.8
         mvc.patch()

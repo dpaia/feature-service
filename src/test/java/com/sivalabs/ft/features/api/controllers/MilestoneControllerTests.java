@@ -103,7 +103,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldCreateNewMilestone() {
         var payload =
                 """
@@ -128,7 +130,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldUpdateMilestone() {
         var payload =
                 """
@@ -152,7 +156,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"ADMIN"})
     void shouldDeleteMilestone() {
         var createPayload =
                 """
@@ -177,7 +183,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingDuplicateMilestoneCode() {
         var payload =
                 """
@@ -200,7 +208,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingWithInvalidProduct() {
         var payload =
                 """
@@ -225,7 +235,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAssociateReleaseWithMilestone() {
         var payload =
                 """
@@ -246,7 +258,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"ADMIN"})
     void shouldOrphanReleasesWhenMilestoneDeleted() throws Exception {
         var releaseBefore =
                 mvc.get().uri("/api/releases/{code}", "IDEA-2023.3.8").exchange();
@@ -273,7 +287,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldRejectCrossProductMilestoneAssociation() {
         var milestonePayload =
                 """
@@ -338,7 +354,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldCalculateProgressWithMixedReleaseStatuses() throws Exception {
         var createMilestone =
                 """
@@ -371,7 +389,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldCalculateProgressWithVariousReleaseStatuses() throws Exception {
         var createMilestone =
                 """
@@ -543,7 +563,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldValidateSameProductForMilestoneReleaseAssociation() {
         var milestonePayload =
                 """
@@ -582,7 +604,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldEnforceGlobalUniquenessOfMilestoneCode() {
         var milestone1 =
                 """
@@ -740,26 +764,28 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    void shouldReturn401WhenGettingMilestonesWithoutAuthentication() {
+    void shouldAllowGettingMilestonesWithoutAuthentication() {
         var result =
                 mvc.get().uri("/api/milestones?productCode={code}", "intellij").exchange();
 
         assertThat(result)
-                .as("Should return 401 when listing milestones without authentication")
-                .hasStatus(HttpStatus.UNAUTHORIZED);
+                .as("Should allow listing milestones without authentication (public endpoint)")
+                .hasStatusOk();
     }
 
     @Test
-    void shouldReturn401WhenGettingMilestoneByCodeWithoutAuthentication() {
+    void shouldAllowGettingMilestoneByCodeWithoutAuthentication() {
         var result = mvc.get().uri("/api/milestones/{code}", "Q1-2024").exchange();
 
         assertThat(result)
-                .as("Should return 401 when getting milestone by code without authentication")
-                .hasStatus(HttpStatus.UNAUTHORIZED);
+                .as("Should allow getting milestone by code without authentication (public endpoint)")
+                .hasStatusOk();
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingMilestoneWithMissingCode() {
         var payload =
                 """
@@ -784,7 +810,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingMilestoneWithMissingName() {
         var payload =
                 """
@@ -809,7 +837,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingMilestoneWithMissingTargetDate() {
         var payload =
                 """
@@ -834,7 +864,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingMilestoneWithMissingStatus() {
         var payload =
                 """
@@ -859,7 +891,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingMilestoneWithMissingProductCode() {
         var payload =
                 """
@@ -882,7 +916,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn400WhenCreatingMilestoneWithInvalidStatus() {
         var payload =
                 """
@@ -908,7 +944,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldReturn404WhenUpdatingNonExistentMilestone() {
         var payload =
                 """
@@ -932,7 +970,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"ADMIN"})
     void shouldReturn404WhenDeletingNonExistentMilestone() {
         var result = mvc.delete()
                 .uri("/api/milestones/{code}", "NON-EXISTENT-MILESTONE")
@@ -944,7 +984,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldCalculateZeroProgressWhenAllReleasesAreDraft() throws Exception {
         var createMilestone =
                 """
@@ -1004,7 +1046,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldHandleProgressRoundingCorrectly() throws Exception {
         var createMilestone =
                 """
@@ -1069,7 +1113,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAcceptMilestoneWithAllOptionalFieldsOmitted() {
         var payload =
                 """
@@ -1094,7 +1140,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldAcceptISO8601DateFormatWithTimezone() throws Exception {
         var payload =
                 """
@@ -1129,7 +1177,9 @@ class MilestoneControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
     void shouldPopulateAuditFieldsOnCreateAndUpdate() throws Exception {
         var createPayload =
                 """

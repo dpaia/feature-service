@@ -112,6 +112,7 @@ class MilestoneController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> createMilestone(@RequestBody @Valid CreateMilestonePayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new CreateMilestoneCommand(
                 payload.productCode(),
@@ -144,6 +145,7 @@ class MilestoneController {
                 @ApiResponse(responseCode = "404", description = "Milestone not found")
             })
     void updateMilestone(@PathVariable String code, @RequestBody @Valid UpdateMilestonePayload payload) {
+        SecurityUtils.requireAnyRole("PRODUCT_MANAGER", "ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new UpdateMilestoneCommand(
                 code,
@@ -170,6 +172,7 @@ class MilestoneController {
                 @ApiResponse(responseCode = "404", description = "Milestone not found")
             })
     ResponseEntity<Void> deleteMilestone(@PathVariable String code) {
+        SecurityUtils.requireRole("ADMIN");
         if (!milestoneService.isMilestoneExists(code)) {
             return ResponseEntity.notFound().build();
         }

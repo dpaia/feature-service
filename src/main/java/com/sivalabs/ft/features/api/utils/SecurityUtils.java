@@ -3,6 +3,7 @@ package com.sivalabs.ft.features.api.utils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -17,6 +18,42 @@ public class SecurityUtils {
             return null;
         }
         return String.valueOf(username);
+    }
+
+    public static List<String> getCurrentUserRoles() {
+        var loginUserDetails = getLoginUserDetails();
+        var roles = loginUserDetails.get("roles");
+        if (roles instanceof List) {
+            return (List<String>) roles;
+        }
+        return List.of();
+    }
+
+    public static boolean hasRole(String role) {
+        List<String> userRoles = getCurrentUserRoles();
+        return userRoles.contains("ROLE_" + role);
+    }
+
+    public static boolean hasAnyRole(String... roles) {
+        List<String> userRoles = getCurrentUserRoles();
+        for (String role : roles) {
+            if (userRoles.contains("ROLE_" + role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void requireRole(String role) {
+        if (!hasRole(role)) {
+            throw new AccessDeniedException("Insufficient permissions");
+        }
+    }
+
+    public static void requireAnyRole(String... roles) {
+        if (!hasAnyRole(roles)) {
+            throw new AccessDeniedException("Insufficient permissions");
+        }
     }
 
     static Map<String, Object> getLoginUserDetails() {
