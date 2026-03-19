@@ -24,19 +24,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should assign feature to release")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAssignFeatureToRelease() throws JsonMappingException, JsonProcessingException {
         var payload =
                 """
-        {
-        "featureCode": "IDEA-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Initial assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Initial assignment"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -65,13 +63,13 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
     void shouldRejectAssignFeatureToReleaseForUnauthorizedUser() {
         var payload =
                 """
-        {
-        "featureCode": "IDEA-2",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "jane.doe",
-        "notes": "Unauthorized attempt"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-2",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "jane.doe",
+                                "notes": "Unauthorized attempt"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -82,20 +80,18 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject duplicate feature assignment")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldRejectDuplicateFeatureAssignment() throws JsonMappingException, JsonProcessingException {
         // First assignment should succeed
         var payload =
                 """
-        {
-        "featureCode": "IDEA-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "First assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "First assignment"
+                                }
+                                """;
         var firstResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -120,13 +116,13 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Second assignment should fail
         var duplicatePayload =
                 """
-        {
-        "featureCode": "IDEA-3",
-        "plannedCompletionDate": "2025-01-15",
-        "featureOwner": "jane.doe",
-        "notes": "Duplicate assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-3",
+                                "plannedCompletionDate": "2025-01-15",
+                                "featureOwner": "jane.doe",
+                                "notes": "Duplicate assignment"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -137,19 +133,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when assigning to release")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleFeatureNotFoundWhenAssigningToRelease() {
         var payload =
                 """
-        {
-        "featureCode": "NON_EXISTENT_FEATURE",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment of non-existent feature"
-        }
-        """;
+                                {
+                                "featureCode": "NON_EXISTENT_FEATURE",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment of non-existent feature"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -160,19 +154,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle release not found when assigning feature")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleReleaseNotFoundWhenAssigningFeature() {
         var payload =
                 """
-        {
-        "featureCode": "IDEA-1",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment to non-existent release"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-1",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment to non-existent release"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "NON_EXISTENT_RELEASE")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -225,20 +217,18 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should update feature planning")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldUpdateFeaturePlanning() throws JsonMappingException, JsonProcessingException {
         // First assign a feature
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-4",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Initial assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-4",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Initial assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -247,13 +237,13 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Then update the planning
         var updatePayload =
                 """
-        {
-        "plannedCompletionDate": "2024-11-30",
-        "planningStatus": "IN_PROGRESS",
-        "featureOwner": "jane.doe",
-        "notes": "Updated planning details"
-        }
-        """;
+                                {
+                                "plannedCompletionDate": "2024-11-30",
+                                "planningStatus": "IN_PROGRESS",
+                                "featureOwner": "jane.doe",
+                                "notes": "Updated planning details"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-4")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -280,15 +270,14 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when updating planning")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleFeatureNotFoundWhenUpdatingPlanning() {
-        var updatePayload = """
-        {
-        "planningStatus": "IN_PROGRESS"
-        }
-        """;
+        var updatePayload =
+                """
+                                {
+                                "planningStatus": "IN_PROGRESS"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "NON_EXISTENT")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -299,31 +288,30 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject invalid status transition from NOT_STARTED to DONE")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldRejectInvalidStatusTransition() {
         // First assign a feature
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-5",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Initial assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-5",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Initial assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assignPayload)
                 .exchange();
         // Try invalid transition from NOT_STARTED to DONE
-        var invalidUpdatePayload = """
-        {
-        "planningStatus": "DONE"
-        }
-        """;
+        var invalidUpdatePayload =
+                """
+                                {
+                                "planningStatus": "DONE"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-5")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -334,21 +322,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow transition from BLOCKED to IN_PROGRESS")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowTransitionFromBlockedToInProgress() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-3";
         // Assign and move to BLOCKED
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner",
-        "notes": "notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "owner",
+                                                "notes": "notes"
+                                                }
+                                                """,
                 featureCode);
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -377,11 +363,12 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         assertThat(blockedFeature.get("planningStatus")).isEqualTo("BLOCKED");
         assertThat(blockedFeature.get("blockageReason")).isEqualTo("Waiting for dependencies");
         // Move from BLOCKED to IN_PROGRESS
-        var updatePayload = """
-        {
-        "planningStatus": "IN_PROGRESS"
-        }
-        """;
+        var updatePayload =
+                """
+                                {
+                                "planningStatus": "IN_PROGRESS"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -404,21 +391,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow transition from IN_PROGRESS to DONE")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowTransitionFromInProgressToDone() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-4";
         // Assign and move to IN_PROGRESS
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner",
-        "notes": "notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "owner",
+                                                "notes": "notes"
+                                                }
+                                                """,
                 featureCode);
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -446,11 +431,12 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
                 .orElseThrow();
         assertThat(inProgressFeature.get("planningStatus")).isEqualTo("IN_PROGRESS");
         // Move from IN_PROGRESS to DONE
-        var updatePayload = """
-        {
-        "planningStatus": "DONE"
-        }
-        """;
+        var updatePayload =
+                """
+                                {
+                                "planningStatus": "DONE"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -472,21 +458,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow transition from IN_PROGRESS to BLOCKED with blockage reason")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowTransitionFromInProgressToBlocked() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-5";
         // Assign and move to IN_PROGRESS
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner",
-        "notes": "notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "owner",
+                                                "notes": "notes"
+                                                }
+                                                """,
                 featureCode);
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -516,11 +500,11 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Move from IN_PROGRESS to BLOCKED
         var updatePayload =
                 """
-        {
-        "planningStatus": "BLOCKED",
-        "blockageReason": "Waiting for dependencies"
-        }
-        """;
+                                {
+                                "planningStatus": "BLOCKED",
+                                "blockageReason": "Waiting for dependencies"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -543,21 +527,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate status transition from NOT_STARTED to BLOCKED")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldValidateStatusTransitionFromNotStartedToBlocked() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-6";
         // Assign feature (defaults to NOT_STARTED)
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner",
-        "notes": "notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "owner",
+                                                "notes": "notes"
+                                                }
+                                                """,
                 featureCode);
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -567,11 +549,11 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Move from NOT_STARTED to BLOCKED
         var updatePayload =
                 """
-        {
-        "planningStatus": "BLOCKED",
-        "blockageReason": "Dependencies not ready"
-        }
-        """;
+                                {
+                                "planningStatus": "BLOCKED",
+                                "blockageReason": "Dependencies not ready"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -594,21 +576,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should preserve existing values when partial update")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldPreserveExistingValuesWhenPartialUpdate() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-8";
         // Assign and move to IN_PROGRESS with specific values
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "existingowner",
-        "notes": "existing notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "existingowner",
+                                                "notes": "existing notes"
+                                                }
+                                                """,
                 featureCode);
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -640,11 +620,11 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Partial update - only update notes (should preserve owner)
         var updatePayload =
                 """
-        {
-        "planningStatus": "IN_PROGRESS",
-        "notes": "updated notes only"
-        }
-        """;
+                                {
+                                "planningStatus": "IN_PROGRESS",
+                                "notes": "updated notes only"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -664,21 +644,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow same status transition with field updates")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowSameStatusTransitionWithUpdates() throws JsonMappingException, JsonProcessingException {
         var featureCode = "GO-3";
         // Assign and move to IN_PROGRESS
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner",
-        "notes": "initial notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "owner",
+                                                "notes": "initial notes"
+                                                }
+                                                """,
                 featureCode);
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -709,12 +687,12 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Update with same status but different notes and date
         var updatePayload =
                 """
-        {
-        "plannedCompletionDate": "2025-01-15",
-        "planningStatus": "IN_PROGRESS",
-        "notes": "updated notes and timeline"
-        }
-        """;
+                                {
+                                "plannedCompletionDate": "2025-01-15",
+                                "planningStatus": "IN_PROGRESS",
+                                "notes": "updated notes and timeline"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -738,20 +716,18 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should move feature between releases")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldMoveFeatureBetweenReleases() throws JsonMappingException, JsonProcessingException {
         // First assign a feature to a release
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-6",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Initial assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-6",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Initial assignment"
+                                }
+                                """;
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -775,18 +751,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         // Move to another release
         var movePayload =
                 """
-        {
-        "targetReleaseCode": "RIDER-2024.2.6",
-        "rationale": "Feature scope changed"
-        }
-        """;
+                                {
+                                "targetReleaseCode": "RIDER-2024.2.6",
+                                "rationale": "Feature scope changed"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{targetReleaseCode}/features/{featureCode}/move", "RIDER-2024.2.6", "IDEA-6")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(movePayload)
                 .exchange();
         assertThat(result).hasStatus2xxSuccessful();
-        // Fetch the feature from the target release and verify it moved with exact field matching
+        // Fetch the feature from the target release and verify it moved with exact
+        // field matching
         var getResult = mvc.get()
                 .uri("/api/releases/{releaseCode}/features", "RIDER-2024.2.6")
                 .exchange();
@@ -815,18 +792,16 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle move of unassigned feature to release")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleMoveOfUnassignedFeatureToRelease() throws JsonMappingException, JsonProcessingException {
         // Use a feature that's not assigned to any release (like IDEA-1 from test data)
         var movePayload =
                 """
-        {
-        "targetReleaseCode": "RIDER-2024.2.6",
-        "rationale": "Moving unassigned feature"
-        }
-        """;
+                                {
+                                "targetReleaseCode": "RIDER-2024.2.6",
+                                "rationale": "Moving unassigned feature"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{targetReleaseCode}/features/{featureCode}/move", "RIDER-2024.2.6", "IDEA-1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -848,17 +823,15 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle release not found when moving feature")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleReleaseNotFoundWhenMovingFeature() {
         var movePayload =
                 """
-        {
-        "targetReleaseCode": "NON_EXISTENT_RELEASE",
-        "rationale": "Moving to non-existent release"
-        }
-        """;
+                                {
+                                "targetReleaseCode": "NON_EXISTENT_RELEASE",
+                                "rationale": "Moving to non-existent release"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{targetReleaseCode}/features/{featureCode}/move", "NON_EXISTENT_RELEASE", "IDEA-1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -869,17 +842,15 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when moving")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleFeatureNotFoundWhenMoving() {
         var movePayload =
                 """
-        {
-        "targetReleaseCode": "RIDER-2024.2.6",
-        "rationale": "Moving non-existent feature"
-        }
-        """;
+                                {
+                                "targetReleaseCode": "RIDER-2024.2.6",
+                                "rationale": "Moving non-existent feature"
+                                }
+                                """;
         var result = mvc.post()
                 .uri(
                         "/api/releases/{targetReleaseCode}/features/{featureCode}/move",
@@ -893,22 +864,20 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should remove feature from release")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"ADMIN"})
+    @WithMockOAuth2User(roles = "ADMIN")
     void shouldRemoveFeatureFromRelease() throws JsonMappingException, JsonProcessingException {
         // First assign a feature
         // Use a unique feature code for isolation
         var featureCode = "IDEA-7";
         var assignPayload =
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Initial assignment"
-        }
-        """
+                                {
+                                "featureCode": "%s",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Initial assignment"
+                                }
+                                """
                         .formatted(featureCode);
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -931,11 +900,12 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         assertThat(assignedFeature.get("code")).isEqualTo(featureCode);
         assertThat(assignedFeature.get("featureOwner")).isEqualTo("john.doe");
         // Remove from release
-        var removePayload = """
-        {
-        "rationale": "Feature cancelled"
-        }
-        """;
+        var removePayload =
+                """
+                                {
+                                "rationale": "Feature cancelled"
+                                }
+                                """;
         var result = mvc.delete()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -952,16 +922,15 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle removal of unassigned feature gracefully")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"ADMIN"})
+    @WithMockOAuth2User(roles = "ADMIN")
     void shouldHandleRemovalOfUnassignedFeatureGracefully() {
         // Try to remove a feature that's not assigned to any release
-        var removePayload = """
-        {
-        "rationale": "Removing unassigned feature"
-        }
-        """;
+        var removePayload =
+                """
+                                {
+                                "rationale": "Removing unassigned feature"
+                                }
+                                """;
         var result = mvc.delete()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2023.3.8", "IDEA-1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -979,21 +948,19 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should properly clear all planning data when removing feature")
-    @WithMockOAuth2User(
-            username = "testuser",
-            roles = {"ADMIN"})
+    @WithMockOAuth2User(roles = "ADMIN")
     void shouldProperlyClearAllPlanningDataWhenRemovingFeature() throws JsonMappingException, JsonProcessingException {
         var featureCode = "IDEA-3";
         // First assign and fully plan a feature
         var assignPayload = String.format(
                 """
-        {
-        "featureCode": "%s",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner",
-        "notes": "initial notes"
-        }
-        """,
+                                                {
+                                                "featureCode": "%s",
+                                                "plannedCompletionDate": "2024-12-31",
+                                                "featureOwner": "owner",
+                                                "notes": "initial notes"
+                                                }
+                                                """,
                 featureCode);
         var assignResult = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -1023,11 +990,12 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
         assertThat(blockedFeature.get("planningStatus")).isEqualTo("BLOCKED");
         assertThat(blockedFeature.get("blockageReason")).isEqualTo("Some blockage");
         // Now remove it
-        var removePayload = """
-        {
-        "rationale": "Removing fully planned feature"
-        }
-        """;
+        var removePayload =
+                """
+                                {
+                                "rationale": "Removing fully planned feature"
+                                }
+                                """;
         var result = mvc.delete()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2023.3.8", featureCode)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1044,15 +1012,14 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle feature not found when removing")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"ADMIN"})
+    @WithMockOAuth2User(roles = "ADMIN")
     void shouldHandleFeatureNotFoundWhenRemoving() {
-        var removePayload = """
-        {
-        "rationale": "Removing non-existent feature"
-        }
-        """;
+        var removePayload =
+                """
+                                {
+                                "rationale": "Removing non-existent feature"
+                                }
+                                """;
         var result = mvc.delete()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2023.3.8", "NON_EXISTENT_FEATURE")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1063,18 +1030,16 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate required fields in assign feature payload")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldValidateRequiredFieldsInAssignFeaturePayload() {
         var invalidPayload =
                 """
-        {
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Missing featureCode"
-        }
-        """;
+                                {
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Missing featureCode"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1085,19 +1050,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate date format in assign feature payload")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldValidateDateFormatInAssignFeaturePayload() {
         var invalidDatePayload =
                 """
-        {
-        "featureCode": "IDEA-6",
-        "plannedCompletionDate": "invalid-date",
-        "featureOwner": "john.doe",
-        "notes": "Invalid date format"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-6",
+                                "plannedCompletionDate": "invalid-date",
+                                "featureOwner": "john.doe",
+                                "notes": "Invalid date format"
+                                }
+                                """;
         var result = mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1108,17 +1071,15 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate date format in update feature planning payload")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldValidateDateFormatInUpdateFeaturePlanningPayload() {
         var invalidDatePayload =
                 """
-        {
-        "plannedCompletionDate": "invalid-date",
-        "planningStatus": "IN_PROGRESS"
-        }
-        """;
+                                {
+                                "plannedCompletionDate": "invalid-date",
+                                "planningStatus": "IN_PROGRESS"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1129,15 +1090,14 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate status enum in update feature planning payload")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldValidateStatusEnumInUpdateFeaturePlanningPayload() {
-        var invalidStatusPayload = """
-        {
-        "planningStatus": "INVALID_STATUS"
-        }
-        """;
+        var invalidStatusPayload =
+                """
+                                {
+                                "planningStatus": "INVALID_STATUS"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1148,11 +1108,10 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should validate empty payload structure")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldValidateEmptyPayloadStructure() {
-        // Test assign feature with empty payload - this is different from missing required fields
+        // Test assign feature with empty payload - this is different from missing
+        // required fields
         var result = mvc.post()
                 .uri("/api/releases/IDEA-2023.3.8/features")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1163,29 +1122,27 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by planning status")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldFilterFeaturesByPlanningStatus() throws JsonMappingException, JsonProcessingException {
         // Assign multiple features with different statuses
         var feature1Payload =
                 """
-        {
-        "featureCode": "IDEA-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Feature 1"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Feature 1"
+                                }
+                                """;
         var feature2Payload =
                 """
-        {
-        "featureCode": "IDEA-4",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "jane.doe",
-        "notes": "Feature 2"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-4",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "jane.doe",
+                                "notes": "Feature 2"
+                                }
+                                """;
         // Assign features
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -1235,29 +1192,27 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by owner")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldFilterFeaturesByOwner() throws JsonMappingException, JsonProcessingException {
         // Assign features with different owners
         var feature1Payload =
                 """
-        {
-        "featureCode": "IDEA-5",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "alice.smith",
-        "notes": "Feature 1"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-5",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "alice.smith",
+                                "notes": "Feature 1"
+                                }
+                                """;
         var feature2Payload =
                 """
-        {
-        "featureCode": "IDEA-6",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "bob.jones",
-        "notes": "Feature 2"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-6",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "bob.jones",
+                                "notes": "Feature 2"
+                                }
+                                """;
         // Assign features
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -1297,29 +1252,27 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by overdue status")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldFilterFeaturesByOverdueStatus() throws JsonMappingException, JsonProcessingException {
         // Assign features with past and future dates
         var overdueFeaturePayload =
                 """
-        {
-        "featureCode": "IDEA-7",
-        "plannedCompletionDate": "2020-01-01",
-        "featureOwner": "overdue.owner",
-        "notes": "Overdue feature"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-7",
+                                "plannedCompletionDate": "2020-01-01",
+                                "featureOwner": "overdue.owner",
+                                "notes": "Overdue feature"
+                                }
+                                """;
         var futureFeaturePayload =
                 """
-        {
-        "featureCode": "IDEA-8",
-        "plannedCompletionDate": "2030-12-31",
-        "featureOwner": "future.owner",
-        "notes": "Future feature"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-8",
+                                "plannedCompletionDate": "2030-12-31",
+                                "featureOwner": "future.owner",
+                                "notes": "Future feature"
+                                }
+                                """;
         // Assign features
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -1349,29 +1302,28 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should filter features by blocked status")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldFilterFeaturesByBlockedStatus() throws JsonMappingException, JsonProcessingException {
-        // Assign features using unique codes (tests run in isolation but share database state)
+        // Assign features using unique codes (tests run in isolation but share database
+        // state)
         var feature1Payload =
                 """
-        {
-        "featureCode": "GO-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner1",
-        "notes": "Feature 1"
-        }
-        """;
+                                {
+                                "featureCode": "GO-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "owner1",
+                                "notes": "Feature 1"
+                                }
+                                """;
         var feature2Payload =
                 """
-        {
-        "featureCode": "IDEA-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "owner2",
-        "notes": "Feature 2"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "owner2",
+                                "notes": "Feature 2"
+                                }
+                                """;
         // Assign features
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -1407,29 +1359,27 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should handle multiple filters combined")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldHandleMultipleFiltersCombined() throws JsonMappingException, JsonProcessingException {
         // Assign features with different combinations
         var feature1Payload =
                 """
-        {
-        "featureCode": "IDEA-4",
-        "plannedCompletionDate": "2020-01-01",
-        "featureOwner": "test.user",
-        "notes": "Test feature 1"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-4",
+                                "plannedCompletionDate": "2020-01-01",
+                                "featureOwner": "test.user",
+                                "notes": "Test feature 1"
+                                }
+                                """;
         var feature2Payload =
                 """
-        {
-        "featureCode": "IDEA-5",
-        "plannedCompletionDate": "2020-01-01",
-        "featureOwner": "other.user",
-        "notes": "Test feature 2"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-5",
+                                "plannedCompletionDate": "2020-01-01",
+                                "featureOwner": "other.user",
+                                "notes": "Test feature 2"
+                                }
+                                """;
         // Assign features
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
@@ -1465,34 +1415,34 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
     }
+
     // Planning Status Transition Tests
     @Test
     @DisplayName("Should allow NOT_STARTED → IN_PROGRESS transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowNotStartedToInProgressTransition() throws JsonMappingException, JsonProcessingException {
         // Assign feature with NOT_STARTED status
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assignPayload)
                 .exchange();
         // Transition to IN_PROGRESS
-        var updatePayload = """
-        {
-        "planningStatus": "IN_PROGRESS"
-        }
-        """;
+        var updatePayload =
+                """
+                                {
+                                "planningStatus": "IN_PROGRESS"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-3")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1505,19 +1455,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow NOT_STARTED → BLOCKED transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowNotStartedToBlockedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-4",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-4",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1525,11 +1473,11 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
                 .exchange();
         var updatePayload =
                 """
-        {
-        "planningStatus": "BLOCKED",
-        "blockageReason": "Waiting for dependencies"
-        }
-        """;
+                                {
+                                "planningStatus": "BLOCKED",
+                                "blockageReason": "Waiting for dependencies"
+                                }
+                                """;
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-4")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1543,20 +1491,18 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow IN_PROGRESS → DONE transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowInProgressToDoneTransition() throws JsonMappingException, JsonProcessingException {
         // Assign and set to IN_PROGRESS
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-5",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-5",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1580,19 +1526,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow IN_PROGRESS → BLOCKED transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowInProgressToBlockedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-6",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-6",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1615,19 +1559,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow IN_PROGRESS → NOT_STARTED transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowInProgressToNotStartedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-7",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-7",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1650,20 +1592,18 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow BLOCKED → IN_PROGRESS transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowBlockedToInProgressTransition() throws JsonMappingException, JsonProcessingException {
         // First assign GO-3 to release
         var assignPayload =
                 """
-        {
-        "featureCode": "GO-3",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "GO-3",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1687,19 +1627,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow BLOCKED → NOT_STARTED transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowBlockedToNotStartedTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-8",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-8",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1722,9 +1660,7 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow DONE → NOT_STARTED transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowDoneToNotStartedTransition() throws JsonMappingException, JsonProcessingException {
         mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-2")
@@ -1748,14 +1684,15 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should allow DONE → IN_PROGRESS transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldAllowDoneToInProgressTransition() throws JsonMappingException, JsonProcessingException {
-        // Need a new feature for this test - let's create a release without IDEA-2023.3.8
-        // Since all unassigned features are used, we'll use IDEA-1 which is already assigned
+        // Need a new feature for this test - let's create a release without
+        // IDEA-2023.3.8
+        // Since all unassigned features are used, we'll use IDEA-1 which is already
+        // assigned
         // Actually, let's use the existing IDEA-1 and move it through states
-        // First, let's get a fresh feature - for this we need to use  existing assignment pattern
+        // First, let's get a fresh feature - for this we need to use existing
+        // assignment pattern
         // Let's patch IDEA-1 which is already in IDEA-2023.3.8
         var result = mvc.patch()
                 .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2023.3.8", "IDEA-1")
@@ -1780,19 +1717,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject NOT_STARTED → DONE transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldRejectNotStartedToDoneTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-7",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-7",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1808,19 +1743,17 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject BLOCKED → DONE transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldRejectBlockedToDoneTransition() throws JsonMappingException, JsonProcessingException {
         var assignPayload =
                 """
-        {
-        "featureCode": "IDEA-8",
-        "plannedCompletionDate": "2024-12-31",
-        "featureOwner": "john.doe",
-        "notes": "Assignment"
-        }
-        """;
+                                {
+                                "featureCode": "IDEA-8",
+                                "plannedCompletionDate": "2024-12-31",
+                                "featureOwner": "john.doe",
+                                "notes": "Assignment"
+                                }
+                                """;
         mvc.post()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1841,9 +1774,7 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
 
     @Test
     @DisplayName("Should reject DONE → BLOCKED transition")
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldRejectDoneToBlockedTransition() throws JsonMappingException, JsonProcessingException {
         // Use IDEA-2 which is already assigned to IDEA-2023.3.8
         mvc.patch()
@@ -1863,6 +1794,7 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
     }
+
     // Helper method to fetch feature from release
     private Map<String, Object> getFeatureFromRelease(String releaseCode, String featureCode)
             throws JsonMappingException, JsonProcessingException {

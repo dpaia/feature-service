@@ -40,18 +40,16 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldCreateNewRelease() {
         var payload =
                 """
-            {
-                "productCode": "intellij",
-                "code": "IDEA-2025.1",
-                "description": "IntelliJ IDEA 2025.1"
-            }
-            """;
+                {
+                    "productCode": "intellij",
+                    "code": "IDEA-2025.1",
+                    "description": "IntelliJ IDEA 2025.1"
+                }
+                """;
 
         var result = mvc.post()
                 .uri("/api/releases")
@@ -62,18 +60,16 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"PRODUCT_MANAGER"})
+    @WithMockOAuth2User(roles = "PRODUCT_MANAGER")
     void shouldUpdateRelease() {
         var payload =
                 """
-            {
-                "description": "Updated description",
-                "status": "RELEASED",
-                "releasedAt": "2023-12-01T10:00:00Z"
-            }
-            """;
+                {
+                    "description": "Updated description",
+                    "status": "RELEASED",
+                    "releasedAt": "2023-12-01T10:00:00Z"
+                }
+                """;
 
         var result = mvc.put()
                 .uri("/api/releases/{code}", "IDEA-2023.3.8")
@@ -97,9 +93,7 @@ class ReleaseControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(
-            username = "user",
-            roles = {"ADMIN"})
+    @WithMockOAuth2User(roles = "ADMIN")
     void shouldDeleteRelease() {
         var result = mvc.delete().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(result).hasStatusOk();
