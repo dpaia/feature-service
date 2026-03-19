@@ -15,10 +15,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-
 import java.net.URI;
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +35,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/api/releases")
 @Tag(name = "Releases API")
 class ReleaseController {
-
     private static final Logger log = LoggerFactory.getLogger(ReleaseController.class);
     private final ReleaseService releaseService;
 
@@ -50,13 +47,13 @@ class ReleaseController {
             summary = "Find releases by product code",
             description = "Find releases by product code",
             responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Successful response",
-                            content =
-                            @Content(
-                                    mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
             })
     List<ReleaseDto> getProductReleases(@RequestParam("productCode") String productCode) {
         return releaseService.findReleasesByProductCode(productCode);
@@ -67,14 +64,14 @@ class ReleaseController {
             summary = "Find release by code",
             description = "Find release by code",
             responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Successful response",
-                            content =
-                            @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = ReleaseDto.class))),
-                    @ApiResponse(responseCode = "404", description = "Release not found")
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = ReleaseDto.class))),
+                @ApiResponse(responseCode = "404", description = "Release not found")
             })
     ResponseEntity<ReleaseDto> getRelease(@PathVariable String code) {
         return releaseService
@@ -88,17 +85,17 @@ class ReleaseController {
             summary = "Create a new release",
             description = "Create a new release",
             responses = {
-                    @ApiResponse(
-                            responseCode = "201",
-                            description = "Successful response",
-                            headers =
-                            @Header(
-                                    name = "Location",
-                                    required = true,
-                                    description = "URI of the created release")),
-                    @ApiResponse(responseCode = "400", description = "Invalid request"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(
+                        responseCode = "201",
+                        description = "Successful response",
+                        headers =
+                                @Header(
+                                        name = "Location",
+                                        required = true,
+                                        description = "URI of the created release")),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> createRelease(@RequestBody @Valid CreateReleasePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
@@ -117,10 +114,10 @@ class ReleaseController {
             summary = "Update an existing release",
             description = "Update an existing release",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Successful response"),
-                    @ApiResponse(responseCode = "400", description = "Invalid request"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     void updateRelease(@PathVariable String code, @RequestBody UpdateReleasePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
@@ -134,10 +131,10 @@ class ReleaseController {
             summary = "Delete an existing release",
             description = "Delete an existing release",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Successful response"),
-                    @ApiResponse(responseCode = "400", description = "Invalid request"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     ResponseEntity<Void> deleteRelease(@PathVariable String code) {
         if (!releaseService.isReleaseExists(code)) {
