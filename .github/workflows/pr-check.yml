@@ -21,7 +21,7 @@ jobs:
           cache: maven
 
       - name: Run spotless plugin check
-        run: ./mvnw spotless:check
+        run: ./mvnw --no-transfer-progress spotless:check
 
   verify:
     name: Maven Build & Test
@@ -40,4 +40,4 @@ jobs:
           cache: maven
 
       - name: Run mvn verify
-        run: ./mvnw verify
+        run: ./mvnw --no-transfer-progress verify
