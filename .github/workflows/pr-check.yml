@@ -25,6 +25,7 @@ jobs:
 
   verify:
     name: Maven Build & Test
+    needs: spotless
     runs-on: ubuntu-latest
     permissions:
       contents: read
