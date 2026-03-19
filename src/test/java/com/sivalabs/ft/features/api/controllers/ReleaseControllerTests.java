@@ -76,7 +76,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
                 .exchange();
-        assertThat(result).hasStatusOk();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
 
         // Verify the update
         var updatedRelease =
