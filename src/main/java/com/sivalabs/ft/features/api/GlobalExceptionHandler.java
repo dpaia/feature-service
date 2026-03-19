@@ -2,12 +2,14 @@ package com.sivalabs.ft.features.api;
 
 import static org.springframework.http.HttpStatus.*;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -38,6 +40,25 @@ class GlobalExceptionHandler {
     ProblemDetail handle(BadRequestException e) {
         log.error("Bad Request", e);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ProblemDetail handle(HttpMessageNotReadableException ex) {
+        String message = "Invalid request body";
+
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException ife) {
+            if (ife.getTargetType() != null && ife.getTargetType().isEnum()) {
+                String invalidValue = String.valueOf(ife.getValue());
+                String enumName = ife.getTargetType().getSimpleName();
+                message = "Invalid value '%s' for enum %s.".formatted(invalidValue, enumName);
+            }
+        }
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, message);
         problemDetail.setTitle("Bad Request");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;

@@ -1,5 +1,7 @@
 package com.sivalabs.ft.features.api.models;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.sivalabs.ft.features.api.deserializer.FeaturePlanningStatusDeserializer;
 import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import jakarta.validation.constraints.NotEmpty;
@@ -14,6 +16,6 @@ public record UpdateFeaturePayload(
         FeatureStatus status,
         Instant plannedCompletionAt,
         Instant actualCompletionAt,
-        FeaturePlanningStatus featurePlanningStatus,
+        @JsonDeserialize(using = FeaturePlanningStatusDeserializer.class) FeaturePlanningStatus featurePlanningStatus,
         String featureOwner,
         String blockageReason) {}

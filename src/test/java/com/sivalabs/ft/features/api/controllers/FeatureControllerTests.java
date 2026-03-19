@@ -206,4 +206,70 @@ class FeatureControllerTests extends AbstractIT {
                 .asNumber()
                 .isEqualTo(2);
     }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturnBadRequestForInvalidFeaturePlanningStatus() {
+        var payload =
+                """
+            {
+                "title": "Feature with Invalid Status",
+                "description": "Feature with non-existent planning status",
+                "status": "NEW",
+                "featurePlanningStatus": "INVALID_STATUS"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{code}", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturnBadRequestForBlankFeaturePlanningStatus() {
+        var payload =
+                """
+            {
+                "title": "Feature with Invalid Status",
+                "description": "Feature with non-existent planning status",
+                "status": "NEW",
+                "featurePlanningStatus": " "
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{code}", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturnBadRequestForEmptyFeaturePlanningStatus() {
+        var payload =
+                """
+            {
+                "title": "Feature with Invalid Status",
+                "description": "Feature with non-existent planning status",
+                "status": "NEW",
+                "featurePlanningStatus": ""
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{code}", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
 }
