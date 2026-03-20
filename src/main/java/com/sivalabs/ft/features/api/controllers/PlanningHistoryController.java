@@ -1,8 +1,11 @@
 package com.sivalabs.ft.features.api.controllers;
 
 import com.sivalabs.ft.features.api.models.PagedResult;
+import com.sivalabs.ft.features.domain.FeatureService;
 import com.sivalabs.ft.features.domain.PlanningHistoryService;
+import com.sivalabs.ft.features.domain.ReleaseService;
 import com.sivalabs.ft.features.domain.dtos.PlanningHistoryDto;
+import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.models.ChangeType;
 import com.sivalabs.ft.features.domain.models.EntityType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,9 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Planning History API")
 class PlanningHistoryController {
     private final PlanningHistoryService planningHistoryService;
+    private final FeatureService featureService;
+    private final ReleaseService releaseService;
 
-    PlanningHistoryController(PlanningHistoryService planningHistoryService) {
+    PlanningHistoryController(
+            PlanningHistoryService planningHistoryService,
+            FeatureService featureService,
+            ReleaseService releaseService) {
         this.planningHistoryService = planningHistoryService;
+        this.featureService = featureService;
+        this.releaseService = releaseService;
     }
 
     @GetMapping("/api/planning-history")
@@ -45,6 +55,9 @@ class PlanningHistoryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String sort) {
+        if (!releaseService.isReleaseExists(code)) {
+            throw new ResourceNotFoundException("Release with code " + code + " not found");
+        }
         return PagedResult.from(
                 planningHistoryService.findHistory(EntityType.RELEASE, code, null, null, null, null, page, size, sort));
     }
@@ -56,6 +69,9 @@ class PlanningHistoryController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String sort) {
+        if (!featureService.isFeatureExists(code)) {
+            throw new ResourceNotFoundException("Feature with code " + code + " not found");
+        }
         return PagedResult.from(
                 planningHistoryService.findHistory(EntityType.FEATURE, code, null, null, null, null, page, size, sort));
     }
