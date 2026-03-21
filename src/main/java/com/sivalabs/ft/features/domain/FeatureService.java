@@ -119,10 +119,17 @@ public class FeatureService {
     public void updateFeature(UpdateFeatureCommand cmd) {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
 
+        String oldTitle = feature.getTitle();
+        String oldDescription = feature.getDescription();
         String oldAssignedTo = feature.getAssignedTo();
         String oldStatus = feature.getStatus() != null ? feature.getStatus().name() : null;
         String oldReleaseCode =
                 feature.getRelease() != null ? feature.getRelease().getCode() : null;
+        var oldPlannedCompletionAt = feature.getPlannedCompletionAt();
+        var oldActualCompletionAt = feature.getActualCompletionAt();
+        var oldFeaturePlanningStatus = feature.getFeaturePlanningStatus();
+        var oldFeatureOwner = feature.getFeatureOwner();
+        var oldBlockageReason = feature.getBlockageReason();
 
         feature.setTitle(cmd.title());
         feature.setDescription(cmd.description());
@@ -142,6 +149,59 @@ public class FeatureService {
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
+
+        if (!Objects.equals(oldTitle, cmd.title())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature, "title", oldTitle, cmd.title(), ChangeType.UPDATED, cmd.updatedBy());
+        }
+        if (!Objects.equals(oldDescription, cmd.description())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature, "description", oldDescription, cmd.description(), ChangeType.UPDATED, cmd.updatedBy());
+        }
+        if (!Objects.equals(oldPlannedCompletionAt, cmd.plannedCompletionAt())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature,
+                    "plannedCompletionAt",
+                    oldPlannedCompletionAt != null ? oldPlannedCompletionAt.toString() : null,
+                    cmd.plannedCompletionAt() != null
+                            ? cmd.plannedCompletionAt().toString()
+                            : null,
+                    ChangeType.UPDATED,
+                    cmd.updatedBy());
+        }
+        if (!Objects.equals(oldActualCompletionAt, cmd.actualCompletionAt())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature,
+                    "actualCompletionAt",
+                    oldActualCompletionAt != null ? oldActualCompletionAt.toString() : null,
+                    cmd.actualCompletionAt() != null ? cmd.actualCompletionAt().toString() : null,
+                    ChangeType.UPDATED,
+                    cmd.updatedBy());
+        }
+        if (!Objects.equals(oldFeaturePlanningStatus, cmd.featurePlanningStatus())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature,
+                    "featurePlanningStatus",
+                    oldFeaturePlanningStatus != null ? oldFeaturePlanningStatus.name() : null,
+                    cmd.featurePlanningStatus() != null
+                            ? cmd.featurePlanningStatus().name()
+                            : null,
+                    ChangeType.UPDATED,
+                    cmd.updatedBy());
+        }
+        if (!Objects.equals(oldFeatureOwner, cmd.featureOwner())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature, "featureOwner", oldFeatureOwner, cmd.featureOwner(), ChangeType.UPDATED, cmd.updatedBy());
+        }
+        if (!Objects.equals(oldBlockageReason, cmd.blockageReason())) {
+            planningHistoryService.recordFeatureFieldChange(
+                    feature,
+                    "blockageReason",
+                    oldBlockageReason,
+                    cmd.blockageReason(),
+                    ChangeType.UPDATED,
+                    cmd.updatedBy());
+        }
 
         String newStatus = cmd.status() != null ? cmd.status().name() : null;
         String newReleaseCode = cmd.releaseCode();
