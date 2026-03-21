@@ -230,4 +230,56 @@ class PlanningHistoryControllerTests extends AbstractIT {
                 .extracting(Number::intValue)
                 .satisfies(n -> assertThat(n).isGreaterThanOrEqualTo(1));
     }
+
+    @Test
+    @WithMockOAuth2User(username = "testuser")
+    void shouldReturn400ForInvalidPageNumber() {
+        var result = mvc.get().uri("/api/planning-history?page=-1").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "testuser")
+    void shouldReturn400ForInvalidPageSize() {
+        var result = mvc.get().uri("/api/planning-history?size=0").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "testuser")
+    void shouldReturn400ForInvalidEntityType() {
+        var result =
+                mvc.get().uri("/api/planning-history?entityType=INVALID_TYPE").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "testuser")
+    void shouldReturn400ForInvalidChangeType() {
+        var result =
+                mvc.get().uri("/api/planning-history?changeType=INVALID_CHANGE").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "testuser")
+    void shouldReturn400ForInvalidDateFormat() {
+        var result =
+                mvc.get().uri("/api/planning-history?dateFrom=invalid-date").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "testuser")
+    void shouldReturn400ForInvalidSortParameter() {
+        var result =
+                mvc.get().uri("/api/planning-history?sort=invalidField,desc").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(400);
+    }
 }

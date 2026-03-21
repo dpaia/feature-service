@@ -4,6 +4,7 @@ import com.sivalabs.ft.features.domain.dtos.PlanningHistoryDto;
 import com.sivalabs.ft.features.domain.entities.Feature;
 import com.sivalabs.ft.features.domain.entities.PlanningHistory;
 import com.sivalabs.ft.features.domain.entities.Release;
+import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.mappers.PlanningHistoryMapper;
 import com.sivalabs.ft.features.domain.models.ChangeType;
 import com.sivalabs.ft.features.domain.models.EntityType;
@@ -11,6 +12,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlanningHistoryService {
     private static final int MAX_VALUE_LENGTH = 1000;
     private static final int MAX_RATIONALE_LENGTH = 500;
+    private static final Set<String> VALID_SORT_FIELDS = Set.of(
+            "id",
+            "entityType",
+            "entityId",
+            "entityCode",
+            "changeType",
+            "fieldName",
+            "oldValue",
+            "newValue",
+            "rationale",
+            "changedBy",
+            "changedAt");
 
     private final PlanningHistoryRepository planningHistoryRepository;
     private final PlanningHistoryMapper planningHistoryMapper;
@@ -184,6 +198,9 @@ public class PlanningHistoryService {
         }
         String[] parts = sort.split(",");
         String field = parts[0].trim();
+        if (!VALID_SORT_FIELDS.contains(field)) {
+            throw new BadRequestException("Invalid sort field: " + field);
+        }
         Sort.Direction direction =
                 parts.length > 1 && "asc".equalsIgnoreCase(parts[1].trim()) ? Sort.Direction.ASC : Sort.Direction.DESC;
         return Sort.by(direction, field);

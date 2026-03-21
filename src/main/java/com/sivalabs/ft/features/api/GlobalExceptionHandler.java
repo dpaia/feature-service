@@ -4,18 +4,65 @@ import static org.springframework.http.HttpStatus.*;
 
 import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handle(MethodArgumentTypeMismatchException e) {
+        log.error("Method argument type mismatch", e);
+        String detail = String.format("Invalid value for parameter '%s'", e.getName());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, detail);
+        problemDetail.setTitle("Invalid Request Parameter");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ProblemDetail handle(HandlerMethodValidationException e) {
+        log.error("Handler method validation failed", e);
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Validation failed for request parameters");
+        problemDetail.setTitle("Validation Failed");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ProblemDetail handle(ConstraintViolationException e) {
+        log.error("Constraint violation", e);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
+        problemDetail.setTitle("Constraint Violation");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ProblemDetail handle(MethodArgumentNotValidException e) {
+        log.error("Method argument not valid", e);
+        String detail = e.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, detail);
+        problemDetail.setTitle("Validation Failed");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
 
     @ExceptionHandler(Exception.class)
     ProblemDetail handle(Exception e) {
