@@ -28,13 +28,17 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**")
                         .permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/features/*/history",
+                                "/api/releases/*/history",
+                                "/api/planning-history/**")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/releases/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/features/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/planning-history/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated())
