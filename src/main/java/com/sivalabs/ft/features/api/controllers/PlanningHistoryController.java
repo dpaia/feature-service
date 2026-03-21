@@ -7,7 +7,9 @@ import com.sivalabs.ft.features.domain.models.ChangeType;
 import com.sivalabs.ft.features.domain.models.EntityType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Min;
 import java.time.Instant;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "Planning History API")
+@Validated
 class PlanningHistoryController {
     private final PlanningHistoryService planningHistoryService;
 
@@ -31,8 +34,8 @@ class PlanningHistoryController {
             @RequestParam(required = false) ChangeType changeType,
             @RequestParam(required = false) Instant dateFrom,
             @RequestParam(required = false) Instant dateTo,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) int size,
             @RequestParam(required = false) String sort) {
         return PagedResult.from(planningHistoryService.findHistory(
                 entityType, entityCode, changedBy, changeType, dateFrom, dateTo, page, size, sort));
@@ -42,8 +45,8 @@ class PlanningHistoryController {
     @Operation(summary = "Get planning history for a specific release")
     PagedResult<PlanningHistoryDto> getReleaseHistory(
             @PathVariable String code,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) int size,
             @RequestParam(required = false) String sort) {
         return PagedResult.from(
                 planningHistoryService.findHistory(EntityType.RELEASE, code, null, null, null, null, page, size, sort));
@@ -53,8 +56,8 @@ class PlanningHistoryController {
     @Operation(summary = "Get planning history for a specific feature")
     PagedResult<PlanningHistoryDto> getFeatureHistory(
             @PathVariable String code,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) int size,
             @RequestParam(required = false) String sort) {
         return PagedResult.from(
                 planningHistoryService.findHistory(EntityType.FEATURE, code, null, null, null, null, page, size, sort));
