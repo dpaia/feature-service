@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 class PlanningHistoryControllerTests extends AbstractIT {
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldGetAllPlanningHistory() {
         var result = mvc.get().uri("/api/planning-history").exchange();
         assertThat(result).hasStatusOk();
@@ -23,6 +24,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldFilterPlanningHistoryByEntityType() {
         var result = mvc.get().uri("/api/planning-history?entityType=FEATURE").exchange();
         assertThat(result).hasStatusOk();
@@ -35,6 +37,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldFilterPlanningHistoryByEntityCode() {
         var result = mvc.get().uri("/api/planning-history?entityCode=IDEA-1").exchange();
         assertThat(result).hasStatusOk();
@@ -47,6 +50,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldFilterPlanningHistoryByChangeType() {
         var result = mvc.get().uri("/api/planning-history?changeType=CREATED").exchange();
         assertThat(result).hasStatusOk();
@@ -59,6 +63,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldFilterPlanningHistoryByChangedBy() {
         var result = mvc.get().uri("/api/planning-history?changedBy=admin").exchange();
         assertThat(result).hasStatusOk();
@@ -71,6 +76,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldReturnPagedResult() {
         var result = mvc.get().uri("/api/planning-history?page=0&size=2").exchange();
         assertThat(result).hasStatusOk();
@@ -90,6 +96,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldReturnEmptyPageWhenNoResults() {
         var result = mvc.get()
                 .uri("/api/planning-history?entityCode=NONEXISTENT-CODE")
@@ -110,6 +117,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldGetFeatureHistory() {
         var result = mvc.get().uri("/api/features/{code}/history", "IDEA-1").exchange();
         assertThat(result).hasStatusOk();
@@ -122,6 +130,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldGetReleaseHistory() {
         var result =
                 mvc.get().uri("/api/releases/{code}/history", "IDEA-2023.3.8").exchange();
@@ -135,6 +144,7 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldReturnEmptyHistoryForUnknownCode() {
         var result =
                 mvc.get().uri("/api/features/{code}/history", "UNKNOWN-999").exchange();
@@ -229,5 +239,85 @@ class PlanningHistoryControllerTests extends AbstractIT {
                 .asNumber()
                 .extracting(Number::intValue)
                 .satisfies(n -> assertThat(n).isGreaterThanOrEqualTo(1));
+    }
+
+    // ====== 401 Unauthorized Tests (No Authentication) =======
+
+    @Test
+    void shouldReturn401WhenAccessingPlanningHistoryWithoutAuthentication() {
+        var result = mvc.get().uri("/api/planning-history").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+    }
+
+    @Test
+    void shouldReturn401WhenAccessingPlanningHistoryWithPaginationWithoutAuthentication() {
+        var result = mvc.get()
+                .uri("/api/planning-history?page=0&size=5&sort=changedAt,asc")
+                .exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+    }
+
+    @Test
+    void shouldReturn401WhenAccessingFeatureHistoryByCodeWithoutAuthentication() {
+        var result =
+                mvc.get().uri("/api/features/{code}/history", "TEST-FEATURE").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+    }
+
+    @Test
+    void shouldReturn401WhenAccessingReleaseHistoryByCodeWithoutAuthentication() {
+        var result =
+                mvc.get().uri("/api/releases/{code}/history", "TEST-RELEASE").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+    }
+
+    // ==== 403 Forbidden Tests (Authenticated but Insufficient Permissions) ====
+
+    @Test
+    @WithMockOAuth2User(
+            username = "restricteduser",
+            roles = {"GUEST"})
+    void shouldReturn403WhenAccessingPlanningHistoryWithInsufficientPermissions() {
+        var result = mvc.get().uri("/api/planning-history").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+    }
+
+    @Test
+    @WithMockOAuth2User(
+            username = "restricteduser",
+            roles = {"GUEST"})
+    void shouldReturn403WhenAccessingPlanningHistoryWithPaginationWithInsufficientPermissions() {
+        var result = mvc.get()
+                .uri("/api/planning-history?page=0&size=5&sort=changedAt,asc")
+                .exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+    }
+
+    @Test
+    @WithMockOAuth2User(
+            username = "restricteduser",
+            roles = {"GUEST"})
+    void shouldReturn403WhenAccessingFeatureHistoryByCodeWithInsufficientPermissions() {
+        var result =
+                mvc.get().uri("/api/features/{code}/history", "TEST-FEATURE").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+    }
+
+    @Test
+    @WithMockOAuth2User(
+            username = "restricteduser",
+            roles = {"GUEST"})
+    void shouldReturn403WhenAccessingReleaseHistoryByCodeWithInsufficientPermissions() {
+        var result =
+                mvc.get().uri("/api/releases/{code}/history", "TEST-RELEASE").exchange();
+
+        assertThat(result.getMvcResult().getResponse().getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
     }
 }
