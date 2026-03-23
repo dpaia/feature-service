@@ -3,6 +3,8 @@ package com.sivalabs.ft.features.api.controllers;
 import com.sivalabs.ft.features.api.models.AssignFeatureToReleasePayload;
 import com.sivalabs.ft.features.api.models.CreateReleasePayload;
 import com.sivalabs.ft.features.api.models.MoveFeaturePayload;
+import com.sivalabs.ft.features.api.models.ReleaseDashboardResponse;
+import com.sivalabs.ft.features.api.models.ReleaseMetricsResponse;
 import com.sivalabs.ft.features.api.models.RemoveFeaturePayload;
 import com.sivalabs.ft.features.api.models.UpdateFeaturePlanningPayload;
 import com.sivalabs.ft.features.api.models.UpdateReleasePayload;
@@ -13,6 +15,7 @@ import com.sivalabs.ft.features.domain.Commands.MoveFeatureToReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.RemoveFeatureFromReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeaturePlanningCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
+import com.sivalabs.ft.features.domain.DashboardService;
 import com.sivalabs.ft.features.domain.FeatureService;
 import com.sivalabs.ft.features.domain.ReleaseService;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
@@ -51,10 +54,12 @@ class ReleaseController {
     private static final Logger log = LoggerFactory.getLogger(ReleaseController.class);
     private final ReleaseService releaseService;
     private final FeatureService featureService;
+    private final DashboardService dashboardService;
 
-    ReleaseController(ReleaseService releaseService, FeatureService featureService) {
+    ReleaseController(ReleaseService releaseService, FeatureService featureService, DashboardService dashboardService) {
         this.releaseService = releaseService;
         this.featureService = featureService;
+        this.dashboardService = dashboardService;
     }
 
     @GetMapping("")
@@ -303,5 +308,33 @@ class ReleaseController {
         featureService.removeFeatureFromRelease(cmd);
         log.info("Feature {} removed from release {} by user {}", featureCode, releaseCode, username);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{code}/dashboard")
+    @Operation(
+            summary = "Get release dashboard",
+            description =
+                    "Get comprehensive dashboard data for a release including metrics, health indicators, and feature breakdown",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Dashboard data retrieved successfully"),
+                @ApiResponse(responseCode = "404", description = "Release not found")
+            })
+    ResponseEntity<ReleaseDashboardResponse> getReleaseDashboard(@PathVariable String code) {
+        ReleaseDashboardResponse dashboard = dashboardService.getReleaseDashboard(code);
+        return ResponseEntity.ok(dashboard);
+    }
+
+    @GetMapping("/{code}/metrics")
+    @Operation(
+            summary = "Get release metrics",
+            description =
+                    "Get detailed metrics for a release including completion rate, velocity, blocked time, and workload distribution",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Metrics retrieved successfully"),
+                @ApiResponse(responseCode = "404", description = "Release not found")
+            })
+    ResponseEntity<ReleaseMetricsResponse> getReleaseMetrics(@PathVariable String code) {
+        ReleaseMetricsResponse metrics = dashboardService.getReleaseMetrics(code);
+        return ResponseEntity.ok(metrics);
     }
 }

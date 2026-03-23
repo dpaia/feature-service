@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.mapstruct.factory.Mappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,7 @@ public class FeatureService {
     private final ProductRepository productRepository;
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
-    private final FeatureMapper featureMapper;
+    private final FeatureMapper featureMapper = Mappers.getMapper(FeatureMapper.class);
 
     FeatureService(
             FavoriteFeatureService favoriteFeatureService,
@@ -47,15 +48,13 @@ public class FeatureService {
             FeatureRepository featureRepository,
             ProductRepository productRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
-            EventPublisher eventPublisher,
-            FeatureMapper featureMapper) {
+            EventPublisher eventPublisher) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
         this.productRepository = productRepository;
         this.eventPublisher = eventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
-        this.featureMapper = featureMapper;
     }
 
     @Transactional(readOnly = true)

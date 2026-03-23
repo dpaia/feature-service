@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.domain.entities;
 
 import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import com.sivalabs.ft.features.domain.models.Priority;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -71,6 +72,10 @@ public class Feature {
 
     @Column(name = "blockage_reason", length = Integer.MAX_VALUE)
     private String blockageReason;
+
+    @Column(name = "priority", length = 50)
+    @Enumerated(EnumType.STRING)
+    private Priority priority = Priority.MEDIUM;
 
     public Long getId() {
         return id;
@@ -206,5 +211,13 @@ public class Feature {
 
     public void setBlockageReason(String blockageReason) {
         this.blockageReason = blockageReason;
+    }
+
+    public Priority getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Priority priority) {
+        this.priority = priority;
     }
 }

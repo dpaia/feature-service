@@ -11,6 +11,7 @@ import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.mapstruct.factory.Mappers;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,17 +21,15 @@ public class ReleaseService {
     private final ReleaseRepository releaseRepository;
     private final ProductRepository productRepository;
     private final FeatureRepository featureRepository;
-    private final ReleaseMapper releaseMapper;
+    private final ReleaseMapper releaseMapper = Mappers.getMapper(ReleaseMapper.class);
 
     ReleaseService(
             ReleaseRepository releaseRepository,
             ProductRepository productRepository,
-            FeatureRepository featureRepository,
-            ReleaseMapper releaseMapper) {
+            FeatureRepository featureRepository) {
         this.releaseRepository = releaseRepository;
         this.productRepository = productRepository;
         this.featureRepository = featureRepository;
-        this.releaseMapper = releaseMapper;
     }
 
     @Transactional(readOnly = true)

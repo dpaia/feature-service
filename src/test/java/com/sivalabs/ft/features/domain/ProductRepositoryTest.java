@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 
 @DataJpaTest
 @Import(TestcontainersConfiguration.class)
+@org.springframework.test.context.ActiveProfiles("test")
 class ProductRepositoryTest {
 
     @Autowired

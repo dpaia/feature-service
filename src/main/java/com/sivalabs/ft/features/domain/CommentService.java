@@ -7,6 +7,7 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.CommentMapper;
 import java.time.Instant;
 import java.util.List;
+import org.mapstruct.factory.Mappers;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,13 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommentService {
     private final CommentRepository commentRepository;
     private final FeatureRepository featureRepository;
-    private final CommentMapper commentMapper;
+    private final CommentMapper commentMapper = Mappers.getMapper(CommentMapper.class);
 
-    CommentService(
-            CommentRepository commentRepository, FeatureRepository featureRepository, CommentMapper commentMapper) {
+    CommentService(CommentRepository commentRepository, FeatureRepository featureRepository) {
         this.commentRepository = commentRepository;
         this.featureRepository = featureRepository;
-        this.commentMapper = commentMapper;
     }
 
     @Transactional

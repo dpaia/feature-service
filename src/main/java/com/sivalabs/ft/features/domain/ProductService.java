@@ -8,17 +8,17 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.ProductMapper;
 import java.util.List;
 import java.util.Optional;
+import org.mapstruct.factory.Mappers;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductService {
     private final ProductRepository productRepository;
-    private final ProductMapper productMapper;
+    private final ProductMapper productMapper = Mappers.getMapper(ProductMapper.class);
 
-    ProductService(ProductRepository productRepository, ProductMapper productMapper) {
+    ProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
-        this.productMapper = productMapper;
     }
 
     @Transactional(readOnly = true)
