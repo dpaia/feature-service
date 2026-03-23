@@ -18,7 +18,6 @@ import org.springframework.test.context.jdbc.Sql;
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Sql(scripts = {"/test-data.sql"})
-@org.springframework.test.context.ActiveProfiles("test")
 class ProductServiceTest {
 
     @Autowired

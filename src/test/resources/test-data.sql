@@ -18,22 +18,19 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 (3, 2, 'GO-2024.2.3', 'GoLand 2024.2.4', 'RELEASED', 'admin','2024-02-15'),
 (4, 3, 'WEB-2024.2.3', 'WebStorm 2024.2.4', 'RELEASED', 'admin','2024-02-20'),
 (5, 4, 'PY-2024.2.3', 'PyCharm 2024.2.4', 'RELEASED', 'admin','2024-02-20'),
-(6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16'),
-(7, 1, 'IDEA-2024.3.0', 'IntelliJ IDEA 2024.3.0', 'DRAFT', 'admin','2024-03-01'),
-(8, 2, 'GO-2024.3.0', 'GoLand 2024.3.0', 'IN_PROGRESS', 'admin','2024-03-01'),
-(9, 3, 'WEB-2024.3.0', 'WebStorm 2024.3.0', 'CANCELLED', 'admin','2024-03-01')
+(6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16')
 ;
 
-insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at, planned_completion_date, planning_status, feature_owner, notes, blockage_reason) values
-(1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'otheruser', 'otheruser', '2024-02-24', '2024-03-01', 'NOT_STARTED', 'otheruser', 'Initial notes', null),
-(2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'otheruser', 'otheruser', '2024-03-14', '2024-04-01', 'NOT_STARTED', 'otheruser', 'Initial notes', null),
-(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14', null, 'NOT_STARTED', null, null, null),
-(4, 1, null, 'IDEA-3', 'New unassigned feature 1', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-25', null, 'NOT_STARTED', null, null, null),
-(5, 1, null, 'IDEA-4', 'New unassigned feature 2', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-26', null, 'NOT_STARTED', null, null, null),
-(6, 1, null, 'IDEA-5', 'New unassigned feature 3', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-27', null, 'NOT_STARTED', null, null, null),
-(7, 1, null, 'IDEA-6', 'New unassigned feature 4', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-28', null, 'NOT_STARTED', null, null, null),
-(8, 1, null, 'IDEA-7', 'New unassigned feature 5', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-01', null, 'NOT_STARTED', null, null, null),
-(9, 1, null, 'IDEA-8', 'New unassigned feature 6', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-02', null, 'NOT_STARTED', null, null, null)
+insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at, planned_completion_date, planning_status, feature_owner, notes, blockage_reason, priority) values
+(1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'otheruser', 'otheruser', '2024-02-24', '2024-03-01', 'NOT_STARTED', 'otheruser', 'Initial notes', null, 'HIGH'),
+(2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'otheruser', 'otheruser', '2024-03-14', '2024-04-01', 'NOT_STARTED', 'otheruser', 'Initial notes', null, 'MEDIUM'),
+(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14', null, 'NOT_STARTED', null, null, null, 'LOW'),
+(4, 1, null, 'IDEA-3', 'New unassigned feature 1', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-25', null, 'NOT_STARTED', null, null, null, 'MEDIUM'),
+(5, 1, null, 'IDEA-4', 'New unassigned feature 2', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-26', null, 'NOT_STARTED', null, null, null, 'LOW'),
+(6, 1, null, 'IDEA-5', 'New unassigned feature 3', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-27', null, 'NOT_STARTED', null, null, null, 'CRITICAL'),
+(7, 1, null, 'IDEA-6', 'New unassigned feature 4', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-02-28', null, 'NOT_STARTED', null, null, null, 'HIGH'),
+(8, 1, null, 'IDEA-7', 'New unassigned feature 5', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-01', null, 'NOT_STARTED', null, null, null, 'MEDIUM'),
+(9, 1, null, 'IDEA-8', 'New unassigned feature 6', 'This feature is not assigned to any release yet', 'NEW', 'user', 'user', '2024-03-02', null, 'NOT_STARTED', null, null, null, 'LOW')
 ;
 
 insert into favorite_features (id, feature_id, user_id) values

@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@org.springframework.test.context.ActiveProfiles("test")
 class FeatureServiceApplicationTests {
 
     @Test

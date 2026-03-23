@@ -13,7 +13,6 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @Sql(scripts = {"/test-data.sql"})
-@org.springframework.test.context.ActiveProfiles("test")
 public abstract class AbstractIT {
     @Autowired
     protected MockMvcTester mvc;
