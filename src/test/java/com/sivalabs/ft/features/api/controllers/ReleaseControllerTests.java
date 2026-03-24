@@ -340,6 +340,24 @@ class ReleaseControllerTests extends AbstractIT {
 
     @Test
     @WithMockOAuth2User(username = "user")
+    void shouldReturn400WhenUpdatingReleaseWithoutStatus() {
+        var payload =
+                """
+            {
+                "description": "Updated description"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2023.3.8")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
     void shouldReturn404WhenUpdatingNonExistentRelease() {
         var payload =
                 """
