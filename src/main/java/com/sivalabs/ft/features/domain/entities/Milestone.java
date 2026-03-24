@@ -1,6 +1,6 @@
 package com.sivalabs.ft.features.domain.entities;
 
-import com.sivalabs.ft.features.domain.models.ReleaseStatus;
+import com.sivalabs.ft.features.domain.models.MilestoneStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -22,30 +24,45 @@ import java.util.Set;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
-@Table(name = "releases")
-public class Release {
+@Table(name = "milestones")
+public class Milestone {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "releases_id_gen")
-    @SequenceGenerator(name = "releases_id_gen", sequenceName = "release_id_seq")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "milestones_id_gen")
+    @SequenceGenerator(name = "milestones_id_gen", sequenceName = "milestone_id_seq")
     @Column(name = "id", nullable = false)
     private Long id;
+
+    @Size(max = 50) @NotNull @Column(name = "code", nullable = false, length = 50, unique = true)
+    private String code;
+
+    @Size(max = 255) @NotNull @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "description", length = Integer.MAX_VALUE)
+    private String description;
+
+    @NotNull @Column(name = "target_date", nullable = false)
+    private Instant targetDate;
+
+    @Column(name = "actual_date")
+    private Instant actualDate;
+
+    @NotNull @Column(name = "status", nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
+    private MilestoneStatus status;
 
     @NotNull @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Size(max = 50) @NotNull @Column(name = "code", nullable = false, length = 50)
-    private String code;
+    @OneToMany(mappedBy = "milestone")
+    private Set<Release> releases = new LinkedHashSet<>();
 
-    @Column(name = "description", length = Integer.MAX_VALUE)
-    private String description;
+    @Size(max = 255) @Column(name = "owner")
+    private String owner;
 
-    @NotNull @Column(name = "status", nullable = false, length = 50)
-    @Enumerated(EnumType.STRING)
-    private ReleaseStatus status;
-
-    @Column(name = "released_at")
-    private Instant releasedAt;
+    @Column(name = "notes", length = Integer.MAX_VALUE)
+    private String notes;
 
     @Size(max = 255) @NotNull @Column(name = "created_by", nullable = false)
     private String createdBy;
@@ -60,27 +77,24 @@ public class Release {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "milestone_id")
-    private Milestone milestone;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
 
-    @OneToMany(mappedBy = "release")
-    private Set<Feature> features = new LinkedHashSet<>();
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Product getProduct() {
-        return product;
-    }
-
-    public void setProduct(Product product) {
-        this.product = product;
     }
 
     public String getCode() {
@@ -91,6 +105,14 @@ public class Release {
         this.code = code;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -99,20 +121,60 @@ public class Release {
         this.description = description;
     }
 
-    public ReleaseStatus getStatus() {
+    public Instant getTargetDate() {
+        return targetDate;
+    }
+
+    public void setTargetDate(Instant targetDate) {
+        this.targetDate = targetDate;
+    }
+
+    public Instant getActualDate() {
+        return actualDate;
+    }
+
+    public void setActualDate(Instant actualDate) {
+        this.actualDate = actualDate;
+    }
+
+    public MilestoneStatus getStatus() {
         return status;
     }
 
-    public void setStatus(ReleaseStatus status) {
+    public void setStatus(MilestoneStatus status) {
         this.status = status;
     }
 
-    public Instant getReleasedAt() {
-        return releasedAt;
+    public Product getProduct() {
+        return product;
     }
 
-    public void setReleasedAt(Instant releasedAt) {
-        this.releasedAt = releasedAt;
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public Set<Release> getReleases() {
+        return releases;
+    }
+
+    public void setReleases(Set<Release> releases) {
+        this.releases = releases;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public String getCreatedBy() {
@@ -145,21 +207,5 @@ public class Release {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public Milestone getMilestone() {
-        return milestone;
-    }
-
-    public void setMilestone(Milestone milestone) {
-        this.milestone = milestone;
-    }
-
-    public Set<Feature> getFeatures() {
-        return features;
-    }
-
-    public void setFeatures(Set<Feature> features) {
-        this.features = features;
     }
 }

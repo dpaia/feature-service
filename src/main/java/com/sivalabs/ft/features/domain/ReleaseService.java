@@ -3,8 +3,10 @@ package com.sivalabs.ft.features.domain;
 import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.entities.Milestone;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
+import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.ReleaseMapper;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
@@ -20,16 +22,19 @@ public class ReleaseService {
     private final ReleaseRepository releaseRepository;
     private final ProductRepository productRepository;
     private final FeatureRepository featureRepository;
+    private final MilestoneRepository milestoneRepository;
     private final ReleaseMapper releaseMapper;
 
     ReleaseService(
             ReleaseRepository releaseRepository,
             ProductRepository productRepository,
             FeatureRepository featureRepository,
+            MilestoneRepository milestoneRepository,
             ReleaseMapper releaseMapper) {
         this.releaseRepository = releaseRepository;
         this.productRepository = productRepository;
         this.featureRepository = featureRepository;
+        this.milestoneRepository = milestoneRepository;
         this.releaseMapper = releaseMapper;
     }
 
@@ -71,6 +76,25 @@ public class ReleaseService {
     @Transactional
     public void updateRelease(UpdateReleaseCommand cmd) {
         Release release = releaseRepository.findByCode(cmd.code()).orElseThrow();
+
+        // Handle milestone association
+        if (cmd.milestoneCode() != null && !cmd.milestoneCode().trim().isEmpty()) {
+            Milestone milestone = milestoneRepository
+                    .findByCode(cmd.milestoneCode())
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("Milestone not found with code: " + cmd.milestoneCode()));
+
+            // Validate that release and milestone belong to the same product
+            if (!release.getProduct().getId().equals(milestone.getProduct().getId())) {
+                throw new BadRequestException("Release and Milestone must belong to the same Product");
+            }
+
+            release.setMilestone(milestone);
+        } else {
+            // If milestoneCode is null or empty, remove the association
+            release.setMilestone(null);
+        }
+
         release.setDescription(cmd.description());
         release.setStatus(cmd.status());
         release.setReleasedAt(cmd.releasedAt());

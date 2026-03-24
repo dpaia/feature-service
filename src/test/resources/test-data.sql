@@ -2,6 +2,7 @@ delete from favorite_features;
 delete from comments;
 delete from features;
 delete from releases;
+delete from milestones;
 delete from products;
 
 insert into products (id, code, prefix, name, description, image_url, disabled, created_by, created_at) values

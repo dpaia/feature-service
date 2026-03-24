@@ -136,8 +136,8 @@ class ReleaseController {
             })
     void updateRelease(@PathVariable String code, @RequestBody UpdateReleasePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
-        var cmd =
-                new UpdateReleaseCommand(code, payload.description(), payload.status(), payload.releasedAt(), username);
+        var cmd = new UpdateReleaseCommand(
+                code, payload.description(), payload.status(), payload.releasedAt(), payload.milestoneCode(), username);
         releaseService.updateRelease(cmd);
     }
 

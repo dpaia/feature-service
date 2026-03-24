@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.domain;
 
 import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import com.sivalabs.ft.features.domain.models.MilestoneStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,7 +21,12 @@ public class Commands {
     public record CreateReleaseCommand(String productCode, String code, String description, String createdBy) {}
 
     public record UpdateReleaseCommand(
-            String code, String description, ReleaseStatus status, Instant releasedAt, String updatedBy) {}
+            String code,
+            String description,
+            ReleaseStatus status,
+            Instant releasedAt,
+            String milestoneCode,
+            String updatedBy) {}
 
     /* Feature Commands */
     public record CreateFeatureCommand(
@@ -64,6 +70,29 @@ public class Commands {
             String featureCode, String targetReleaseCode, String rationale, String movedBy) {}
 
     public record RemoveFeatureFromReleaseCommand(String featureCode, String rationale, String removedBy) {}
+
+    /* Milestone Commands */
+    public record CreateMilestoneCommand(
+            String productCode,
+            String code,
+            String name,
+            String description,
+            Instant targetDate,
+            MilestoneStatus status,
+            String owner,
+            String notes,
+            String createdBy) {}
+
+    public record UpdateMilestoneCommand(
+            String code,
+            String name,
+            String description,
+            Instant targetDate,
+            Instant actualDate,
+            MilestoneStatus status,
+            String owner,
+            String notes,
+            String updatedBy) {}
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}

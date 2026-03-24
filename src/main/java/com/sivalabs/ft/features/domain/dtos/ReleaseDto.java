@@ -10,6 +10,7 @@ public record ReleaseDto(
         String description,
         ReleaseStatus status,
         Instant releasedAt,
+        String milestoneCode,
         String createdBy,
         Instant createdAt,
         String updatedBy,
