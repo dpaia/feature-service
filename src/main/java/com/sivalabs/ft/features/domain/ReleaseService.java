@@ -71,7 +71,6 @@ public class ReleaseService {
     @Transactional
     public void updateRelease(UpdateReleaseCommand cmd) {
         Release release = releaseRepository.findByCode(cmd.code()).orElseThrow();
-        release.setDescription(cmd.description());
         release.setStatus(cmd.status());
         release.setReleasedAt(cmd.releasedAt());
         release.setUpdatedBy(cmd.updatedBy());
