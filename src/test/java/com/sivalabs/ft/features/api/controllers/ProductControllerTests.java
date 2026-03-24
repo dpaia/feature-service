@@ -54,14 +54,14 @@ class ProductControllerTests extends AbstractIT {
     void shouldCreateNewProduct() {
         var payload =
                 """
-            {
-                "code": "rover",
-                "prefix": "RVR",
-                "name": "Rust Rover",
-                "description": "JetBrains Rust Rover",
-                "imageUrl": "https://resources.jetbrains.com/storage/products/company/brand/logos/RustRover.png"
-            }
-            """;
+                {
+                    "code": "rover",
+                    "prefix": "RVR",
+                    "name": "Rust Rover",
+                    "description": "JetBrains Rust Rover",
+                    "imageUrl": "https://resources.jetbrains.com/storage/products/company/brand/logos/RustRover.png"
+                }
+                """;
 
         var result = mvc.post()
                 .uri("/api/products")
@@ -76,13 +76,13 @@ class ProductControllerTests extends AbstractIT {
     void shouldUpdateProduct() {
         var payload =
                 """
-            {
-                "prefix": "IDEA",
-                "name": "IntelliJ IDEA Ultimate",
-                "description": "Best IDE for Java",
-                "imageUrl": "https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_Ultimate.png"
-            }
-            """;
+                {
+                    "prefix": "IDEA",
+                    "name": "IntelliJ IDEA Ultimate",
+                    "description": "Best IDE for Java",
+                    "imageUrl": "https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_Ultimate.png"
+                }
+                """;
 
         var result = mvc.put()
                 .uri("/api/products/{code}", "intellij")
