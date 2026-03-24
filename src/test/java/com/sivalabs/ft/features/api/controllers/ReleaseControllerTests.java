@@ -47,7 +47,11 @@ class ReleaseControllerTests extends AbstractIT {
             {
                 "productCode": "intellij",
                 "code": "IDEA-2025.1",
-                "description": "IntelliJ IDEA 2025.1"
+                "description": "IntelliJ IDEA 2025.1",
+                "plannedStartDate": "2025-01-01T00:00:00Z",
+                "plannedReleaseDate": "2025-04-01T00:00:00Z",
+                "owner": "teamlead",
+                "notes": "Spring 2025 release"
             }
             """;
 
@@ -57,6 +61,46 @@ class ReleaseControllerTests extends AbstractIT {
                 .content(payload)
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldCreateNewReleaseWithPlanningFields() {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-2025.3",
+                "description": "IntelliJ IDEA 2025.3",
+                "plannedStartDate": "2025-06-01T00:00:00Z",
+                "plannedReleaseDate": "2025-09-01T00:00:00Z",
+                "owner": "releasemanager",
+                "notes": "Autumn 2025 release"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+
+        // Extract the created code from Location header and verify planning fields
+        var location = result.getResponse().getHeader("Location");
+        assertThat(location).isNotNull();
+        String createdCode = location.substring(location.lastIndexOf('/') + 1);
+        var getResult = mvc.get().uri("/api/releases/{code}", createdCode).exchange();
+        assertThat(getResult)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.owner()).isEqualTo("releasemanager");
+                    assertThat(dto.notes()).isEqualTo("Autumn 2025 release");
+                    assertThat(dto.plannedStartDate()).isNotNull();
+                    assertThat(dto.plannedReleaseDate()).isNotNull();
+                });
     }
 
     @Test
@@ -89,6 +133,46 @@ class ReleaseControllerTests extends AbstractIT {
                     assertThat(dto.description()).isEqualTo("Updated description");
                     assertThat(dto.status()).isEqualTo(ReleaseStatus.RELEASED);
                     assertThat(dto.releasedAt()).isNotNull();
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldUpdateReleasePlanningFields() {
+        var payload =
+                """
+            {
+                "description": "Planning updated",
+                "status": "IN_PROGRESS",
+                "plannedStartDate": "2024-01-01T00:00:00Z",
+                "plannedReleaseDate": "2024-06-01T00:00:00Z",
+                "actualReleaseDate": "2024-06-15T00:00:00Z",
+                "owner": "newowner",
+                "notes": "Updated notes"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/releases/{code}", "IDEA-2024.2.3")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        // Verify planning fields are updated
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2024.2.3").exchange();
+        assertThat(updatedRelease)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(ReleaseDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.status()).isEqualTo(ReleaseStatus.IN_PROGRESS);
+                    assertThat(dto.plannedStartDate()).isNotNull();
+                    assertThat(dto.plannedReleaseDate()).isNotNull();
+                    assertThat(dto.actualReleaseDate()).isNotNull();
+                    assertThat(dto.owner()).isEqualTo("newowner");
+                    assertThat(dto.notes()).isEqualTo("Updated notes");
                 });
     }
 

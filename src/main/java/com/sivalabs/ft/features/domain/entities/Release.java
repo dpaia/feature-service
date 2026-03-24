@@ -47,6 +47,21 @@ public class Release {
     @Column(name = "released_at")
     private Instant releasedAt;
 
+    @Column(name = "planned_start_date")
+    private Instant plannedStartDate;
+
+    @Column(name = "planned_release_date")
+    private Instant plannedReleaseDate;
+
+    @Column(name = "actual_release_date")
+    private Instant actualReleaseDate;
+
+    @Size(max = 255) @Column(name = "owner")
+    private String owner;
+
+    @Column(name = "notes", length = Integer.MAX_VALUE)
+    private String notes;
+
     @Size(max = 255) @NotNull @Column(name = "created_by", nullable = false)
     private String createdBy;
 
@@ -109,6 +124,46 @@ public class Release {
 
     public void setReleasedAt(Instant releasedAt) {
         this.releasedAt = releasedAt;
+    }
+
+    public Instant getPlannedStartDate() {
+        return plannedStartDate;
+    }
+
+    public void setPlannedStartDate(Instant plannedStartDate) {
+        this.plannedStartDate = plannedStartDate;
+    }
+
+    public Instant getPlannedReleaseDate() {
+        return plannedReleaseDate;
+    }
+
+    public void setPlannedReleaseDate(Instant plannedReleaseDate) {
+        this.plannedReleaseDate = plannedReleaseDate;
+    }
+
+    public Instant getActualReleaseDate() {
+        return actualReleaseDate;
+    }
+
+    public void setActualReleaseDate(Instant actualReleaseDate) {
+        this.actualReleaseDate = actualReleaseDate;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public String getCreatedBy() {
