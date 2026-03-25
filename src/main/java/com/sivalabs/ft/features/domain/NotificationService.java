@@ -7,6 +7,8 @@ import com.sivalabs.ft.features.domain.mappers.NotificationMapper;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
 import com.sivalabs.ft.features.domain.models.NotificationEventType;
 import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,33 @@ public class NotificationService {
         log.info("Created notification {} for user {}", notification.getId(), recipientUserId);
 
         return notificationMapper.toDto(notification);
+    }
+
+    /**
+     * Batch create notifications for multiple recipients in a single database operation
+     */
+    @Transactional
+    public void createNotificationsForRecipients(
+            Set<String> recipientUserIds, NotificationEventType eventType, String eventDetails, String link) {
+        if (recipientUserIds.isEmpty()) {
+            return;
+        }
+        Instant now = Instant.now();
+        List<Notification> notifications = recipientUserIds.stream()
+                .map(recipientUserId -> {
+                    Notification n = new Notification();
+                    n.setRecipientUserId(recipientUserId);
+                    n.setEventType(eventType);
+                    n.setEventDetails(eventDetails);
+                    n.setLink(link);
+                    n.setCreatedAt(now);
+                    n.setRead(false);
+                    n.setDeliveryStatus(DeliveryStatus.PENDING);
+                    return n;
+                })
+                .toList();
+        notificationRepository.saveAll(notifications);
+        log.info("Batch created {} notifications for event type {}", notifications.size(), eventType);
     }
 
     /**
