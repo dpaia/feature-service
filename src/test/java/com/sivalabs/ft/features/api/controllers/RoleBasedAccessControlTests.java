@@ -79,6 +79,37 @@ class RoleBasedAccessControlTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "regular_user")
+    void regularUserCannotCreateReleaseWithInvalidPayload() {
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "regular_user")
+    void regularUserCannotCreateReleaseWithNonEmptyInvalidPayload() {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "IDEA-12345678901234567890123456789012345678901234567890",
+                "description": "IntelliJ IDEA invalid release"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
     @WithMockOAuth2User(
             username = "product_manager",
             roles = {"PRODUCT_MANAGER"})

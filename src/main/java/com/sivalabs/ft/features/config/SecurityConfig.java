@@ -30,6 +30,8 @@ class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/releases/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/releases")
+                        .hasAnyRole("PRODUCT_MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/features/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**")
