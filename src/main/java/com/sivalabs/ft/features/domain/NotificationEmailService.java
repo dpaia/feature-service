@@ -26,14 +26,17 @@ public class NotificationEmailService {
     private final JavaMailSender mailSender;
     private final ApplicationProperties applicationProperties;
     private final NotificationRepository notificationRepository;
+    private final EmailDeliveryFailureService emailDeliveryFailureService;
 
     public NotificationEmailService(
             JavaMailSender mailSender,
             ApplicationProperties applicationProperties,
-            NotificationRepository notificationRepository) {
+            NotificationRepository notificationRepository,
+            EmailDeliveryFailureService emailDeliveryFailureService) {
         this.mailSender = mailSender;
         this.applicationProperties = applicationProperties;
         this.notificationRepository = notificationRepository;
+        this.emailDeliveryFailureService = emailDeliveryFailureService;
     }
 
     /**
@@ -148,5 +151,14 @@ public class NotificationEmailService {
                 Instant.now(),
                 e.getMessage(),
                 e);
+        try {
+            emailDeliveryFailureService.saveFailure(
+                    notification.getId(),
+                    notification.getRecipientEmail(),
+                    notification.getEventType(),
+                    e.getMessage());
+        } catch (Exception saveEx) {
+            log.warn("Failed to save email delivery failure record for notification {}", notification.getId(), saveEx);
+        }
     }
 }
