@@ -156,7 +156,7 @@ class MilestoneController {
                 @ApiResponse(responseCode = "400", description = "Bad Request - productCode is required")
             })
     ResponseEntity<List<MilestoneDto>> getMilestones(
-            @RequestParam String productCode,
+            @RequestParam(required = false) String productCode,
             @RequestParam(required = false) MilestoneStatus status,
             @RequestParam(required = false) String owner) {
         log.info("Getting milestones for product: {}, status: {}, owner: {}", productCode, status, owner);
