@@ -298,6 +298,51 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
     }
 
     @Test
+    @DisplayName("Should return 404 when updating planning through another product's release")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
+    void shouldReturn404WhenUpdatingPlanningThroughAnotherProductsRelease()
+            throws JsonMappingException, JsonProcessingException {
+        var updatePayload = """
+        {
+        "planningStatus": "IN_PROGRESS"
+        }
+        """;
+        var result = mvc.patch()
+                .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "RIDER-2024.2.6", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updatePayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+        var feature = getFeatureFromRelease("IDEA-2023.3.8", "IDEA-1");
+        assertThat(feature.get("planningStatus")).isEqualTo("NOT_STARTED");
+    }
+
+    @Test
+    @DisplayName("Should return 404 when updating planning through different release of same product")
+    @WithMockOAuth2User(
+            username = "user",
+            roles = {"PRODUCT_MANAGER"})
+    void shouldReturn404WhenUpdatingPlanningThroughDifferentReleaseOfSameProduct()
+            throws JsonMappingException, JsonProcessingException {
+        var updatePayload =
+                """
+        {
+        "notes": "Should not update through another IDEA release"
+        }
+        """;
+        var result = mvc.patch()
+                .uri("/api/releases/{releaseCode}/features/{featureCode}/planning", "IDEA-2024.2.3", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updatePayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+        var feature = getFeatureFromRelease("IDEA-2023.3.8", "IDEA-1");
+        assertThat(feature.get("notes")).isEqualTo("Initial notes");
+    }
+
+    @Test
     @DisplayName("Should reject invalid status transition from NOT_STARTED to DONE")
     @WithMockOAuth2User(
             username = "user",
@@ -951,30 +996,27 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
     }
 
     @Test
-    @DisplayName("Should handle removal of unassigned feature gracefully")
+    @DisplayName("Should return 404 when removing unassigned feature from release")
     @WithMockOAuth2User(
             username = "testuser",
             roles = {"ADMIN"})
-    void shouldHandleRemovalOfUnassignedFeatureGracefully() {
-        // Try to remove a feature that's not assigned to any release
+    void shouldReturn404WhenRemovingUnassignedFeatureFromRelease() {
         var removePayload = """
         {
         "rationale": "Removing unassigned feature"
         }
         """;
         var result = mvc.delete()
-                .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2023.3.8", "IDEA-1")
+                .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2023.3.8", "IDEA-3")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(removePayload)
                 .exchange();
-        // Should succeed even if feature wasn't assigned to this specific release
-        assertThat(result).hasStatus2xxSuccessful();
-        // Verify the feature is still unassigned (not in the release)
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
         var getResult = mvc.get()
                 .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
                 .exchange();
         var responseBody = new String(getResult.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8);
-        assertThat(responseBody).doesNotContain("IDEA-1");
+        assertThat(responseBody).doesNotContain("IDEA-3");
     }
 
     @Test
@@ -1059,6 +1101,67 @@ class ReleaseFeaturePlanningIntegrationTests extends AbstractIT {
                 .content(removePayload)
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("Should return 404 when removing feature through another product's release")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"ADMIN"})
+    void shouldReturn404WhenRemovingFeatureThroughAnotherProductsRelease()
+            throws JsonMappingException, JsonProcessingException {
+        var removePayload = """
+        {
+        "rationale": "Removing through another release"
+        }
+        """;
+        var result = mvc.delete()
+                .uri("/api/releases/{releaseCode}/features/{featureCode}", "RIDER-2024.2.6", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(removePayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+        var getResult = mvc.get()
+                .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
+                .exchange();
+        var responseBody = new String(getResult.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8);
+        List<Map<String, Object>> features = objectMapper.readValue(responseBody, new TypeReference<>() {});
+        var feature = features.stream()
+                .filter(f -> "IDEA-1".equals(f.get("code")))
+                .findFirst()
+                .orElseThrow();
+        assertThat(feature.get("planningStatus")).isEqualTo("NOT_STARTED");
+    }
+
+    @Test
+    @DisplayName("Should return 404 when removing feature through different release of same product")
+    @WithMockOAuth2User(
+            username = "testuser",
+            roles = {"ADMIN"})
+    void shouldReturn404WhenRemovingFeatureThroughDifferentReleaseOfSameProduct()
+            throws JsonMappingException, JsonProcessingException {
+        var removePayload =
+                """
+        {
+        "rationale": "Removing through another IDEA release"
+        }
+        """;
+        var result = mvc.delete()
+                .uri("/api/releases/{releaseCode}/features/{featureCode}", "IDEA-2024.2.3", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(removePayload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+        var getResult = mvc.get()
+                .uri("/api/releases/{releaseCode}/features", "IDEA-2023.3.8")
+                .exchange();
+        var responseBody = new String(getResult.getResponse().getContentAsByteArray(), StandardCharsets.UTF_8);
+        List<Map<String, Object>> features = objectMapper.readValue(responseBody, new TypeReference<>() {});
+        var feature = features.stream()
+                .filter(f -> "IDEA-1".equals(f.get("code")))
+                .findFirst()
+                .orElseThrow();
+        assertThat(feature.get("planningStatus")).isEqualTo("NOT_STARTED");
     }
 
     @Test

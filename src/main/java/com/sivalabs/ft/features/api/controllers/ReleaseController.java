@@ -249,6 +249,7 @@ class ReleaseController {
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new UpdateFeaturePlanningCommand(
                 featureCode,
+                releaseCode,
                 payload.plannedCompletionDate(),
                 payload.planningStatus(),
                 payload.featureOwner(),
@@ -306,7 +307,7 @@ class ReleaseController {
         SecurityUtils.requireRole("ADMIN");
         var username = SecurityUtils.getCurrentUsername();
         var rationale = payload != null ? payload.rationale() : null;
-        var cmd = new RemoveFeatureFromReleaseCommand(featureCode, rationale, username);
+        var cmd = new RemoveFeatureFromReleaseCommand(featureCode, releaseCode, rationale, username);
         featureService.removeFeatureFromRelease(cmd);
         log.info("Feature {} removed from release {} by user {}", featureCode, releaseCode, username);
         return ResponseEntity.ok().build();
