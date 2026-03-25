@@ -270,9 +270,7 @@ public class FeatureService {
 
     @Transactional
     public void updateFeaturePlanning(UpdateFeaturePlanningCommand cmd) {
-        Feature feature = featureRepository
-                .findByCode(cmd.featureCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Feature not found: " + cmd.featureCode()));
+        Feature feature = findFeatureInRelease(cmd.featureCode(), cmd.releaseCode());
 
         // Validate planning status transition
         if (cmd.planningStatus() != null) {
@@ -345,9 +343,7 @@ public class FeatureService {
 
     @Transactional
     public void removeFeatureFromRelease(RemoveFeatureFromReleaseCommand cmd) {
-        Feature feature = featureRepository
-                .findByCode(cmd.featureCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Feature not found: " + cmd.featureCode()));
+        Feature feature = findFeatureInRelease(cmd.featureCode(), cmd.releaseCode());
 
         String releaseCode = feature.getRelease() != null ? feature.getRelease().getCode() : "no release";
 
@@ -369,5 +365,11 @@ public class FeatureService {
                 releaseCode,
                 cmd.removedBy(),
                 cmd.rationale());
+    }
+
+    private Feature findFeatureInRelease(String featureCode, String releaseCode) {
+        return featureRepository
+                .findByCodeAndReleaseCode(featureCode, releaseCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Feature not found: " + featureCode));
     }
 }

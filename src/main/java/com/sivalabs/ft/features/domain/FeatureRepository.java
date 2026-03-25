@@ -11,6 +11,9 @@ interface FeatureRepository extends ListCrudRepository<Feature, Long> {
     @Query("select f from Feature f left join fetch f.release where f.code = :code")
     Optional<Feature> findByCode(String code);
 
+    @Query("select f from Feature f join fetch f.release r where f.code = :code and r.code = :releaseCode")
+    Optional<Feature> findByCodeAndReleaseCode(String code, String releaseCode);
+
     @Query("select f from Feature f left join fetch f.release where f.release.code = :releaseCode")
     List<Feature> findByReleaseCode(String releaseCode);
 

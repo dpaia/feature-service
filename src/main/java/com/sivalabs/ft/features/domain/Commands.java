@@ -59,6 +59,7 @@ public class Commands {
 
     public record UpdateFeaturePlanningCommand(
             String featureCode,
+            String releaseCode,
             LocalDate plannedCompletionDate,
             FeaturePlanningStatus planningStatus,
             String featureOwner,
@@ -69,7 +70,8 @@ public class Commands {
     public record MoveFeatureToReleaseCommand(
             String featureCode, String targetReleaseCode, String rationale, String movedBy) {}
 
-    public record RemoveFeatureFromReleaseCommand(String featureCode, String rationale, String removedBy) {}
+    public record RemoveFeatureFromReleaseCommand(
+            String featureCode, String releaseCode, String rationale, String removedBy) {}
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
