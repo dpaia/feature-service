@@ -8,6 +8,7 @@ import com.sivalabs.ft.features.MockOAuth2UserContextFactory;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
 import com.sivalabs.ft.features.api.models.CreateReleasePayload;
+import com.sivalabs.ft.features.testsupport.MockJavaMailSenderConfig;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,6 +31,7 @@ import org.springframework.test.context.jdbc.Sql;
  * Tests that notifications are created when release status changes to significant states
  */
 @Sql("/test-data.sql")
+@Import(MockJavaMailSenderConfig.class)
 class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
 
     @Autowired
