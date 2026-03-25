@@ -74,7 +74,9 @@ public class ReleaseService {
 
     @Transactional
     public void updateRelease(UpdateReleaseCommand cmd) {
-        Release release = releaseRepository.findByCode(cmd.code()).orElseThrow();
+        Release release = releaseRepository
+                .findByCode(cmd.code())
+                .orElseThrow(() -> new ResourceNotFoundException("Release with code " + cmd.code() + " not found"));
         release.setDescription(cmd.description());
         release.setStatus(cmd.status());
         release.setReleasedAt(cmd.releasedAt());
