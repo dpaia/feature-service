@@ -178,6 +178,25 @@ class ReleaseControllerTests extends AbstractIT {
 
     @Test
     @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenUpdatingNonExistentRelease() {
+        var payload =
+                """
+            {
+                "description": "Updated description",
+                "status": "IN_PROGRESS"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/releases/{code}", "NONEXISTENT-CODE")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
     void shouldDeleteRelease() {
         var result = mvc.delete().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(result).hasStatusOk();
