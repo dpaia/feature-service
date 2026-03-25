@@ -1,8 +1,10 @@
+delete from notifications;
 delete from favorite_features;
 delete from comments;
 delete from features;
 delete from releases;
 delete from products;
+delete from users;
 
 insert into products (id, code, prefix, name, description, image_url, disabled, created_by, created_at) values
 (1, 'intellij', 'IDEA', 'IntelliJ IDEA', 'JetBrains IDE for Java', 'https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA.png', false, 'admin', '2024-03-01 00:00:00'),
@@ -30,6 +32,20 @@ insert into features (id, product_id, release_id, code, title, description, stat
 
 insert into favorite_features (id, feature_id, user_id) values
 (1, 2, 'user');
+
+insert into users (username, email) values
+('admin', 'admin@example.com'),
+('siva', 'siva@example.com'),
+('daniiltsarev', 'daniiltsarev@example.com'),
+('antonarhipov', 'antonarhipov@example.com'),
+('andreybelyaev', 'andreybelyaev@example.com'),
+('testuser', 'testuser@example.com'),
+('assignee', 'assignee@example.com'),
+('creator', 'creator@example.com'),
+('user1', 'user1@example.com'),
+('user2', 'user2@example.com'),
+('otheruser', 'otheruser@example.com'),
+('marcobehler', 'marcobehler@example.com');
 
 insert into comments (id, feature_id, created_by, content) values
 (1, 1, 'user', 'This is a comment on feature IDEA-1'),

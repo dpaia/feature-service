@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -38,6 +39,16 @@ class GlobalExceptionHandler {
     ProblemDetail handle(BadRequestException e) {
         log.error("Bad Request", e);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handle(MethodArgumentTypeMismatchException e) {
+        log.warn("Invalid parameter format: {}", e.getName());
+        ProblemDetail problemDetail =
+                ProblemDetail.forStatusAndDetail(BAD_REQUEST, "Invalid parameter format for: " + e.getName());
         problemDetail.setTitle("Bad Request");
         problemDetail.setProperty("timestamp", Instant.now());
         return problemDetail;

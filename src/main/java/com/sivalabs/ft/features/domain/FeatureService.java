@@ -181,6 +181,7 @@ public class FeatureService {
         // Prepare event details once (same for all recipients)
         Map<String, Object> eventDetails = new HashMap<>();
         eventDetails.put("action", action);
+        eventDetails.put("actor", excludeUser);
         eventDetails.put("featureCode", feature.getCode());
         eventDetails.put("title", feature.getTitle());
         if (feature.getStatus() != null) {

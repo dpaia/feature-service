@@ -9,6 +9,7 @@ import java.util.UUID;
 public record NotificationDto(
         UUID id,
         String recipientUserId,
+        String recipientEmail,
         NotificationEventType eventType,
         String eventDetails,
         String link,
@@ -23,7 +24,16 @@ public record NotificationDto(
      */
     public NotificationDto markAsRead(Instant readAt) {
         return new NotificationDto(
-                id, recipientUserId, eventType, eventDetails, link, createdAt, true, readAt, deliveryStatus);
+                id,
+                recipientUserId,
+                recipientEmail,
+                eventType,
+                eventDetails,
+                link,
+                createdAt,
+                true,
+                readAt,
+                deliveryStatus);
     }
 
     /**
@@ -31,13 +41,23 @@ public record NotificationDto(
      */
     public NotificationDto markAsUnread() {
         return new NotificationDto(
-                id, recipientUserId, eventType, eventDetails, link, createdAt, false, null, deliveryStatus);
+                id,
+                recipientUserId,
+                recipientEmail,
+                eventType,
+                eventDetails,
+                link,
+                createdAt,
+                false,
+                null,
+                deliveryStatus);
     }
 
     /**
      * Create a copy with updated delivery status
      */
     public NotificationDto withDeliveryStatus(DeliveryStatus status) {
-        return new NotificationDto(id, recipientUserId, eventType, eventDetails, link, createdAt, read, readAt, status);
+        return new NotificationDto(
+                id, recipientUserId, recipientEmail, eventType, eventDetails, link, createdAt, read, readAt, status);
     }
 }

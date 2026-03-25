@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,10 +29,77 @@ import org.springframework.web.bind.annotation.RestController;
 class NotificationController {
     private static final Logger log = LoggerFactory.getLogger(NotificationController.class);
 
+    // 1x1 transparent GIF
+    private static final byte[] TRANSPARENT_GIF = {
+        0x47,
+        0x49,
+        0x46,
+        0x38,
+        0x39,
+        0x61,
+        0x01,
+        0x00,
+        0x01,
+        0x00,
+        (byte) 0x80,
+        0x00,
+        0x00,
+        (byte) 0xff,
+        (byte) 0xff,
+        (byte) 0xff,
+        0x00,
+        0x00,
+        0x00,
+        0x21,
+        (byte) 0xf9,
+        0x04,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x2c,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x02,
+        0x02,
+        0x44,
+        0x01,
+        0x00,
+        0x3b
+    };
+
     private final NotificationService notificationService;
 
     NotificationController(NotificationService notificationService) {
         this.notificationService = notificationService;
+    }
+
+    @GetMapping("/{id}/read")
+    @Operation(
+            summary = "Email read tracking pixel",
+            description =
+                    "Marks a notification as read when the tracking pixel is loaded by an email client. No authentication required.",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "1x1 transparent GIF",
+                        content = @Content(mediaType = "image/gif")),
+                @ApiResponse(responseCode = "400", description = "Invalid UUID format"),
+                @ApiResponse(responseCode = "404", description = "Notification not found")
+            })
+    ResponseEntity<byte[]> trackEmailRead(@PathVariable UUID id) {
+        notificationService.markAsReadByTrackingPixel(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("image/gif"))
+                .body(TRANSPARENT_GIF);
     }
 
     @GetMapping("")

@@ -32,4 +32,12 @@ interface NotificationRepository extends ListCrudRepository<Notification, UUID> 
     @Query(
             "UPDATE Notification n SET n.read = false, n.readAt = null WHERE n.id = :id AND n.recipientUserId = :recipientUserId")
     int markAsUnread(UUID id, String recipientUserId);
+
+    /**
+     * Mark notification as read by ID only (for tracking pixel - no recipient check).
+     * Idempotent: only updates if not already read.
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.read = true, n.readAt = :readAt WHERE n.id = :id AND n.read = false")
+    int markAsReadById(UUID id, Instant readAt);
 }

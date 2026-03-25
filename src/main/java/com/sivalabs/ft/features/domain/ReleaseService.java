@@ -163,6 +163,7 @@ public class ReleaseService {
 
         // Prepare event details
         Map<String, Object> eventDetails = new HashMap<>();
+        eventDetails.put("actor", updatedBy);
         eventDetails.put("releaseCode", release.getCode());
         eventDetails.put("oldStatus", oldStatus.name());
         eventDetails.put("newStatus", release.getStatus().name());
