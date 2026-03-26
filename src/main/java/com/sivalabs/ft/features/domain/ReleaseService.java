@@ -144,7 +144,8 @@ public class ReleaseService {
             notificationService.createNotificationsForRecipients(
                     recipients, NotificationEventType.RELEASE_UPDATED, eventDetailsJson, link);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize event details for release {}", release.getCode(), e);
+            throw new RuntimeException(
+                    "Failed to serialize event details for release " + release.getCode() + ": " + e.getMessage(), e);
         }
     }
 
