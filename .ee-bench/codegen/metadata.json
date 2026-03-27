@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "benchmark_type": "codegen",
+  "language": "java",
+  "jvm_version": "24",
+  "expected": {
+    "fail_to_pass": [],
+    "pass_to_pass": []
+  },
+  "environment": {
+    "project_root": "/repo",
+    "docker": {
+      "run_params": {
+        "privileged": true,
+        "network": "host",
+        "volumes": [
+          "/var/run/docker.sock:/var/run/docker.sock"
+        ],
+        "environment": {
+          "TESTCONTAINERS_RYUK_DISABLED": "true",
+          "TESTCONTAINERS_CHECKS_DISABLE": "true",
+          "DOCKER_HOST": "unix:///var/run/docker.sock",
+          "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
+        }
+      }
+    }
+  }
+}
