@@ -1,6 +1,6 @@
 {
   "expected": {
-    "fail_to_pass": ["ReleaseControllerTests", "ReleaseServiceIntegrationTest", "ReleaseServiceTest"],
+    "fail_to_pass": ["com.sivalabs.ft.features.api.controllers.ReleaseControllerTests", "com.sivalabs.ft.features.domain.ReleaseServiceIntegrationTest", "com.sivalabs.ft.features.domain.ReleaseServiceTest"],
     "pass_to_pass": ["*"]
   }
 }
