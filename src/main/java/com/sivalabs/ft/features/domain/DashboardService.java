@@ -144,12 +144,22 @@ public class DashboardService {
         List<Feature> blockedFeatures = features.stream()
                 .filter(f -> f.getPlanningStatus() == FeaturePlanningStatus.BLOCKED)
                 .toList();
+        if (blockedFeatures.isEmpty()) {
+            return new ReleaseMetricsResponse.BlockedTime(0, 0.0, 0.0, Collections.emptyMap());
+        }
 
-        int totalBlockedDays = blockedFeatures.size() * 5; // Simplified calculation
-        double averageBlockedDuration = blockedFeatures.isEmpty() ? 0.0 : 5.0; // Simplified
-        double percentageOfTime = features.isEmpty()
-                ? 0.0
-                : round((double) totalBlockedDays / (features.size() * 30) * 100, 1); // Simplified
+        final int totalBlockedDays = blockedFeatures.stream()
+                .mapToInt(f -> (int) (ChronoUnit.DAYS.between(f.getUpdatedAt(), Instant.now())))
+                .sum();
+        final int totalDaysSinceCreated = features.stream()
+                .mapToInt(f -> (int) (ChronoUnit.DAYS.between(
+                        f.getCreatedAt(),
+                        f.getPlanningStatus() == FeaturePlanningStatus.DONE ? f.getUpdatedAt() : Instant.now())))
+                .sum();
+
+        double averageBlockedDuration = round((double) totalBlockedDays / blockedFeatures.size(), 1);
+        double percentageOfTime =
+                totalDaysSinceCreated > 0 ? round((double) totalBlockedDays / totalDaysSinceCreated * 100.0, 1) : 0.0;
 
         Map<String, Integer> blockageReasons = blockedFeatures.stream()
                 .filter(f -> f.getBlockageReason() != null)
