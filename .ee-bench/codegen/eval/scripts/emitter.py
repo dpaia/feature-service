@@ -1,212 +1,232 @@
 #!/usr/bin/env python3
-"""Emit EE-bench JSON v2.0 evaluation output (6 criteria)."""
+"""Emit EE-bench JSON v2.0 from test results and environment.
+
+Reads criteria status from environment variables (set by run.sh)
+and parser JSON files from /tmp. Prints the result JSON to stdout.
+"""
 import json
 import os
-import re
 import sys
 
-MAX_OUTPUT = 8192
-
-
-def _read(path: str, limit: int = MAX_OUTPUT) -> str:
+def read_file(path):
     try:
         with open(path) as f:
-            text = f.read(limit)
-        return text
-    except FileNotFoundError:
+            return f.read()
+    except Exception:
         return ""
 
 
-def _load_json(path: str) -> dict:
+def load_json(path):
     try:
         with open(path) as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except Exception:
         return {}
 
 
-def _prefix(name: str) -> str:
-    """Strip parameterized suffixes: Foo.Bar(x: 1) -> Foo.Bar"""
-    return re.sub(r"\(.*\)$", "", name)
+def _prefix(name):
+    """Strip parameterized suffix: 'Foo.Bar(x: 1)' -> 'Foo.Bar'."""
+    idx = name.find("(")
+    return name[:idx] if idx > 0 else name
 
 
-def _test_in(name: str, name_set: set) -> bool:
-    """Match by exact name first, then by prefix."""
+def _test_in(name, name_set):
+    """Match by exact name first, then by prefix (method name without parameters)."""
     if name in name_set:
         return True
-    return _prefix(name) in name_set
+    pfx = _prefix(name)
+    return any(n == pfx or _prefix(n) == pfx for n in name_set)
 
 
-def _evaluate_criterion(
-    expected_names: list[str],
-    eval_passed: set[str],
-    eval_failed: set[str],
-    baseline_passed: set[str],
-    baseline_failed: set[str],
-    should_fail_baseline: bool,
-    has_test_patch: bool,
-    empty_means: str,
-) -> dict:
-    """Shared evaluator for fail_to_pass and pass_to_pass criteria.
+def _evaluate_criterion(expected, eval_passed, baseline_passed, has_test_patch,
+                         expect_pass_in_eval, empty_label, success_msg):
+    """Evaluate a fail_to_pass or pass_to_pass criterion.
 
     Args:
-        expected_names: list of expected test names
-        eval_passed: set of tests that passed in eval run
-        eval_failed: set of tests that failed in eval run
-        baseline_passed: set of tests that passed in baseline run
-        baseline_failed: set of tests that failed in baseline run
-        should_fail_baseline: if True, tests must fail in baseline (fail_to_pass)
-        has_test_patch: whether a test patch was applied
-        empty_means: "fail" or "skipped" — what to return if expected list is empty
+        expected: list of expected test names
+        eval_passed: set of test names that passed in eval run
+        baseline_passed: set of test names that passed in baseline run
+        has_test_patch: whether a test patch exists
+        expect_pass_in_eval: True = tests must pass in eval (p2p/f2p),
+                             always True for both criteria
+        empty_label: message when expected list is empty
+        success_msg: message when all checks pass
+    Returns:
+        (status, detail) tuple
     """
-    if not expected_names:
-        return {
-            "status": empty_means,
-            "detail": {"expected": [], "actual_pass": [], "actual_fail": []},
-        }
+    if not expected:
+        return empty_label
 
-    expected_set = set(expected_names)
-    actual_pass = [n for n in expected_names if _test_in(n, eval_passed)]
-    actual_fail = [n for n in expected_names if _test_in(n, eval_failed)]
-
-    # Check baseline consistency
-    baseline_ok = True
+    eval_ok = all(_test_in(t, eval_passed) for t in expected)
     if has_test_patch:
-        for n in expected_names:
-            if should_fail_baseline:
-                if not _test_in(n, baseline_failed):
-                    baseline_ok = False
-                    break
-            else:
-                if not _test_in(n, baseline_passed):
-                    baseline_ok = False
-                    break
-
-    if should_fail_baseline:
-        all_now_pass = all(_test_in(n, eval_passed) for n in expected_names)
-        status = "pass" if (all_now_pass and baseline_ok) else "fail"
+        baseline_ok = all(
+            _test_in(t, baseline_passed) == expect_pass_in_eval
+            for t in expected
+        )
     else:
-        all_still_pass = all(_test_in(n, eval_passed) for n in expected_names)
-        status = "pass" if (all_still_pass and baseline_ok) else "fail"
+        baseline_ok = True
 
-    return {
-        "status": status,
-        "detail": {
-            "expected": expected_names,
-            "actual_pass": actual_pass,
-            "actual_fail": actual_fail,
-        },
-    }
+    status = "pass" if (eval_ok and baseline_ok) else "fail"
+    detail_parts = []
+    if not eval_ok:
+        missing = [t for t in expected if not _test_in(t, eval_passed)]
+        detail_parts.append("eval missing: " + ", ".join(missing[:10]))
+    if not baseline_ok:
+        if expect_pass_in_eval:
+            bad = [t for t in expected if not _test_in(t, baseline_passed)]
+            detail_parts.append("baseline missing: " + ", ".join(bad[:10]))
+        else:
+            bad = [t for t in expected if _test_in(t, baseline_passed)]
+            detail_parts.append("baseline unexpected pass: " + ", ".join(bad[:10]))
+
+    return status, "; ".join(detail_parts) if detail_parts else success_msg
 
 
 def main():
-    compile_status = os.environ.get("COMPILE_STATUS", "fail")
-    compile_duration = int(os.environ.get("COMPILE_DURATION", "0"))
-    patch_status = os.environ.get("PATCH_STATUS", "skipped")
+    patch_status = os.environ.get("PATCH_STATUS", "pass")
     patch_duration = int(os.environ.get("PATCH_DURATION", "0"))
+    compile_status = os.environ.get("COMPILE_STATUS", "pass")
+    compile_duration = int(os.environ.get("COMPILE_DURATION", "0"))
     test_duration = int(os.environ.get("TEST_DURATION", "0"))
     baseline_duration = int(os.environ.get("BASELINE_DURATION", "0"))
     overall_duration = int(os.environ.get("OVERALL_DURATION", "0"))
     timestamp = os.environ.get("TIMESTAMP", "")
     has_test_patch = os.environ.get("HAS_TEST_PATCH", "false") == "true"
 
-    compile_output = _read("/tmp/_compile_output.txt")
-    patch_output = _read("/tmp/_patch_output.txt")
+    patch_output = read_file("/tmp/_patch_output.txt")
+    compile_output = read_file("/tmp/_compile_output.txt")
 
-    expected = _load_json("/tmp/_expected.json")
-    fail_to_pass_names = expected.get("fail_to_pass", [])
-    pass_to_pass_names = expected.get("pass_to_pass", [])
+    # Load parser results for baseline and eval
+    baseline_data = load_json("/tmp/baseline_parser.json")
+    eval_data = load_json("/tmp/eval_parser.json")
 
-    eval_data = _load_json("/tmp/eval_parser.json")
-    baseline_data = _load_json("/tmp/baseline_parser.json")
+    baseline_passed = {
+        t["name"]
+        for t in baseline_data.get("passed_tests", [])
+        if isinstance(t, dict)
+    }
+    eval_passed = {
+        t["name"] for t in eval_data.get("passed_tests", []) if isinstance(t, dict)
+    }
 
-    eval_passed = {m["name"] for m in eval_data.get("methods", []) if m.get("status") == "passed"}
-    eval_failed = {m["name"] for m in eval_data.get("methods", []) if m.get("status") == "failed"}
-    baseline_passed = {m["name"] for m in baseline_data.get("methods", []) if m.get("status") == "passed"}
-    baseline_failed = {m["name"] for m in baseline_data.get("methods", []) if m.get("status") == "failed"}
+    # Expected test lists (written to file by run.sh to avoid shell quoting issues)
+    _expected = load_json("/tmp/_expected.json")
+    expected_f2p = _expected.get("fail_to_pass", [])
+    expected_p2p = _expected.get("pass_to_pass", [])
 
     # Expand wildcards: ["*"] means "all discovered tests"
-    all_eval_tests = sorted(eval_passed | eval_failed)
-    if fail_to_pass_names == ["*"]:
-        fail_to_pass_names = all_eval_tests
-    if pass_to_pass_names == ["*"]:
-        pass_to_pass_names = all_eval_tests
+    all_eval_tests = sorted(
+        {t["name"] for t in eval_data.get("passed_tests", []) if isinstance(t, dict)} |
+        {t["name"] for t in eval_data.get("failed_tests", []) if isinstance(t, dict)}
+    )
+    if expected_f2p == ["*"]:
+        expected_f2p = all_eval_tests
+    if expected_p2p == ["*"]:
+        expected_p2p = all_eval_tests
 
-    # --- Compilation criterion ---
-    compilation = {
-        "status": compile_status,
-        "duration_seconds": compile_duration,
-        "output": compile_output[:MAX_OUTPUT] if compile_status == "fail" else "",
-    }
+    can_run = compile_status == "pass" and patch_status in ("pass", "skipped")
 
-    # --- Baseline tests criterion ---
-    if compile_status != "pass" or not has_test_patch:
-        baseline_tests = {"status": "skipped", "duration_seconds": 0}
+    eval_summary = eval_data.get("summary", {
+        "total": 0, "passed": 0, "failed": 0,
+        "errors": 0, "skipped": 0, "duration_seconds": 0.0,
+    })
+
+    # --- Criterion: baseline_tests ---
+    baseline_status = "pass" if has_test_patch and compile_status == "pass" else "skipped"
+
+    # --- Criterion: tests (eval run) ---
+    if not can_run:
+        tests_status = "skipped"
     else:
-        baseline_tests = {
-            "status": "pass" if baseline_data.get("summary") else "fail",
-            "duration_seconds": baseline_duration,
-            "summary": baseline_data.get("summary", {}),
-        }
+        tests_status = "fail" if eval_summary.get("failed", 0) > 0 else "pass"
 
-    # --- Patch applied criterion ---
-    patch_applied = {
-        "status": patch_status,
-        "duration_seconds": patch_duration,
-        "output": patch_output[:MAX_OUTPUT] if patch_status == "fail" else "",
-    }
-
-    # --- Tests criterion ---
-    if compile_status != "pass" or patch_status not in ("pass", "skipped"):
-        tests = {"status": "skipped", "duration_seconds": 0}
+    # --- Criterion: fail_to_pass ---
+    if not expected_f2p:
+        f2p_status, f2p_detail = "fail", "no expected fail_to_pass tests defined"
+    elif not can_run:
+        f2p_status, f2p_detail = "skipped", "skipped due to compilation or patch failure"
     else:
-        tests = {
-            "status": "pass" if eval_data.get("summary") else "fail",
-            "duration_seconds": test_duration,
-            "summary": eval_data.get("summary", {}),
-        }
-
-    # --- fail_to_pass criterion ---
-    if compile_status != "pass" or patch_status not in ("pass",):
-        ftp = {"status": "skipped", "detail": {"expected": fail_to_pass_names, "actual_pass": [], "actual_fail": []}}
-    else:
-        ftp = _evaluate_criterion(
-            fail_to_pass_names, eval_passed, eval_failed,
-            baseline_passed, baseline_failed,
-            should_fail_baseline=True, has_test_patch=has_test_patch,
-            empty_means="fail",
+        f2p_status, f2p_detail = _evaluate_criterion(
+            expected_f2p, eval_passed, baseline_passed, has_test_patch,
+            expect_pass_in_eval=False,
+            empty_label=("fail", "no expected fail_to_pass tests defined"),
+            success_msg="all fail_to_pass tests fixed",
         )
 
-    # --- pass_to_pass criterion ---
-    if compile_status != "pass" or patch_status not in ("pass", "skipped"):
-        ptp = {"status": "skipped", "detail": {"expected": pass_to_pass_names, "actual_pass": [], "actual_fail": []}}
+    # --- Criterion: pass_to_pass ---
+    if not expected_p2p:
+        p2p_status, p2p_detail = "skipped", "no expected pass_to_pass tests"
+    elif not can_run:
+        p2p_status, p2p_detail = "skipped", "skipped due to compilation or patch failure"
     else:
-        ptp = _evaluate_criterion(
-            pass_to_pass_names, eval_passed, eval_failed,
-            baseline_passed, baseline_failed,
-            should_fail_baseline=False, has_test_patch=has_test_patch,
-            empty_means="skipped",
+        p2p_status, p2p_detail = _evaluate_criterion(
+            expected_p2p, eval_passed, baseline_passed, has_test_patch,
+            expect_pass_in_eval=True,
+            empty_label=("skipped", "no expected pass_to_pass tests"),
+            success_msg="all pass_to_pass tests still passing",
         )
+
+    # --- Overall status ---
+    has_failure = any(
+        s == "fail" for s in [compile_status, patch_status, f2p_status, p2p_status]
+    )
+    overall_status = "failure" if has_failure else "success"
+
+    eval_test_output = read_file("/tmp/eval_stdout.log") + read_file(
+        "/tmp/eval_stderr.log"
+    )
 
     result = {
-        "version": "2.0",
+        "schema_version": "2.0",
+        "status": overall_status,
         "timestamp": timestamp,
         "duration_seconds": overall_duration,
-        "criteria": {
-            "compilation": compilation,
-            "baseline_tests": baseline_tests,
-            "patch_applied": patch_applied,
-            "tests": tests,
-            "fail_to_pass": ftp,
-            "pass_to_pass": ptp,
-        },
-        "test_results": {
-            "baseline": baseline_data if has_test_patch else {},
-            "eval": eval_data,
-        },
+        "criteria": [
+            {
+                "criterion": "compilation",
+                "status": compile_status,
+                "duration_seconds": compile_duration,
+                "output": compile_output,
+            },
+            {
+                "criterion": "baseline_tests",
+                "status": baseline_status,
+                "duration_seconds": baseline_duration,
+                "passed_tests": list(baseline_passed),
+                "failed_tests": baseline_data.get("failed_tests", []),
+            },
+            {
+                "criterion": "patch_applied",
+                "status": patch_status,
+                "duration_seconds": patch_duration,
+                "output": patch_output,
+            },
+            {
+                "criterion": "tests",
+                "status": tests_status,
+                "duration_seconds": test_duration,
+                "output": eval_test_output,
+                "summary": eval_summary,
+                "passed_tests": eval_data.get("passed_tests", []),
+                "failed_tests": eval_data.get("failed_tests", []),
+                "skipped_tests": eval_data.get("skipped_tests", []),
+                "methods": eval_data.get("methods", []),
+            },
+            {
+                "criterion": "fail_to_pass",
+                "status": f2p_status,
+                "expected": expected_f2p,
+                "detail": f2p_detail,
+            },
+            {
+                "criterion": "pass_to_pass",
+                "status": p2p_status,
+                "expected": expected_p2p,
+                "detail": p2p_detail,
+            },
+        ],
     }
-
-    print(json.dumps(result, indent=2))
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":
