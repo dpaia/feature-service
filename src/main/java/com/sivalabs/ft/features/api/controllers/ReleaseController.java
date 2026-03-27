@@ -7,6 +7,7 @@ import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.ReleaseService;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.exceptions.BadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -128,6 +129,9 @@ class ReleaseController {
                 @ApiResponse(responseCode = "403", description = "Forbidden"),
             })
     void updateRelease(@PathVariable String code, @RequestBody UpdateReleasePayload payload) {
+        if (payload == null || payload.status() == null) {
+            throw new BadRequestException("Status is required");
+        }
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new UpdateReleaseCommand(
                 code,
