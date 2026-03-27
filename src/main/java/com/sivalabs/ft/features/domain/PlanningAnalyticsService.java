@@ -43,10 +43,15 @@ public class PlanningAnalyticsService {
                         r -> r.getStatus().name(),
                         Collectors.collectingAndThen(Collectors.counting(), Math::toIntExact)));
 
+        Map<String, Integer> releaseStatistics = new HashMap<>();
+        for (ReleaseStatus possibleStatus : ReleaseStatus.values()) {
+            releaseStatistics.put(possibleStatus.name(), releasesByStatus.getOrDefault(possibleStatus.name(), 0));
+        }
+
         PlanningHealthResponse.AtRiskReleases atRiskReleases = calculateAtRiskReleases(allReleases);
         PlanningHealthResponse.PlanningAccuracy planningAccuracy = calculatePlanningAccuracy(allReleases);
 
-        return new PlanningHealthResponse(releasesByStatus, atRiskReleases, planningAccuracy);
+        return new PlanningHealthResponse(releaseStatistics, atRiskReleases, planningAccuracy);
     }
 
     public PlanningTrendsResponse getPlanningTrends() {
