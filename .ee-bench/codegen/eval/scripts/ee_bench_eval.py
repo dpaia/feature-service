@@ -44,10 +44,19 @@ def _prefix(name):
 
 
 def _test_in(name, name_set):
-    """Match by exact name first, then by prefix (handles parameterized tests)."""
+    """Match by exact name, prefix (parameterized tests), or class-level prefix.
+
+    Supports class-level expected names like 'com.example.FooTest' matching
+    method-level actual names like 'com.example.FooTest.shouldDoSomething'.
+    """
     if name in name_set:
         return True
-    return _prefix(name) in {_prefix(n) for n in name_set}
+    pname = _prefix(name)
+    if pname in {_prefix(n) for n in name_set}:
+        return True
+    # Class-level match: expected 'a.b.FooTest' matches 'a.b.FooTest.method'
+    class_prefix = name + "."
+    return any(n.startswith(class_prefix) for n in name_set)
 
 
 def _evaluate_criterion(expected, eval_passed, baseline_passed, baseline_failed,
