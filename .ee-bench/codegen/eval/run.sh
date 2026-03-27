@@ -104,6 +104,19 @@ if [ "$PATCH_STATUS" = "pass" ]; then
 fi
 
 # ============================================================
+# Criterion: spotless (code style check after patches applied)
+# ============================================================
+SPOTLESS_START=$SECONDS
+SPOTLESS_STATUS="skipped"
+if [ "$PATCH_STATUS" = "pass" ] || [ "$PATCH_STATUS" = "skipped" ]; then
+  SPOTLESS_STATUS="pass"
+  ./mvnw spotless:check -q > /tmp/spotless_stdout.log 2> /tmp/spotless_stderr.log || {
+    SPOTLESS_STATUS="fail"
+  }
+fi
+SPOTLESS_DURATION=$(_elapsed $SPOTLESS_START)
+
+# ============================================================
 # Run eval tests (after test_patch + gold patch applied)
 # ============================================================
 TEST_DURATION=0
@@ -118,6 +131,7 @@ OVERALL_DURATION=$(_elapsed $OVERALL_START)
 # --- Write temp files for safe passing to Python emitter ---
 echo "$PATCH_OUTPUT" > /tmp/_patch_output.txt
 cat /tmp/compile_stdout.log /tmp/compile_stderr.log > /tmp/_compile_output.txt 2>/dev/null || true
+cat /tmp/spotless_stdout.log /tmp/spotless_stderr.log > /tmp/_spotless_output.txt 2>/dev/null || true
 
 # --- Write expected test lists to file (avoids shell quoting issues) ---
 cat > /tmp/_expected.json << 'EXPECTED_EOF'
@@ -125,10 +139,10 @@ cat > /tmp/_expected.json << 'EXPECTED_EOF'
 EXPECTED_EOF
 
 # ============================================================
-# Emit EE-bench JSON v2.0 (6 criteria)
+# Emit EE-bench JSON v2.0 (7 criteria)
 # ============================================================
 export PATCH_STATUS PATCH_DURATION COMPILE_STATUS COMPILE_DURATION
 export TEST_DURATION BASELINE_DURATION OVERALL_DURATION TIMESTAMP
-export HAS_TEST_PATCH
+export HAS_TEST_PATCH SPOTLESS_STATUS SPOTLESS_DURATION
 
 python3 "$EVAL_DIR/scripts/ee_bench_eval.py"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit EE-bench JSON v2.0 evaluation output (6 criteria).
+"""Emit EE-bench JSON v2.0 evaluation output (7 criteria).
 
 Language-independent emitter. Reads criteria status from environment
 variables (set by run.sh) and parser JSON files from /tmp.
@@ -8,10 +8,11 @@ Prints the result JSON to stdout.
 Environment variables consumed:
     COMPILE_STATUS, COMPILE_DURATION, PATCH_STATUS, PATCH_DURATION,
     TEST_DURATION, BASELINE_DURATION, OVERALL_DURATION, TIMESTAMP,
-    HAS_TEST_PATCH
+    HAS_TEST_PATCH, SPOTLESS_STATUS, SPOTLESS_DURATION
 
 Temp files consumed:
     /tmp/_compile_output.txt, /tmp/_patch_output.txt, /tmp/_expected.json,
+    /tmp/_spotless_output.txt,
     /tmp/baseline_parser.json, /tmp/eval_parser.json,
     /tmp/eval_stdout.log, /tmp/eval_stderr.log
 """
@@ -130,9 +131,12 @@ def main():
     overall_duration = int(os.environ.get("OVERALL_DURATION", "0"))
     timestamp = os.environ.get("TIMESTAMP", "")
     has_test_patch = os.environ.get("HAS_TEST_PATCH", "false") == "true"
+    spotless_status = os.environ.get("SPOTLESS_STATUS", "skipped")
+    spotless_duration = int(os.environ.get("SPOTLESS_DURATION", "0"))
 
     compile_output = read_file("/tmp/_compile_output.txt")
     patch_output = read_file("/tmp/_patch_output.txt")
+    spotless_output = read_file("/tmp/_spotless_output.txt")
 
     baseline_data = load_json("/tmp/baseline_parser.json")
     eval_data = load_json("/tmp/eval_parser.json")
@@ -200,7 +204,7 @@ def main():
 
     # --- Overall status ---
     has_failure = any(
-        s == "fail" for s in [compile_status, patch_status, f2p_status, p2p_status]
+        s == "fail" for s in [compile_status, patch_status, f2p_status, p2p_status, spotless_status]
     )
     overall_status = "failure" if has_failure else "success"
 
@@ -253,6 +257,12 @@ def main():
                 "status": p2p_status,
                 "expected": expected_p2p,
                 "detail": p2p_detail,
+            },
+            {
+                "criterion": "spotless",
+                "status": spotless_status,
+                "duration_seconds": spotless_duration,
+                "output": spotless_output,
             },
         ],
     }
