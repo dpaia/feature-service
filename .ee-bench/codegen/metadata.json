@@ -1,6 +1,6 @@
 {
   "expected": {
     "fail_to_pass": ["ReleaseControllerTests", "ReleaseServiceIntegrationTest", "ReleaseServiceTest"],
-    "pass_to_pass": []
+    "pass_to_pass": ["*"]
   }
 }
