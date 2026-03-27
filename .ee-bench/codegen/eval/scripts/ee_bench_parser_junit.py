@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Parse test result logs (JUnit XML or TRX) into EE-bench JSON."""
+"""Parse JUnit XML test results into EE-bench JSON.
+
+For Java (Maven/Gradle) and Python (pytest --junitxml) projects.
+
+Usage: python3 ee_bench_parser_junit.py <artifacts_dir>
+"""
 import json
 import os
 import sys
@@ -8,14 +13,14 @@ import xml.etree.ElementTree as ET
 MAX_STACKTRACE = 4096
 
 
-def _truncate(text: str, limit: int = MAX_STACKTRACE) -> str:
+def _truncate(text, limit=MAX_STACKTRACE):
     if text and len(text) > limit:
         return text[:limit] + "\n... [truncated]"
     return text
 
 
-def parse_junit_xml(root: ET.Element) -> list[dict]:
-    """Parse JUnit XML format (<testsuites><testsuite><testcase>)."""
+def parse_junit_xml(root):
+    """Parse JUnit XML format (<testsuites>/<testsuite>/<testcase>)."""
     methods = []
 
     if root.tag == "testsuite":
@@ -68,53 +73,8 @@ def parse_junit_xml(root: ET.Element) -> list[dict]:
     return methods
 
 
-def parse_trx(root: ET.Element) -> list[dict]:
-    """Parse Visual Studio TRX format."""
-    ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
-    methods = []
-
-    for result in root.findall(".//t:UnitTestResult", ns):
-        name = result.get("testName", "unknown")
-        outcome = result.get("outcome", "").lower()
-
-        duration = 0.0
-        dur_str = result.get("duration", "")
-        if dur_str:
-            try:
-                parts = dur_str.split(":")
-                if len(parts) == 3:
-                    h, m = int(parts[0]), int(parts[1])
-                    s = float(parts[2])
-                    duration = h * 3600 + m * 60 + s
-            except (ValueError, IndexError):
-                pass
-
-        entry = {"name": name, "duration_seconds": duration}
-
-        if outcome == "passed":
-            entry["status"] = "passed"
-        elif outcome in ("failed", "error"):
-            entry["status"] = "failed"
-            entry["type"] = "error" if outcome == "error" else "assertion"
-            error_info = result.find("t:Output/t:ErrorInfo", ns)
-            if error_info is not None:
-                msg_el = error_info.find("t:Message", ns)
-                st_el = error_info.find("t:StackTrace", ns)
-                if msg_el is not None and msg_el.text:
-                    entry["message"] = msg_el.text
-                if st_el is not None and st_el.text:
-                    entry["stacktrace"] = _truncate(st_el.text)
-        elif outcome in ("notexecuted", "inconclusive"):
-            entry["status"] = "skipped"
-        else:
-            entry["status"] = "failed"
-
-        methods.append(entry)
-    return methods
-
-
-def detect_and_parse(artifacts_dir: str) -> list[dict]:
-    """Scan artifacts dir for XML/TRX files and parse them."""
+def detect_and_parse(artifacts_dir):
+    """Scan artifacts dir for JUnit XML files and parse them."""
     methods = []
     for fname in sorted(os.listdir(artifacts_dir)):
         fpath = os.path.join(artifacts_dir, fname)
@@ -126,20 +86,16 @@ def detect_and_parse(artifacts_dir: str) -> list[dict]:
         except ET.ParseError:
             continue
 
-        ns_tag = root.tag
-        if "TestRun" in ns_tag or "VisualStudio" in ns_tag:
-            methods.extend(parse_trx(root))
-        elif root.tag in ("testsuites", "testsuite"):
+        if root.tag in ("testsuites", "testsuite"):
             methods.extend(parse_junit_xml(root))
-        else:
-            if root.findall(".//testcase"):
-                methods.extend(parse_junit_xml(root))
+        elif root.findall(".//testcase"):
+            methods.extend(parse_junit_xml(root))
 
     return methods
 
 
-def aggregate(methods: list[dict]) -> dict:
-    """Build method-level aggregation and summary from parsed results."""
+def aggregate(methods):
+    """Build summary and test lists from parsed method results."""
     passed_names = []
     failed_names = []
     skipped_names = []
@@ -158,17 +114,13 @@ def aggregate(methods: list[dict]) -> dict:
         elif status == "skipped":
             skipped_names.append(m["name"])
 
-    n_passed = len(passed_names)
-    n_failed = len(failed_names)
-    n_skipped = len(skipped_names)
-
     return {
         "summary": {
             "total": len(methods),
-            "passed": n_passed,
-            "failed": n_failed - n_errors,
+            "passed": len(passed_names),
+            "failed": len(failed_names) - n_errors,
             "errors": n_errors,
-            "skipped": n_skipped,
+            "skipped": len(skipped_names),
             "duration_seconds": round(total_duration, 3),
         },
         "passed_tests": [{"name": n} for n in sorted(set(passed_names))],
