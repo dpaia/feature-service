@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.domain;
 
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.domain.dtos.NotificationDto;
+import com.sivalabs.ft.features.domain.exceptions.NotificationNotDeliveredException;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +24,10 @@ public class EmailService {
 
     /**
      * Send a notification email with a tracking pixel.
-     * Failures are logged but do not propagate to prevent notification creation from being blocked.
+     * Throws {@link NotificationNotDeliveredException} on failure so the caller can update delivery status.
      */
-    public void sendNotificationEmail(NotificationDto notification, String recipientEmail) {
+    public void sendNotificationEmail(NotificationDto notification, String recipientEmail)
+            throws NotificationNotDeliveredException {
         try {
             var message = mailSender.createMimeMessage();
             var helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -46,6 +48,8 @@ public class EmailService {
                     notification.eventType(),
                     Instant.now(),
                     e.getMessage());
+            throw new NotificationNotDeliveredException(
+                    "Failure happened during sending notification with id {}".formatted(notification.id()));
         }
     }
 
