@@ -3,6 +3,8 @@ package com.sivalabs.ft.features.domain;
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.domain.dtos.NotificationDto;
 import java.time.Instant;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -52,6 +54,8 @@ public class EmailService {
     private String buildEmailBody(NotificationDto notification, String trackingUrl) {
         String eventSummary = notification.eventType().name().replace('_', ' ');
         String details = notification.eventDetails() != null ? notification.eventDetails() : "";
+        String cleanedDetails = Jsoup.clean(details, Safelist.none());
+
         String linkHtml = notification.link() != null
                 ? "<p><a href=\""
                         + applicationProperties.publicBaseUrl()
@@ -69,6 +73,6 @@ public class EmailService {
                 </body>
                 </html>
                 """
-                .formatted(eventSummary, details, linkHtml, trackingUrl);
+                .formatted(eventSummary, cleanedDetails, linkHtml, trackingUrl);
     }
 }
