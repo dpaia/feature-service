@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.domain;
 
 import com.sivalabs.ft.features.domain.dtos.NotificationDto;
 import com.sivalabs.ft.features.domain.entities.Notification;
+import com.sivalabs.ft.features.domain.exceptions.NotificationNotDeliveredException;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.NotificationMapper;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
@@ -66,7 +67,12 @@ public class NotificationService {
         NotificationDto dto = notificationMapper.toDto(notification);
 
         if (recipientEmail != null) {
-            emailService.sendNotificationEmail(dto, recipientEmail);
+            try {
+                emailService.sendNotificationEmail(dto, recipientEmail);
+                notificationRepository.markAsDelivered(notification.getId(), recipientUserId);
+            } catch (NotificationNotDeliveredException exception) {
+                notificationRepository.markAsFailed(notification.getId(), recipientUserId);
+            }
         } else {
             log.debug("No email address found for user {}, skipping email delivery", recipientUserId);
         }
@@ -113,7 +119,12 @@ public class NotificationService {
 
         for (NotificationDto dto : dtos) {
             if (dto.recipientEmail() != null) {
-                emailService.sendNotificationEmail(dto, dto.recipientEmail());
+                try {
+                    emailService.sendNotificationEmail(dto, dto.recipientEmail());
+                    notificationRepository.markAsDelivered(dto.id(), dto.recipientUserId());
+                } catch (NotificationNotDeliveredException exception) {
+                    notificationRepository.markAsFailed(dto.id(), dto.recipientUserId());
+                }
             } else {
                 log.debug("No email address found for user {}, skipping email delivery", dto.recipientUserId());
             }

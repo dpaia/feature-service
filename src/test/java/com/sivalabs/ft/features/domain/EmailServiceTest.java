@@ -1,13 +1,11 @@
 package com.sivalabs.ft.features.domain;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.domain.dtos.NotificationDto;
 import com.sivalabs.ft.features.domain.models.DeliveryStatus;
 import com.sivalabs.ft.features.domain.models.NotificationEventType;
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Instant;
 import java.util.UUID;
@@ -38,7 +36,7 @@ class EmailServiceTest {
     }
 
     @Test
-    void shouldSendEmailWithTrackingPixel() throws MessagingException {
+    void shouldSendEmailWithTrackingPixel() throws Exception {
         // Given
         UUID notificationId = UUID.randomUUID();
         NotificationDto notification = new NotificationDto(
@@ -64,35 +62,7 @@ class EmailServiceTest {
     }
 
     @Test
-    void shouldLogFailureAndNotThrowWhenSendFails() {
-        // Given
-        UUID notificationId = UUID.randomUUID();
-        NotificationDto notification = new NotificationDto(
-                notificationId,
-                "testuser",
-                "testuser@example.com",
-                NotificationEventType.FEATURE_UPDATED,
-                "{\"action\":\"updated\",\"actor\":\"admin\"}",
-                "/features/IDEA-1",
-                Instant.now(),
-                false,
-                null,
-                DeliveryStatus.PENDING);
-
-        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        doThrow(new RuntimeException("SMTP connection refused"))
-                .when(mailSender)
-                .send(any(MimeMessage.class));
-
-        // When - should not throw
-        emailService.sendNotificationEmail(notification, "testuser@example.com");
-
-        // Then - failure was swallowed (logged only)
-        verify(mailSender).send(mimeMessage);
-    }
-
-    @Test
-    void shouldHandleNullEventDetails() throws MessagingException {
+    void shouldHandleNullEventDetails() throws Exception {
         // Given
         UUID notificationId = UUID.randomUUID();
         NotificationDto notification = new NotificationDto(
