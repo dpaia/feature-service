@@ -6,7 +6,6 @@ import com.sivalabs.ft.features.api.models.PlanningHealthResponse;
 import com.sivalabs.ft.features.api.models.PlanningTrendsResponse;
 import com.sivalabs.ft.features.domain.entities.Feature;
 import com.sivalabs.ft.features.domain.entities.Release;
-import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -21,6 +20,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class PlanningAnalyticsService {
+
+    private static final int DEFAULT_CAPACITY_PER_PERSON = 10;
 
     private final ReleaseRepository releaseRepository;
     private final FeatureRepository featureRepository;
@@ -215,42 +216,23 @@ public class PlanningAnalyticsService {
     }
 
     private CapacityPlanningResponse.OverallCapacity calculateOverallCapacity(List<Feature> features) {
-        Set<String> uniqueOwners = features.stream()
-                .map(Feature::getFeatureOwner)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
 
-        int totalResources = uniqueOwners.size();
-
-        // Simplified capacity calculation
-        double totalUtilization = features.stream()
+        Map<String, List<Feature>> featuresByOwner = features.stream()
                 .filter(f -> f.getFeatureOwner() != null)
-                .collect(Collectors.groupingBy(Feature::getFeatureOwner))
-                .values()
-                .stream()
-                .mapToDouble(ownerFeatures -> {
-                    int assigned = ownerFeatures.size();
-                    int completed = (int) ownerFeatures.stream()
-                            .filter(f -> f.getPlanningStatus() == FeaturePlanningStatus.DONE)
-                            .count();
-                    return assigned > 0 ? (double) completed / assigned * 100 : 0;
-                })
-                .average()
-                .orElse(0.0);
+                .collect(Collectors.groupingBy(Feature::getFeatureOwner));
 
-        double utilizationRate = round(totalUtilization, 1);
+        int totalResources = featuresByOwner.size();
+        if (totalResources == 0) {
+            return new CapacityPlanningResponse.OverallCapacity(0, 0.0, 100.0, 0);
+        }
+        int totalAmountOfFeatures =
+                featuresByOwner.values().stream().mapToInt(List::size).sum();
+        double totalUtilization = (double) totalAmountOfFeatures / (DEFAULT_CAPACITY_PER_PERSON * totalResources);
+        double utilizationRate = round(totalUtilization * 100.0, 1);
         double availableCapacity = round(100.0 - utilizationRate, 1);
 
-        int overallocatedResources = (int) features.stream()
-                .filter(f -> f.getFeatureOwner() != null)
-                .collect(Collectors.groupingBy(Feature::getFeatureOwner))
-                .entrySet()
-                .stream()
-                .filter(entry -> {
-                    List<Feature> ownerFeatures = entry.getValue();
-                    int assigned = ownerFeatures.size();
-                    return assigned > 10; // Simplified threshold
-                })
+        int overallocatedResources = (int) featuresByOwner.values().stream()
+                .filter(ownerFeatures -> ownerFeatures.size() > 10) // Simplified threshold
                 .count();
 
         return new CapacityPlanningResponse.OverallCapacity(
@@ -268,7 +250,7 @@ public class PlanningAnalyticsService {
                     List<Feature> ownerFeatures = entry.getValue();
 
                     int currentWorkload = ownerFeatures.size();
-                    int capacity = 10; // Simplified capacity
+                    int capacity = DEFAULT_CAPACITY_PER_PERSON;
                     double utilizationRate = round((double) currentWorkload / capacity * 100, 1);
                     int futureCommitments = currentWorkload + 2; // Simplified
 
