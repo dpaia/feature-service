@@ -135,16 +135,17 @@ class PlanningHistoryControllerTests extends AbstractIT {
     }
 
     @Test
-    void shouldReturnEmptyHistoryForUnknownCode() {
+    void shouldReturn404ForUnknownFeatureCode() {
         var result =
                 mvc.get().uri("/api/features/{code}/history", "UNKNOWN-999").exchange();
-        assertThat(result).hasStatusOk();
-        assertThat(result)
-                .bodyJson()
-                .extractingPath("$.totalElements")
-                .asNumber()
-                .extracting(Number::intValue)
-                .satisfies(n -> assertThat(n).isEqualTo(0));
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldReturn404ForUnknownReleaseCode() {
+        var result =
+                mvc.get().uri("/api/releases/{code}/history", "UNKNOWN-666").exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
     }
 
     @Test
