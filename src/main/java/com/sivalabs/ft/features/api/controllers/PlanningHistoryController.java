@@ -42,21 +42,23 @@ class PlanningHistoryController {
     @Operation(summary = "Get planning history for a specific release")
     PagedResult<PlanningHistoryDto> getReleaseHistory(
             @PathVariable String code,
+            @RequestParam(required = false) ChangeType changeType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String sort) {
-        return PagedResult.from(
-                planningHistoryService.findHistory(EntityType.RELEASE, code, null, null, null, null, page, size, sort));
+        return PagedResult.from(planningHistoryService.findHistory(
+                EntityType.RELEASE, code, null, changeType, null, null, page, size, sort));
     }
 
     @GetMapping("/api/features/{code}/history")
     @Operation(summary = "Get planning history for a specific feature")
     PagedResult<PlanningHistoryDto> getFeatureHistory(
             @PathVariable String code,
+            @RequestParam(required = false) ChangeType changeType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String sort) {
-        return PagedResult.from(
-                planningHistoryService.findHistory(EntityType.FEATURE, code, null, null, null, null, page, size, sort));
+        return PagedResult.from(planningHistoryService.findHistory(
+                EntityType.FEATURE, code, null, changeType, null, null, page, size, sort));
     }
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -229,5 +230,77 @@ class PlanningHistoryControllerTests extends AbstractIT {
                 .asNumber()
                 .extracting(Number::intValue)
                 .satisfies(n -> assertThat(n).isGreaterThanOrEqualTo(1));
+    }
+
+    @Test
+    void shouldGetFeatureHistoryWithChangeTypeFilter() {
+        // Seed data: IDEA-1 has CREATED, STATUS_CHANGED, and ASSIGNED history entries
+        var result = mvc.get()
+                .uri("/api/features/{code}/history?changeType=STATUS_CHANGED", "IDEA-1")
+                .exchange();
+
+        assertThat(result).hasStatusOk();
+        assertThat(result)
+                .bodyJson()
+                .extractingPath("$.content")
+                .asList()
+                .isNotEmpty()
+                .allSatisfy(entry -> {
+                    var history = (Map<?, ?>) entry;
+                    assertThat(history.get("changeType")).isEqualTo("STATUS_CHANGED");
+                    assertThat(history.get("entityCode")).isEqualTo("IDEA-1");
+                });
+    }
+
+    @Test
+    void shouldReturnEmptyHistoryWhenChangeTypeDoesNotMatch() {
+        // Seed data: IDEA-1 has no DELETED history entries
+        var result = mvc.get()
+                .uri("/api/features/{code}/history?changeType=DELETED", "IDEA-1")
+                .exchange();
+
+        assertThat(result).hasStatusOk();
+        assertThat(result)
+                .bodyJson()
+                .extractingPath("$.totalElements")
+                .asNumber()
+                .extracting(Number::intValue)
+                .satisfies(n -> assertThat(n).isEqualTo(0));
+    }
+
+    @Test
+    void shouldGetReleaseHistoryWithChangeTypeFilter() {
+        // Seed data: IDEA-2023.3.8 has CREATED and STATUS_CHANGED history entries
+        var result = mvc.get()
+                .uri("/api/releases/{code}/history?changeType=STATUS_CHANGED", "IDEA-2023.3.8")
+                .exchange();
+
+        assertThat(result).hasStatusOk();
+        assertThat(result)
+                .bodyJson()
+                .extractingPath("$.content")
+                .asList()
+                .isNotEmpty()
+                .allSatisfy(entry -> {
+                    var history = (Map<?, ?>) entry;
+                    assertThat(history.get("changeType")).isEqualTo("STATUS_CHANGED");
+                    assertThat(history.get("entityCode")).isEqualTo("IDEA-2023.3.8");
+                });
+    }
+
+    @Test
+    void shouldReturnEmptyReleaseHistoryWhenChangeTypeDoesNotMatch() {
+        // Seed data: IDEA-2023.3.8 has no DELETED history entries
+        var result = mvc.get()
+                .uri("/api/releases/{code}/history?changeType=DELETED", "IDEA-2023.3.8")
+                .exchange();
+
+        assertThat(result).hasStatusOk();
+        assertThat(result)
+                .bodyJson()
+                .extractingPath("$.totalElements")
+                .asNumber()
+                .extracting(Number::intValue)
+                .satisfies(n -> assertThat(n).isEqualTo(0));
     }
 }
