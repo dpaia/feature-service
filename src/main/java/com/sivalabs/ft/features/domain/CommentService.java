@@ -49,7 +49,6 @@ public class CommentService {
     }
 
     public List<CommentDto> findCommentsByFeatureCode(String featureCode, int page, int size) {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return null;
     }
 }
