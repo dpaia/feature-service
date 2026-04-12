@@ -2,6 +2,7 @@
   "version": "1.0",
   "benchmark_type": "methodgen",
   "language": "java",
+  "jvm_version": "24",
   "environment": {
     "project_root": "/repo"
   }
