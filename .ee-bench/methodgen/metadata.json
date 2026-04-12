@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "benchmark_type": "methodgen",
+  "language": "java",
+  "environment": {
+    "project_root": "/repo"
+  }
+}
