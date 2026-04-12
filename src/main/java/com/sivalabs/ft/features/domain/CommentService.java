@@ -48,10 +48,8 @@ public class CommentService {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<CommentDto> findCommentsByFeatureCode(String featureCode, int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, size);
-        List<Comment> comments = commentRepository.findCommentsByFeatureCode(featureCode, pageRequest);
-        return comments.stream().map(commentMapper::toDto).toList();
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
