@@ -3,6 +3,19 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/CommentService.java",
+    "method_signature": "findCommentsByFeatureCode(String,int,int)",
+    "stub": "public List<CommentDto> findCommentsByFeatureCode(String featureCode, int page, int size) {\n    // TODO: implement\n    throw new UnsupportedOperationException(\"Not implemented yet\");\n}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "PageRequest\\.of"},
+      {"type": "contains", "scope": "body_text", "pattern": "commentRepository"},
+      {"type": "contains", "scope": "body_text", "pattern": "commentMapper::toDto"},
+      {"type": "not_contains", "scope": "body_text", "pattern": "findAll\\(\\)"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.CommentServiceTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
