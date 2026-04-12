@@ -2,6 +2,18 @@
   "version": "1.0",
   "benchmark_type": "methodgen",
   "language": "java",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/CommentService.java",
+    "method_signature": "findCommentsByFeatureCode(String,int,int)",
+    "stub": "public List<CommentDto> findCommentsByFeatureCode(String featureCode, int page, int size) {\n    return null;\n}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "PageRequest\\.of"},
+      {"type": "contains", "scope": "body_text", "pattern": "commentRepository"},
+      {"type": "contains", "scope": "body_text", "pattern": "commentMapper::toDto"},
+      {"type": "not_contains", "scope": "body_text", "pattern": "findAll\\(\\)"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
