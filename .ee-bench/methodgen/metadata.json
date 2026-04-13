@@ -3,6 +3,19 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/ProductService.java",
+    "method_signature": "createProduct(CreateProductCommand)",
+    "stub": "public Long createProduct(Commands.CreateProductCommand cmd) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "new Product\\(\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "setCode\\(cmd\\.code\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "productRepository\\.save"},
+      {"type": "contains", "scope": "body_text", "pattern": "getId\\(\\)"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.ProductServiceCreateProductTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }

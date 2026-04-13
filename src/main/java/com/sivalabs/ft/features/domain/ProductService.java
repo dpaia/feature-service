@@ -31,9 +31,18 @@ public class ProductService {
         return productRepository.findByCode(code).map(productMapper::toDto);
     }
 
+    @Transactional
     public Long createProduct(CreateProductCommand cmd) {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        var product = new Product();
+        product.setCode(cmd.code());
+        product.setPrefix(cmd.prefix());
+        product.setName(cmd.name());
+        product.setDescription(cmd.description());
+        product.setImageUrl(cmd.imageUrl());
+        product.setCreatedBy(cmd.createdBy());
+        product.setDisabled(false);
+        Product savedProduct = productRepository.save(product);
+        return savedProduct.getId();
     }
 
     @Transactional
