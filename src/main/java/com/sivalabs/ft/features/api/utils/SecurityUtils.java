@@ -20,21 +20,8 @@ public class SecurityUtils {
     }
 
     static Map<String, Object> getLoginUserDetails() {
-        Map<String, Object> map = new HashMap<>();
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) {
-            return map;
-        }
-        Jwt jwt = (Jwt) jwtAuth.getPrincipal();
-
-        map.put("username", jwt.getClaimAsString("preferred_username"));
-        map.put("email", jwt.getClaimAsString("email"));
-        map.put("name", jwt.getClaimAsString("name"));
-        map.put("token", jwt.getTokenValue());
-        map.put("authorities", authentication.getAuthorities());
-        map.put("roles", getRoles(jwt));
-
-        return map;
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     private static List<String> getRoles(Jwt jwt) {
