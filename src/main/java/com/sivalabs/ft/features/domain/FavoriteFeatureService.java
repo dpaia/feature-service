@@ -50,8 +50,11 @@ public class FavoriteFeatureService {
         favoriteFeatureRepository.save(favoriteFeature);
     }
 
+    @Transactional
     public void removeFavoriteFeature(String userId, String featureCode) {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        int count = favoriteFeatureRepository.deleteByUserIdAndFeatureCode(userId, featureCode);
+        if (count != 1) {
+            throw new BadRequestException("Feature is not favorited by the user to remove");
+        }
     }
 }
