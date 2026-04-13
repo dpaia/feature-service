@@ -21,9 +21,9 @@ public class ProductService {
         this.productMapper = productMapper;
     }
 
-    @Transactional(readOnly = true)
     public List<ProductDto> findAllProducts() {
-        return productRepository.findAll().stream().map(productMapper::toDto).toList();
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Transactional(readOnly = true)
