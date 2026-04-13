@@ -24,20 +24,9 @@ public class CommentService {
         this.commentMapper = commentMapper;
     }
 
-    @Transactional
     public Long createComment(Commands.CreateCommentCommand command) {
-        var feature = featureRepository
-                .findByCode(command.featureCode())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Feature with code %s not found.".formatted(command.featureCode())));
-
-        Comment comment = new Comment();
-        comment.setContent(command.content());
-        comment.setFeature(feature);
-        comment.setCreatedBy(command.createdBy());
-        comment.setCreatedAt(Instant.now());
-        commentRepository.save(comment);
-        return comment.getId();
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Transactional
