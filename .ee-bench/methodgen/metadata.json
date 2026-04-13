@@ -3,6 +3,17 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/events/EventPublisher.java",
+    "method_signature": "publishFeatureDeletedEvent(Feature,String,Instant)",
+    "stub": "public void publishFeatureDeletedEvent(Feature feature, String deletedBy, Instant deletedAt) {}",
+    "validations": [
+      {"type": "contains", "scope": "body_text", "pattern": "FeatureDeletedEvent"},
+      {"type": "contains", "scope": "body_text", "pattern": "kafkaTemplate\\.send"},
+      {"type": "contains", "scope": "body_text", "pattern": "deletedFeatures\\(\\)"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.events.EventPublisherPublishFeatureDeletedEventTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
