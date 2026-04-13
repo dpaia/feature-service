@@ -45,8 +45,16 @@ public class ProductService {
         return savedProduct.getId();
     }
 
+    @Transactional
     public void updateProduct(UpdateProductCommand cmd) {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        var product = productRepository
+                .findByCode(cmd.code())
+                .orElseThrow(() -> new ResourceNotFoundException("Product %s not found".formatted(cmd)));
+        product.setPrefix(cmd.prefix());
+        product.setName(cmd.name());
+        product.setDescription(cmd.description());
+        product.setImageUrl(cmd.imageUrl());
+        product.setUpdatedBy(cmd.updatedBy());
+        productRepository.save(product);
     }
 }

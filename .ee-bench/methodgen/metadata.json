@@ -3,6 +3,19 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/ProductService.java",
+    "method_signature": "updateProduct(UpdateProductCommand)",
+    "stub": "public void updateProduct(Commands.UpdateProductCommand cmd) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "findByCode\\(cmd.code\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "setUpdatedBy"},
+      {"type": "contains", "scope": "body_text", "pattern": "setPrefix\\(cmd.prefix\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "productRepository\\.save"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.ProductServiceUpdateProductTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
