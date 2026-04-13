@@ -89,24 +89,9 @@ public class FeatureService {
         return featureRepository.existsByCode(code);
     }
 
-    @Transactional
     public String createFeature(CreateFeatureCommand cmd) {
-        Product product = productRepository.findByCode(cmd.productCode()).orElseThrow();
-        Release release = releaseRepository.findByCode(cmd.releaseCode()).orElse(null);
-        String code = product.getPrefix() + FEATURE_SEPARATOR + featureRepository.getNextFeatureId();
-        var feature = new Feature();
-        feature.setProduct(product);
-        feature.setRelease(release);
-        feature.setCode(code);
-        feature.setTitle(cmd.title());
-        feature.setDescription(cmd.description());
-        feature.setStatus(FeatureStatus.NEW);
-        feature.setAssignedTo(cmd.assignedTo());
-        feature.setCreatedBy(cmd.createdBy());
-        feature.setCreatedAt(Instant.now());
-        featureRepository.save(feature);
-        eventPublisher.publishFeatureCreatedEvent(feature);
-        return code;
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Transactional
