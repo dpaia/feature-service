@@ -128,11 +128,8 @@ public class FeatureService {
         eventPublisher.publishFeatureUpdatedEvent(feature);
     }
 
-    @Transactional
     public void deleteFeature(DeleteFeatureCommand cmd) {
-        Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
-        favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
-        featureRepository.deleteByCode(cmd.code());
-        eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
