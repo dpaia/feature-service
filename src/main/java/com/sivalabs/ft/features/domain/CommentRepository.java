@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 
 interface CommentRepository extends JpaRepository<Comment, Long> {
 
+    @Modifying
+    @Query("delete from Comment c where c.createdBy = :userId and c.id = :commentId")
     int deleteComment(Long commentId, String userId);
 
     @Query("""
