@@ -3,7 +3,31 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/FeatureRepository.java",
+    "method_signature": "unsetRelease(String)",
+    "stub": "void unsetRelease(String code);",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Modifying"},
+      {"type": "contains", "scope": "method_text", "pattern": "@Query"},
+      {"type": "contains", "scope": "method_text", "pattern": "\\.release = null"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.FeatureRepositoryUnsetReleaseTest"}
+    ]
+  },
   "environment": {
-    "project_root": "/repo"
+    "project_root": "/repo",
+    "docker": {
+      "run_params": {
+        "privileged": true,
+        "network": "host",
+        "volumes": ["/var/run/docker.sock:/var/run/docker.sock"],
+        "environment": {
+          "TESTCONTAINERS_RYUK_DISABLED": "true",
+          "TESTCONTAINERS_CHECKS_DISABLE": "true",
+          "DOCKER_HOST": "unix:///var/run/docker.sock",
+          "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
+        }
+      }
+    }
   }
 }
