@@ -3,6 +3,19 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/FeatureService.java",
+    "method_signature": "deleteFeature(DeleteFeatureCommand)",
+    "stub": "public void deleteFeature(Commands.DeleteFeatureCommand cmd) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "findByCode"},
+      {"type": "contains", "scope": "body_text", "pattern": "deleteByFeatureCode"},
+      {"type": "contains", "scope": "body_text", "pattern": "deleteByCode"},
+      {"type": "contains", "scope": "body_text", "pattern": "publishFeatureDeletedEvent"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.FeatureServiceDeleteFeatureTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
