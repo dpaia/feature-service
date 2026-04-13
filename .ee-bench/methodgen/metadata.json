@@ -3,6 +3,17 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/mappers/CommentMapper.java",
+    "method_signature": "toDto(Comment)",
+    "stub": "CommentDto toDto(Comment comment);",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Mapping"},
+      {"type": "contains", "scope": "method_text", "pattern": "target = \"featureCode\""},
+      {"type": "contains", "scope": "method_text", "pattern": "source = \"feature\\.code\""},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.mappers.CommentMapperToDtoTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
