@@ -21,18 +21,9 @@ public class FavoriteFeatureService {
         this.featureRepository = featureRepository;
     }
 
-    @Transactional(readOnly = true)
-    public Map<String, Boolean> getFavoriteFeatures(String userId, Set<String> featureCodes) {
-        List<UserFavoriteFeature> favoriteFeatures =
-                this.favoriteFeatureRepository.findByUserIdAndFeatureCodes(userId, featureCodes);
-        if (favoriteFeatures.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, Boolean> result = new HashMap<>();
-        for (UserFavoriteFeature favoriteFeature : favoriteFeatures) {
-            result.put(favoriteFeature.code(), favoriteFeature.isFavorite());
-        }
-        return result;
+    public Object getFavoriteFeatures(String s, Set<String> set) {
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Transactional
