@@ -3,6 +3,17 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/api/utils/SecurityUtils.java",
+    "method_signature": "getLoginUserDetails()",
+    "stub": "static Map<String, Object> getLoginUserDetails() {}",
+    "validations": [
+      {"type": "contains", "scope": "body_text", "pattern": "SecurityContextHolder\\.getContext\\(\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "JwtAuthenticationToken"},
+      {"type": "contains", "scope": "body_text", "pattern": "getClaimAsString\\(\"name\"\\)"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.api.utils.SecurityUtilsGetLoginUserDetailsTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
