@@ -3,6 +3,18 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/FavoriteFeatureService.java",
+    "method_signature": "getFavoriteFeatures(String,Set)",
+    "stub": "public Object getFavoriteFeatures(String s, Set<String> set) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "favoriteFeatureRepository"},
+      {"type": "contains", "scope": "body_text", "pattern": "findByUserIdAndFeatureCodes"},
+      {"type": "not_contains", "scope": "body_text", "pattern": "findAll\\(\\)"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.FavoriteFeatureServiceGetFavoriteFeaturesTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
