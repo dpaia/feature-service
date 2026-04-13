@@ -3,6 +3,17 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/FeatureService.java",
+    "method_signature": "createFeature(CreateFeatureCommand)",
+    "stub": "public String createFeature(Commands.CreateFeatureCommand cmd) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "findByCode"},
+      {"type": "contains", "scope": "body_text", "pattern": "publishFeatureCreatedEvent"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.FeatureServiceCreateFeatureTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
