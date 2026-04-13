@@ -3,6 +3,18 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/CommentService.java",
+    "method_signature": "createComment(CreateCommentCommand)",
+    "stub": "public Long createComment(Commands.CreateCommentCommand command) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "findByCode\\(command\\.featureCode\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "setContent\\(command\\.content\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "commentRepository\\.save"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.CommentServiceCreateCommentTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
