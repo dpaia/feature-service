@@ -3,6 +3,17 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/mappers/FeatureMapper.java",
+    "method_signature": "toDto(Feature)",
+    "stub": "FeatureDto toDto(Feature feature);",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Mapping"},
+      {"type": "contains", "scope": "method_text", "pattern": "target = \"releaseCode\""},
+      {"type": "contains", "scope": "method_text", "pattern": "source = \"release\\.code\""},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.mappers.FeatureMapperToDtoTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
