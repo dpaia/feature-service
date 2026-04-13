@@ -3,6 +3,16 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/api/utils/SecurityUtils.java",
+    "method_signature": "getCurrentUsername()",
+    "stub": "public static String getCurrentUsername() {}",
+    "validations": [
+      {"type": "contains", "scope": "body_text", "pattern": "getLoginUserDetails\\(\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "get\\(\"username\"\\)"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.api.utils.SecurityUtilsGetCurrentUsernameTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }

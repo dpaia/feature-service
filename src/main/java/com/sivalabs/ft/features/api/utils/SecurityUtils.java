@@ -11,8 +11,12 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 public class SecurityUtils {
 
     public static String getCurrentUsername() {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        var loginUserDetails = getLoginUserDetails();
+        var username = loginUserDetails.get("username");
+        if (loginUserDetails.isEmpty() || username == null) {
+            return null;
+        }
+        return String.valueOf(username);
     }
 
     static Map<String, Object> getLoginUserDetails() {
