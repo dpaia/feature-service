@@ -79,8 +79,12 @@ public class ReleaseService {
         releaseRepository.save(release);
     }
 
+    @Transactional
     public void deleteRelease(String code) {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (!releaseRepository.existsByCode(code)) {
+            throw new ResourceNotFoundException("Release with code " + code + " not found");
+        }
+        featureRepository.unsetRelease(code);
+        releaseRepository.deleteByCode(code);
     }
 }
