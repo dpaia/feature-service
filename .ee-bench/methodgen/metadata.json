@@ -3,6 +3,16 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/events/EventPublisher.java",
+    "method_signature": "publishFeatureCreatedEvent(Feature)",
+    "stub": "public void publishFeatureCreatedEvent(Feature feature) {}",
+    "validations": [
+      {"type": "contains", "scope": "body_text", "pattern": "FeatureCreatedEvent\\("},
+      {"type": "contains", "scope": "body_text", "pattern": "kafkaTemplate\\.send"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.events.EventPublisherPublishFeatureCreatedEventTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }

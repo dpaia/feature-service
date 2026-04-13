@@ -17,8 +17,17 @@ public class EventPublisher {
     }
 
     public void publishFeatureCreatedEvent(Feature feature) {
-        // TODO: implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        FeatureCreatedEvent event = new FeatureCreatedEvent(
+                feature.getId(),
+                feature.getCode(),
+                feature.getTitle(),
+                feature.getDescription(),
+                feature.getStatus(),
+                feature.getRelease() == null ? null : feature.getRelease().getCode(),
+                feature.getAssignedTo(),
+                feature.getCreatedBy(),
+                feature.getCreatedAt());
+        kafkaTemplate.send(properties.events().newFeatures(), event);
     }
 
     public void publishFeatureUpdatedEvent(Feature feature) {
