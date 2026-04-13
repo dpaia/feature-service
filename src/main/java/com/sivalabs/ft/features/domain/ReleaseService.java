@@ -50,22 +50,9 @@ public class ReleaseService {
         return releaseRepository.existsByCode(code);
     }
 
-    @Transactional
     public String createRelease(CreateReleaseCommand cmd) {
-        Product product = productRepository.findByCode(cmd.productCode()).orElseThrow();
-        String code = cmd.code();
-        if (!cmd.code().startsWith(product.getPrefix() + RELEASE_SEPARATOR)) {
-            code = product.getPrefix() + RELEASE_SEPARATOR + cmd.code();
-        }
-        Release release = new Release();
-        release.setProduct(product);
-        release.setCode(code);
-        release.setDescription(cmd.description());
-        release.setStatus(ReleaseStatus.DRAFT);
-        release.setCreatedBy(cmd.createdBy());
-        release.setCreatedAt(Instant.now());
-        releaseRepository.save(release);
-        return code;
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Transactional
