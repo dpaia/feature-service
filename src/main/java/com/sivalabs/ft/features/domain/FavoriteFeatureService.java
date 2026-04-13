@@ -35,19 +35,9 @@ public class FavoriteFeatureService {
         return result;
     }
 
-    @Transactional
     public void addFavoriteFeature(String userId, String featureCode) {
-        // Check if the feature exists
-        final Feature feature = featureRepository
-                .findByCode(featureCode)
-                .orElseThrow(() -> new BadRequestException("Feature code is invalid: " + featureCode));
-
-        // check if the favorite already exists
-        if (favoriteFeatureRepository.existsByUserIdAndFeatureId(userId, feature.getId())) {
-            throw new BadRequestException("Feature is already favorited by the user");
-        }
-        FavoriteFeature favoriteFeature = new FavoriteFeature(feature.getId(), userId);
-        favoriteFeatureRepository.save(favoriteFeature);
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Transactional
