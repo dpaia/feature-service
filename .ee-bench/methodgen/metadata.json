@@ -3,6 +3,17 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/ProductService.java",
+    "method_signature": "findAllProducts()",
+    "stub": "public List<ProductDto> findAllProducts() {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "productRepository"},
+      {"type": "contains", "scope": "body_text", "pattern": "productMapper::toDto"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.ProductServiceFindAllProductsTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
