@@ -3,6 +3,18 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/ReleaseService.java",
+    "method_signature": "createRelease(CreateReleaseCommand)",
+    "stub": "public String createRelease(Commands.CreateReleaseCommand cmd) {}",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
+      {"type": "contains", "scope": "body_text", "pattern": "findByCode\\(cmd\\.productCode\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "setCreatedBy\\(cmd\\.createdBy\\(\\)\\)"},
+      {"type": "contains", "scope": "body_text", "pattern": "releaseRepository\\.save"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.ReleaseServiceCreateReleaseTest"}
+    ]
+  },
   "environment": {
     "project_root": "/repo"
   }
