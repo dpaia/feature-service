@@ -3,7 +3,30 @@
   "benchmark_type": "methodgen",
   "language": "java",
   "jvm_version": "24",
+  "target": {
+    "file": "src/main/java/com/sivalabs/ft/features/domain/FeatureRepository.java",
+    "method_signature": "findByReleaseCode(String)",
+    "stub": "List<Feature> findByReleaseCode(String releaseCode);",
+    "validations": [
+      {"type": "contains", "scope": "method_text", "pattern": "@Query"},
+      {"type": "contains", "scope": "method_text", "pattern": "\\.release\\.code"},
+      {"type": "test", "test_class": "com.sivalabs.ft.features.domain.FeatureRepositoryFindByReleaseCodeTest"}
+    ]
+  },
   "environment": {
-    "project_root": "/repo"
+    "project_root": "/repo",
+    "docker": {
+      "run_params": {
+        "privileged": true,
+        "network": "host",
+        "volumes": ["/var/run/docker.sock:/var/run/docker.sock"],
+        "environment": {
+          "TESTCONTAINERS_RYUK_DISABLED": "true",
+          "TESTCONTAINERS_CHECKS_DISABLE": "true",
+          "DOCKER_HOST": "unix:///var/run/docker.sock",
+          "TESTCONTAINERS_HOST_OVERRIDE": "host.docker.internal"
+        }
+      }
+    }
   }
 }
