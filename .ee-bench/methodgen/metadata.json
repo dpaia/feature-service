@@ -5,7 +5,7 @@
   "jvm_version": "24",
   "target": {
     "file": "src/main/java/com/sivalabs/ft/features/domain/CommentService.java",
-    "method_signature": "createComment(CreateCommentCommand)",
+    "method_signature": "createComment(Commands.CreateCommentCommand)",
     "stub": "public Long createComment(Commands.CreateCommentCommand command) {}",
     "validations": [
       {"type": "contains", "scope": "method_text", "pattern": "@Transactional"},
