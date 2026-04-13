@@ -47,20 +47,7 @@ public class EventPublisher {
     }
 
     public void publishFeatureDeletedEvent(Feature feature, String deletedBy, Instant deletedAt) {
-        FeatureDeletedEvent event = new FeatureDeletedEvent(
-                feature.getId(),
-                feature.getCode(),
-                feature.getTitle(),
-                feature.getDescription(),
-                feature.getStatus(),
-                feature.getRelease() == null ? null : feature.getRelease().getCode(),
-                feature.getAssignedTo(),
-                feature.getCreatedBy(),
-                feature.getCreatedAt(),
-                feature.getUpdatedBy(),
-                feature.getUpdatedAt(),
-                deletedBy,
-                deletedAt);
-        kafkaTemplate.send(properties.events().deletedFeatures(), event);
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }
