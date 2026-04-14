@@ -42,4 +42,13 @@ public class Commands {
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    /* Feature Dependency Commands */
+    public record CreateFeatureDependencyCommand(
+            String featureCode, String dependsOnFeatureCode, String dependencyType, String notes, String createdBy) {}
+
+    public record UpdateFeatureDependencyCommand(
+            String featureCode, String dependsOnFeatureCode, String dependencyType, String notes, String updatedBy) {}
+
+    public record DeleteFeatureDependencyCommand(String featureCode, String dependsOnFeatureCode, String deletedBy) {}
 }
