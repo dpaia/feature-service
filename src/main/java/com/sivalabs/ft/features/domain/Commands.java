@@ -1,5 +1,6 @@
 package com.sivalabs.ft.features.domain;
 
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
@@ -36,7 +37,12 @@ public class Commands {
             FeatureStatus status,
             String releaseCode,
             String assignedTo,
-            String updatedBy) {}
+            String updatedBy,
+            Instant plannedCompletionAt,
+            Instant actualCompletionAt,
+            FeaturePlanningStatus featurePlanningStatus,
+            String featureOwner,
+            String blockageReason) {}
 
     public record DeleteFeatureCommand(String code, String deletedBy) {}
 
