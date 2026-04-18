@@ -5,7 +5,6 @@ import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
-import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.ReleaseMapper;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
@@ -82,9 +81,9 @@ public class ReleaseService {
     @Transactional
     public void deleteRelease(String code) {
         if (!releaseRepository.existsByCode(code)) {
-            throw new ResourceNotFoundException("Release with code " + code + " not found");
+            throw new IllegalArgumentException("Release with code " + code + " not found");
         }
-        featureRepository.unsetRelease(code);
+        featureRepository.unlinkReleaseCode(code);
         releaseRepository.deleteByCode(code);
     }
 }

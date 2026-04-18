@@ -1,13 +1,14 @@
 package com.sivalabs.ft.features.api.controllers;
 
-import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
-import com.sivalabs.ft.features.api.models.UpdateFeaturePayload;
+import com.sivalabs.ft.features.api.models.*;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.*;
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
+import com.sivalabs.ft.features.domain.Commands.RemoveCategoryFromFeaturesCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
+import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -52,8 +53,8 @@ class FeatureController {
 
     @GetMapping("")
     @Operation(
-            summary = "Find features by product or release",
-            description = "Find features by product or release",
+            summary = "Find features by product, release, category, or tags",
+            description = "Find features by product, release, category, or tags.",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -65,19 +66,32 @@ class FeatureController {
             })
     List<FeatureDto> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
-            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
-        // Only one of productCode or releaseCode should be provided
-        if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
-                || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
+            @RequestParam(value = "tagIds", required = false) List<Long> tagIds) {
+        String username = SecurityUtils.getCurrentUsername();
+
+        // Only one of productCode or releaseCode or (categoryIds and/or tagIds) should be provided
+        if ((StringUtils.isBlank(productCode)
+                        && StringUtils.isBlank(releaseCode)
+                        && (tagIds == null || tagIds.isEmpty())
+                        && (categoryIds == null || categoryIds.isEmpty()))
+                || (StringUtils.isNotBlank(productCode)
+                        && StringUtils.isNotBlank(releaseCode)
+                        && ((tagIds != null && !tagIds.isEmpty())
+                                || (categoryIds != null && !categoryIds.isEmpty())))) {
             // TODO: Return 400 Bad Request
             return List.of();
         }
-        String username = SecurityUtils.getCurrentUsername();
-        List<FeatureDto> featureDtos;
+        List<FeatureDto> featureDtos = List.of();
         if (StringUtils.isNotBlank(productCode)) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-        } else {
+        }
+        if (StringUtils.isNotBlank(releaseCode)) {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
+        }
+        if ((tagIds != null && !tagIds.isEmpty()) || (categoryIds != null && !categoryIds.isEmpty())) {
+            featureDtos = featureService.findFeaturesByTags(username, categoryIds, tagIds);
         }
 
         if (username != null && !featureDtos.isEmpty()) {
@@ -196,5 +210,93 @@ class FeatureController {
         var cmd = new DeleteFeatureCommand(code, username);
         featureService.deleteFeature(cmd);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/tags")
+    @Operation(
+            summary = "Assign tags to multiple features",
+            description = "Assign multiple tags to multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Feature or Tag not found")
+            })
+    ResponseEntity<Void> assignTagsToFeatures(@RequestBody @Valid AssignTagsToFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new Commands.AssignTagsToFeaturesCommand(payload.featureCodes(), payload.tagIds(), username);
+        try {
+            featureService.assignTagsToFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/tags")
+    @Operation(
+            summary = "Remove tags from multiple features",
+            description = "Remove given tags from multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Feature or Tag not found")
+            })
+    ResponseEntity<Void> removeTagsToFeatures(@RequestBody @Valid RemoveTagsFromFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new Commands.RemoveTagsFromFeaturesCommand(payload.featureCodes(), payload.tagIds(), username);
+        try {
+            featureService.removeTagsFromFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/category")
+    @Operation(
+            summary = "Assign category to multiple features",
+            description = "Assign a category to multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Category or Feature not found")
+            })
+    ResponseEntity<Void> assignCategoryToFeatures(@RequestBody @Valid AssignCategoryToFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new Commands.AssignCategoryToFeaturesCommand(payload.featureCodes(), payload.categoryId(), username);
+        try {
+            featureService.assignCategoryToFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/category")
+    @Operation(
+            summary = "Remove category from multiple features",
+            description = "Remove category from multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Feature not found")
+            })
+    ResponseEntity<Void> removeCategoryFromFeatures(@RequestBody @Valid RemoveCategoryFromFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new RemoveCategoryFromFeaturesCommand(payload.featureCodes(), username);
+        try {
+            featureService.removeCategoryFromFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

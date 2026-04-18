@@ -2,6 +2,7 @@ package com.sivalabs.ft.features.domain.events;
 
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
+import java.util.List;
 
 public record FeatureDeletedEvent(
         Long id,
@@ -11,6 +12,8 @@ public record FeatureDeletedEvent(
         FeatureStatus status,
         String releaseCode,
         String assignedTo,
+        List<String> tags,
+        String category,
         String createdBy,
         Instant createdAt,
         String updatedBy,
