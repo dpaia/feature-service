@@ -10,18 +10,23 @@ import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FeatureService {
     public static final String FEATURE_SEPARATOR = "-";
+    private static final Logger logger = LoggerFactory.getLogger(FeatureService.class);
     private final FavoriteFeatureService favoriteFeatureService;
     private final ReleaseRepository releaseRepository;
     private final FeatureRepository featureRepository;
@@ -134,5 +139,42 @@ public class FeatureService {
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+    }
+    /**
+     * Find a feature by its ID.
+     * This method is cached to improve performance for frequently accessed features.
+     */
+    @Transactional(readOnly = true)
+    @Cacheable(value = "featureById", key = "#id")
+    public Optional<Feature> findById(Long id) {
+        logger.debug("Fetching feature with ID: {} (Cache miss)", id);
+        return featureRepository.findById(id);
+    }
+    /**
+     * Find features by their status.
+     * This method is cached to improve performance for frequently accessed status queries.
+     *
+     * @param status The status to filter features by
+     * @return A list of features with the specified status
+     */
+    @Transactional(readOnly = true)
+    @Cacheable(value = "featuresByStatus", key = "#status")
+    public List<Feature> findByStatus(FeatureStatus status) {
+        logger.debug("Fetching features with status: {} (Cache miss)", status);
+        return featureRepository.findAll().stream()
+                .filter(feature -> feature.getStatus() == status)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "featuresByAssignee", key = "#assignee")
+    public List<Feature> findByAssignee(String assignee) {
+        logger.debug("Fetching features assigned to: {} (Cache miss)", assignee);
+        if (assignee == null) {
+            return List.of();
+        }
+        return featureRepository.findAll().stream()
+                .filter(feature -> assignee.equals(feature.getAssignedTo()))
+                .toList();
     }
 }
