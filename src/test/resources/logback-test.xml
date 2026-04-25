@@ -1,0 +1,14 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <!-- ListAppender for capturing log events in memory (used by lifecycle tests
+         to verify error/warning messages, e.g. UNKNOWN_TOPIC_OR_PARTITION). -->
+    <appender name="KAFKA_GUARD" class="ch.qos.logback.core.read.ListAppender"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="KAFKA_GUARD"/>
+    </root>
+</configuration>
+
