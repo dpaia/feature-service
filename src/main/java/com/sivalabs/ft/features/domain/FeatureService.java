@@ -8,6 +8,9 @@ import com.sivalabs.ft.features.domain.entities.Feature;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
+import com.sivalabs.ft.features.domain.events.internal.InternalFeatureCreatedEvent;
+import com.sivalabs.ft.features.domain.events.internal.InternalFeatureDeletedEvent;
+import com.sivalabs.ft.features.domain.events.internal.InternalFeatureUpdatedEvent;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
@@ -16,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,7 @@ public class FeatureService {
     private final ProductRepository productRepository;
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final FeatureMapper featureMapper;
 
     FeatureService(
@@ -37,12 +42,14 @@ public class FeatureService {
             ProductRepository productRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
             EventPublisher eventPublisher,
+            ApplicationEventPublisher applicationEventPublisher,
             FeatureMapper featureMapper) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
         this.productRepository = productRepository;
         this.eventPublisher = eventPublisher;
+        this.applicationEventPublisher = applicationEventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
         this.featureMapper = featureMapper;
     }
@@ -105,7 +112,9 @@ public class FeatureService {
         feature.setCreatedBy(cmd.createdBy());
         feature.setCreatedAt(Instant.now());
         featureRepository.save(feature);
-        eventPublisher.publishFeatureCreatedEvent(feature);
+        // Publish internal event within the transaction
+        // This will be processed by the TransactionalEventListener after the transaction commits
+        applicationEventPublisher.publishEvent(new InternalFeatureCreatedEvent(feature));
         return code;
     }
 
@@ -125,7 +134,9 @@ public class FeatureService {
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
-        eventPublisher.publishFeatureUpdatedEvent(feature);
+        // Publish internal event within the transaction
+        // This will be processed by the TransactionalEventListener after the transaction commits
+        applicationEventPublisher.publishEvent(new InternalFeatureUpdatedEvent(feature));
     }
 
     @Transactional
@@ -133,6 +144,10 @@ public class FeatureService {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
-        eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+        // Publish internal event within the transaction
+        // This will be processed by the TransactionalEventListener after the transaction commits
+        Instant deletedAt = Instant.now();
+        applicationEventPublisher.publishEvent(
+                new InternalFeatureDeletedEvent(feature, cmd.deletedBy(), deletedAt));
     }
 }
