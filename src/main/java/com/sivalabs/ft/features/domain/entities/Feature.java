@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
@@ -147,5 +149,50 @@ public class Feature {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // One-to-many relationship for feature dependencies
+    @OneToMany(mappedBy = "feature", fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<FeatureDependency> dependencies = new ArrayList<>();
+
+    // Features that depend on this feature
+    @OneToMany(mappedBy = "dependsOnFeature", fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<FeatureDependency> dependentFeatures = new ArrayList<>();
+
+    public List<FeatureDependency> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(List<FeatureDependency> dependencies) {
+        this.dependencies = dependencies;
+    }
+
+    public List<FeatureDependency> getDependentFeatures() {
+        return dependentFeatures;
+    }
+
+    public void setDependentFeatures(List<FeatureDependency> dependentFeatures) {
+        this.dependentFeatures = dependentFeatures;
+    }
+
+    // Helper methods for bidirectional relationship management
+    public void addDependency(FeatureDependency dependency) {
+        dependencies.add(dependency);
+        dependency.setFeature(this);
+    }
+
+    public void removeDependency(FeatureDependency dependency) {
+        dependencies.remove(dependency);
+        dependency.setFeature(null);
+    }
+
+    public void addDependentFeature(FeatureDependency dependency) {
+        dependentFeatures.add(dependency);
+        dependency.setDependsOnFeature(this);
+    }
+
+    public void removeDependentFeature(FeatureDependency dependency) {
+        dependentFeatures.remove(dependency);
+        dependency.setDependsOnFeature(null);
     }
 }

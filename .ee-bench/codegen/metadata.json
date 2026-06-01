@@ -5,7 +5,11 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
+    "fail_to_pass": [
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerApiContractTests.java",
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerIntegrationTests.java",
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerTests.java"
+    ],
     "pass_to_pass": []
   },
   "environment": {
