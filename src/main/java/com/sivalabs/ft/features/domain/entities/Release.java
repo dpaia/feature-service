@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
@@ -46,6 +47,17 @@ public class Release {
 
     @Column(name = "released_at")
     private Instant releasedAt;
+
+    @Column(name = "planned_release_date")
+    private Instant plannedReleaseDate;
+
+    @Size(max = 255) @Column(name = "release_owner")
+    private String releaseOwner;
+
+    @Version
+    @ColumnDefault("1")
+    @Column(name = "release_version", nullable = false)
+    private Integer releaseVersion;
 
     @Size(max = 255) @NotNull @Column(name = "created_by", nullable = false)
     private String createdBy;
@@ -109,6 +121,30 @@ public class Release {
 
     public void setReleasedAt(Instant releasedAt) {
         this.releasedAt = releasedAt;
+    }
+
+    public Instant getPlannedReleaseDate() {
+        return plannedReleaseDate;
+    }
+
+    public void setPlannedReleaseDate(Instant plannedReleaseDate) {
+        this.plannedReleaseDate = plannedReleaseDate;
+    }
+
+    public String getReleaseOwner() {
+        return releaseOwner;
+    }
+
+    public void setReleaseOwner(String releaseOwner) {
+        this.releaseOwner = releaseOwner;
+    }
+
+    public Integer getReleaseVersion() {
+        return releaseVersion;
+    }
+
+    public void setReleaseVersion(Integer releaseVersion) {
+        this.releaseVersion = releaseVersion;
     }
 
     public String getCreatedBy() {

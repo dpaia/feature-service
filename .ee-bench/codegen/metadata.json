@@ -5,7 +5,12 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
+    "fail_to_pass": [
+      "com.sivalabs.ft.features.api.controllers.ReleaseControllerTests",
+      "com.sivalabs.ft.features.api.controllers.ReleaseQueryEndpointsTests",
+      "com.sivalabs.ft.features.domain.ReleaseServiceIntegrationTest",
+      "com.sivalabs.ft.features.domain.ReleaseStatusTransitionValidatorTest"
+    ],
     "pass_to_pass": []
   },
   "environment": {
