@@ -1,8 +1,11 @@
 package com.sivalabs.ft.features.domain;
 
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import com.sivalabs.ft.features.domain.models.MilestoneStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 
 public class Commands {
     private Commands() {}
@@ -18,7 +21,12 @@ public class Commands {
     public record CreateReleaseCommand(String productCode, String code, String description, String createdBy) {}
 
     public record UpdateReleaseCommand(
-            String code, String description, ReleaseStatus status, Instant releasedAt, String updatedBy) {}
+            String code,
+            String description,
+            ReleaseStatus status,
+            Instant releasedAt,
+            String milestoneCode,
+            String updatedBy) {}
 
     /* Feature Commands */
     public record CreateFeatureCommand(
@@ -40,6 +48,52 @@ public class Commands {
 
     public record DeleteFeatureCommand(String code, String deletedBy) {}
 
+    /* Feature Planning Commands */
+    public record AssignFeatureToReleaseCommand(
+            String featureCode,
+            String releaseCode,
+            LocalDate plannedCompletionDate,
+            String featureOwner,
+            String notes,
+            String assignedBy) {}
+
+    public record UpdateFeaturePlanningCommand(
+            String featureCode,
+            LocalDate plannedCompletionDate,
+            FeaturePlanningStatus planningStatus,
+            String featureOwner,
+            String notes,
+            String blockageReason,
+            String updatedBy) {}
+
+    public record MoveFeatureToReleaseCommand(
+            String featureCode, String targetReleaseCode, String rationale, String movedBy) {}
+
+    public record RemoveFeatureFromReleaseCommand(String featureCode, String rationale, String removedBy) {}
+
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    /* Milestone Commands */
+    public record CreateMilestoneCommand(
+            String productCode,
+            String code,
+            String name,
+            String description,
+            Instant targetDate,
+            MilestoneStatus status,
+            String owner,
+            String notes,
+            String createdBy) {}
+
+    public record UpdateMilestoneCommand(
+            String code,
+            String name,
+            String description,
+            Instant targetDate,
+            Instant actualDate,
+            MilestoneStatus status,
+            String owner,
+            String notes,
+            String updatedBy) {}
 }
