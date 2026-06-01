@@ -1,3 +1,4 @@
+delete from feature_reactions;
 delete from favorite_features;
 delete from comments;
 delete from features;
