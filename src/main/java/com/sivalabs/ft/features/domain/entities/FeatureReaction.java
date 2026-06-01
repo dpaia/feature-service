@@ -4,14 +4,13 @@ import com.sivalabs.ft.features.domain.models.ReactionType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.Instant;
-
 @Entity
-@Table(name = "feature_reactions", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"feature_id", "user_id"})
-})
+@Table(
+        name = "feature_reactions",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"feature_id", "user_id"})})
 public class FeatureReaction {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "feature_reactions_id_gen")
@@ -21,29 +20,23 @@ public class FeatureReaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feature_id", nullable = false)
-    @NotNull
-    private Feature feature;
+    @NotNull private Feature feature;
 
-    @Size(max = 255)
-    @NotNull
-    @Column(name = "user_id", nullable = false)
+    @Size(max = 255) @NotNull @Column(name = "user_id", nullable = false)
     private String userId;
 
-    @NotNull
-    @Column(name = "reaction_type", nullable = false, length = 20)
+    @NotNull @Column(name = "reaction_type", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private ReactionType reactionType;
 
-    @NotNull
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public FeatureReaction() {
-    }
+    public FeatureReaction() {}
 
     public FeatureReaction(Feature feature, String userId, ReactionType reactionType) {
         this.feature = feature;
