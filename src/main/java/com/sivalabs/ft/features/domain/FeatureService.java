@@ -1,5 +1,7 @@
 package com.sivalabs.ft.features.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
@@ -10,17 +12,22 @@ import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import com.sivalabs.ft.features.domain.models.NotificationEventType;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class FeatureService {
+    private static final Logger logger = LoggerFactory.getLogger(FeatureService.class);
     public static final String FEATURE_SEPARATOR = "-";
     private final FavoriteFeatureService favoriteFeatureService;
     private final ReleaseRepository releaseRepository;
@@ -29,6 +36,9 @@ public class FeatureService {
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
     private final FeatureMapper featureMapper;
+    private final NotificationService notificationService;
+    private final NotificationRecipientService recipientService;
+    private final ObjectMapper objectMapper;
 
     FeatureService(
             FavoriteFeatureService favoriteFeatureService,
@@ -37,7 +47,10 @@ public class FeatureService {
             ProductRepository productRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
             EventPublisher eventPublisher,
-            FeatureMapper featureMapper) {
+            FeatureMapper featureMapper,
+            NotificationService notificationService,
+            NotificationRecipientService recipientService,
+            ObjectMapper objectMapper) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
@@ -45,6 +58,9 @@ public class FeatureService {
         this.eventPublisher = eventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
         this.featureMapper = featureMapper;
+        this.notificationService = notificationService;
+        this.recipientService = recipientService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
@@ -106,6 +122,12 @@ public class FeatureService {
         feature.setCreatedAt(Instant.now());
         featureRepository.save(feature);
         eventPublisher.publishFeatureCreatedEvent(feature);
+
+        // Create notifications synchronously
+        // Pass createdBy as excludeUser to filter out self-notifications
+        // (e.g., when user creates feature and assigns it to themselves)
+        createNotificationsForFeature(feature, NotificationEventType.FEATURE_CREATED, "created", cmd.createdBy());
+
         return code;
     }
 
@@ -126,13 +148,55 @@ public class FeatureService {
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
         eventPublisher.publishFeatureUpdatedEvent(feature);
+
+        // Create notifications synchronously
+        // Pass updatedBy as excludeUser to filter out self-notifications
+        // (e.g., when user updates feature they're assigned to)
+        createNotificationsForFeature(feature, NotificationEventType.FEATURE_UPDATED, "updated", cmd.updatedBy());
     }
 
     @Transactional
     public void deleteFeature(DeleteFeatureCommand cmd) {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
+
+        // Create notifications before deletion
+        // Pass deletedBy as excludeUser to filter out self-notifications
+        // (e.g., when user deletes feature they're assigned to or created)
+        createNotificationsForFeature(feature, NotificationEventType.FEATURE_DELETED, "deleted", cmd.deletedBy());
+
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+    }
+
+    private void createNotificationsForFeature(
+            Feature feature, NotificationEventType eventType, String action, String excludeUser) {
+        FeatureDto featureDto = featureMapper.toDto(feature);
+        Set<String> recipients = recipientService.getFeatureNotificationRecipients(featureDto, excludeUser);
+
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        // Prepare event details once (same for all recipients)
+        Map<String, Object> eventDetails = new HashMap<>();
+        eventDetails.put("action", action);
+        eventDetails.put("featureCode", feature.getCode());
+        eventDetails.put("title", feature.getTitle());
+        if (feature.getStatus() != null) {
+            eventDetails.put("status", feature.getStatus().name());
+        }
+
+        try {
+            String eventDetailsJson = objectMapper.writeValueAsString(eventDetails);
+            String link = "/features/" + feature.getCode();
+
+            for (String recipientUserId : recipients) {
+                notificationService.createNotification(recipientUserId, eventType, eventDetailsJson, link);
+                logger.debug("Created notification for user {} about feature {}", recipientUserId, feature.getCode());
+            }
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize event details for feature {}", feature.getCode(), e);
+        }
     }
 }
