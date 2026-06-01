@@ -9,8 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
-import com.sivalabs.ft.features.domain.FeatureService;
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
+import com.sivalabs.ft.features.domain.FeatureService;
 import com.sivalabs.ft.features.domain.entities.Feature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,15 +31,15 @@ class FeatureEventTests extends AbstractIT {
 
     @Autowired
     private FeatureService featureService;
-    
+
     @Autowired
     private TestEventListener testEventListener;
-    
+
     @BeforeEach
     void setUp() {
         testEventListener.reset();
     }
-    
+
     /**
      * Test configuration that provides a test event listener to capture events.
      */
@@ -51,28 +51,29 @@ class FeatureEventTests extends AbstractIT {
             return new TestEventListener();
         }
     }
-    
+
     /**
      * Test event listener that captures FeatureCreatedApplicationEvents for verification.
      */
     static class TestEventListener {
         private final FeatureEventListener delegate = mock(FeatureEventListener.class);
-        
+
         void reset() {
             clearInvocations(delegate);
         }
-        
+
         @EventListener
         public void handleFeatureCreatedEvent(FeatureCreatedApplicationEvent event) {
             delegate.handleFeatureCreatedEvent(event);
         }
-        
+
         public void verifyEventReceived(int times) {
             verify(delegate, times(times)).handleFeatureCreatedEvent(any(FeatureCreatedApplicationEvent.class));
         }
-        
+
         public Feature getCapturedFeature() {
-            ArgumentCaptor<FeatureCreatedApplicationEvent> captor = ArgumentCaptor.forClass(FeatureCreatedApplicationEvent.class);
+            ArgumentCaptor<FeatureCreatedApplicationEvent> captor =
+                    ArgumentCaptor.forClass(FeatureCreatedApplicationEvent.class);
             verify(delegate).handleFeatureCreatedEvent(captor.capture());
             return captor.getValue().getFeature();
         }
@@ -103,16 +104,16 @@ class FeatureEventTests extends AbstractIT {
                 .content(payload)
                 .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
-        
+
         // Verify that the event listener was called
         testEventListener.verifyEventReceived(1);
-        
+
         // Verify feature details from the event
         Feature feature = testEventListener.getCapturedFeature();
         assertThat(feature).isNotNull();
         assertThat(feature.getTitle()).isEqualTo("Event Test Feature");
     }
-    
+
     /**
      * Test that verifies a FeatureCreatedApplicationEvent is published when a feature is created
      * directly via the FeatureService and that the event listener handles the event.
@@ -126,15 +127,14 @@ class FeatureEventTests extends AbstractIT {
                 "Service Event Test Feature",
                 "Testing event publishing and handling via service",
                 "jane.doe",
-                "test-user"
-        );
-        
+                "test-user");
+
         String featureCode = featureService.createFeature(command);
         assertThat(featureCode).isNotNull();
-        
+
         // Verify that the event listener was called
         testEventListener.verifyEventReceived(1);
-        
+
         // Verify feature details from the event
         Feature feature = testEventListener.getCapturedFeature();
         assertThat(feature).isNotNull();

@@ -24,9 +24,8 @@ public class FeatureEventListener {
     @EventListener
     public void handleFeatureCreatedEvent(FeatureCreatedApplicationEvent event) {
         Feature feature = event.getFeature();
-        logger.info("Feature created event received - ID: {}, Name: {}", 
-                feature.getId(), feature.getTitle());
-        
+        logger.info("Feature created event received - ID: {}, Name: {}", feature.getId(), feature.getTitle());
+
         // Additional business logic can be added here
         // For example:
         // - Send notifications
