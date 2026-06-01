@@ -14,7 +14,7 @@ public class EventPublisher {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public EventPublisher(
-            KafkaTemplate<String, Object> kafkaTemplate, 
+            KafkaTemplate<String, Object> kafkaTemplate,
             ApplicationProperties properties,
             ApplicationEventPublisher applicationEventPublisher) {
         this.kafkaTemplate = kafkaTemplate;
@@ -33,10 +33,10 @@ public class EventPublisher {
                 feature.getAssignedTo(),
                 feature.getCreatedBy(),
                 feature.getCreatedAt());
-        
+
         // Publish to Kafka
         kafkaTemplate.send(properties.events().newFeatures(), event);
-        
+
         // Publish to Spring's event system
         applicationEventPublisher.publishEvent(event);
     }
@@ -54,10 +54,10 @@ public class EventPublisher {
                 feature.getCreatedAt(),
                 feature.getUpdatedBy(),
                 feature.getUpdatedAt());
-        
+
         // Publish to Kafka
         kafkaTemplate.send(properties.events().updatedFeatures(), event);
-        
+
         // Publish to Spring's event system
         applicationEventPublisher.publishEvent(event);
     }
@@ -77,10 +77,10 @@ public class EventPublisher {
                 feature.getUpdatedAt(),
                 deletedBy,
                 deletedAt);
-        
+
         // Publish to Kafka
         kafkaTemplate.send(properties.events().deletedFeatures(), event);
-        
+
         // Publish to Spring's event system
         applicationEventPublisher.publishEvent(event);
     }

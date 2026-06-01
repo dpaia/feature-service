@@ -27,6 +27,7 @@ public class FeatureUpdatedEvent extends FeatureEvent {
     public String getUpdatedBy() {
         return updatedBy;
     }
+
     public Instant getUpdatedAt() {
         return updatedAt;
     }

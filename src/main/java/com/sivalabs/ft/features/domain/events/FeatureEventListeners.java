@@ -13,28 +13,40 @@ public class FeatureEventListeners {
     @EventListener
     @Order(1)
     public void handleFeatureEvent(FeatureEvent event) {
-        logger.info("Base listener - Received feature event for feature with ID: {}, code: {}, type: {}",
-                event.getId(), event.getCode(), event.getClass().getSimpleName());
+        logger.info(
+                "Base listener - Received feature event for feature with ID: {}, code: {}, type: {}",
+                event.getId(),
+                event.getCode(),
+                event.getClass().getSimpleName());
     }
 
     @EventListener
     @Order(2)
     public void handleFeatureCreatedEvent(FeatureCreatedEvent event) {
-        logger.info("Specific listener - Feature created with ID: {}, code: {}, by: {}",
-                event.getId(), event.getCode(), event.getCreatedBy());
+        logger.info(
+                "Specific listener - Feature created with ID: {}, code: {}, by: {}",
+                event.getId(),
+                event.getCode(),
+                event.getCreatedBy());
     }
 
     @EventListener
     @Order(2)
     public void handleFeatureUpdatedEvent(FeatureUpdatedEvent event) {
-        logger.info("Specific listener - Feature updated with ID: {}, code: {}, by: {}",
-                event.getId(), event.getCode(), event.getUpdatedBy());
+        logger.info(
+                "Specific listener - Feature updated with ID: {}, code: {}, by: {}",
+                event.getId(),
+                event.getCode(),
+                event.getUpdatedBy());
     }
 
     @EventListener
     @Order(2)
     public void handleFeatureDeletedEvent(FeatureDeletedEvent event) {
-        logger.info("Specific listener - Feature deleted with ID: {}, code: {}, by: {}",
-                event.getId(), event.getCode(), event.getDeletedBy());
+        logger.info(
+                "Specific listener - Feature deleted with ID: {}, code: {}, by: {}",
+                event.getId(),
+                event.getCode(),
+                event.getDeletedBy());
     }
 }
