@@ -1,5 +1,9 @@
 package com.sivalabs.ft.features.domain.events;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.TestcontainersConfiguration;
 import com.sivalabs.ft.features.domain.Commands;
@@ -19,10 +23,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.jdbc.Sql;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 
 /**
  * Integration tests for transactional event listener behavior.
@@ -63,7 +63,6 @@ class TransactionPhasesEventListenerTest {
         }
     }
 
-
     /**
      * CRITICAL TEST: This test verifies that events are published AFTER transaction commits.
      * <p>
@@ -96,7 +95,8 @@ class TransactionPhasesEventListenerTest {
         // Given: Configure EventPublisher to throw exception when trying to publish
         // This simulates a failure in the event publishing infrastructure (e.g., Kafka down)
         Mockito.doThrow(new RuntimeException("Simulated Kafka failure"))
-                .when(eventPublisher).publishFeatureCreatedEvent(any());
+                .when(eventPublisher)
+                .publishFeatureCreatedEvent(any());
 
         // When: Create a feature (this will save to DB and attempt to publish event)
         Commands.CreateFeatureCommand command = new Commands.CreateFeatureCommand(
@@ -105,8 +105,7 @@ class TransactionPhasesEventListenerTest {
                 "Feature to test AFTER_COMMIT phase",
                 "This test proves events are published AFTER commit",
                 "assignee",
-                "creator"
-        );
+                "creator");
 
         String featureCode = null;
         try {
@@ -127,8 +126,10 @@ class TransactionPhasesEventListenerTest {
         // We can verify using isFeatureExists which is a public API
         if (featureCode != null) {
             assertThat(featureService.isFeatureExists(featureCode)).isTrue();
-            logger.info("SUCCESS: Feature {} exists in database, proving transaction committed " +
-                    "BEFORE EventPublisher was invoked (AFTER_COMMIT phase working correctly)", featureCode);
+            logger.info(
+                    "SUCCESS: Feature {} exists in database, proving transaction committed "
+                            + "BEFORE EventPublisher was invoked (AFTER_COMMIT phase working correctly)",
+                    featureCode);
         } else {
             // If we caught exception, the createFeature should still have returned the code
             // before the listener threw exception (since listener runs after method returns)
@@ -153,8 +154,7 @@ class TransactionPhasesEventListenerTest {
                 "Test Feature for Commit",
                 "Test Description for successful commit",
                 "assignee",
-                "creator"
-        );
+                "creator");
 
         // When creating a feature (which should succeed)
         String featureCode = featureService.createFeature(command);
@@ -167,7 +167,8 @@ class TransactionPhasesEventListenerTest {
         Mockito.verify(kafkaTemplate).send(topicCaptor.capture(), eventCaptor.capture());
 
         // Verify the topic
-        assertThat(topicCaptor.getValue()).isEqualTo(applicationProperties.events().newFeatures());
+        assertThat(topicCaptor.getValue())
+                .isEqualTo(applicationProperties.events().newFeatures());
 
         // Verify the event contents
         FeatureCreatedEvent capturedEvent = eventCaptor.getValue();
@@ -192,13 +193,11 @@ class TransactionPhasesEventListenerTest {
                 "Test Feature for Rollback",
                 "Test Description for rollback",
                 "assignee",
-                "creator"
-        );
+                "creator");
 
         // When attempting to create a feature (which should fail)
         // Then verify that an exception is thrown
-        assertThatThrownBy(() -> featureService.createFeature(command))
-                .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> featureService.createFeature(command)).isInstanceOf(Exception.class);
 
         // And verify that KafkaTemplate was not invoked (since the transaction was rolled back)
         Mockito.verifyNoInteractions(kafkaTemplate);
@@ -217,7 +216,8 @@ class TransactionPhasesEventListenerTest {
         // Given: Existing feature and EventPublisher configured to throw exception on update
         String existingFeatureCode = "IDEA-1";
         Mockito.doThrow(new RuntimeException("Simulated Kafka failure on update"))
-                .when(eventPublisher).publishFeatureUpdatedEvent(any());
+                .when(eventPublisher)
+                .publishFeatureUpdatedEvent(any());
 
         // When: Update the feature
         Commands.UpdateFeatureCommand command = new Commands.UpdateFeatureCommand(
@@ -227,8 +227,7 @@ class TransactionPhasesEventListenerTest {
                 FeatureStatus.IN_PROGRESS,
                 "IDEA-2024.2.3",
                 "new-assignee",
-                "updater"
-        );
+                "updater");
 
         try {
             featureService.updateFeature(command);
@@ -262,8 +261,7 @@ class TransactionPhasesEventListenerTest {
                 FeatureStatus.IN_PROGRESS,
                 "IDEA-2024.2.3", // Valid release code
                 "new-assignee",
-                "updater"
-        );
+                "updater");
 
         // When updating the feature (which should succeed)
         featureService.updateFeature(command);
@@ -276,7 +274,8 @@ class TransactionPhasesEventListenerTest {
         Mockito.verify(kafkaTemplate).send(topicCaptor.capture(), eventCaptor.capture());
 
         // Verify the topic
-        assertThat(topicCaptor.getValue()).isEqualTo(applicationProperties.events().updatedFeatures());
+        assertThat(topicCaptor.getValue())
+                .isEqualTo(applicationProperties.events().updatedFeatures());
 
         // Verify the event contents
         FeatureUpdatedEvent capturedEvent = eventCaptor.getValue();
@@ -302,13 +301,11 @@ class TransactionPhasesEventListenerTest {
                 FeatureStatus.IN_PROGRESS,
                 "IDEA-2024.2.3",
                 "assignee",
-                "updater"
-        );
+                "updater");
 
         // When attempting to update a non-existent feature (which should fail)
         // Then verify that an exception is thrown
-        assertThatThrownBy(() -> featureService.updateFeature(command))
-                .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> featureService.updateFeature(command)).isInstanceOf(Exception.class);
 
         // And verify that KafkaTemplate was not invoked (since the transaction was rolled back)
         Mockito.verifyNoInteractions(kafkaTemplate);
@@ -327,16 +324,14 @@ class TransactionPhasesEventListenerTest {
         // Given: Existing feature and EventPublisher configured to throw exception on delete
         String existingFeatureCode = "GO-3";
         Mockito.doThrow(new RuntimeException("Simulated Kafka failure on delete"))
-                .when(eventPublisher).publishFeatureDeletedEvent(any(), any(), any());
+                .when(eventPublisher)
+                .publishFeatureDeletedEvent(any(), any(), any());
 
         // Verify feature exists before deletion using public API
         assertThat(featureService.isFeatureExists(existingFeatureCode)).isTrue();
 
         // When: Delete the feature
-        Commands.DeleteFeatureCommand command = new Commands.DeleteFeatureCommand(
-                existingFeatureCode,
-                "deleter"
-        );
+        Commands.DeleteFeatureCommand command = new Commands.DeleteFeatureCommand(existingFeatureCode, "deleter");
 
         try {
             featureService.deleteFeature(command);
@@ -360,10 +355,7 @@ class TransactionPhasesEventListenerTest {
         String existingFeatureCode = "IDEA-2";
 
         // And a delete command
-        Commands.DeleteFeatureCommand command = new Commands.DeleteFeatureCommand(
-                existingFeatureCode,
-                "deleter"
-        );
+        Commands.DeleteFeatureCommand command = new Commands.DeleteFeatureCommand(existingFeatureCode, "deleter");
 
         // When deleting the feature (which should succeed)
         featureService.deleteFeature(command);
@@ -376,7 +368,8 @@ class TransactionPhasesEventListenerTest {
         Mockito.verify(kafkaTemplate).send(topicCaptor.capture(), eventCaptor.capture());
 
         // Verify the topic
-        assertThat(topicCaptor.getValue()).isEqualTo(applicationProperties.events().deletedFeatures());
+        assertThat(topicCaptor.getValue())
+                .isEqualTo(applicationProperties.events().deletedFeatures());
 
         // Verify the event contents
         FeatureDeletedEvent capturedEvent = eventCaptor.getValue();
@@ -396,13 +389,11 @@ class TransactionPhasesEventListenerTest {
         // Given a delete command with non-existent feature code
         Commands.DeleteFeatureCommand command = new Commands.DeleteFeatureCommand(
                 "NONEXISTENT-999", // Invalid feature code
-                "deleter"
-        );
+                "deleter");
 
         // When attempting to delete a non-existent feature (which should fail)
         // Then verify that an exception is thrown
-        assertThatThrownBy(() -> featureService.deleteFeature(command))
-                .isInstanceOf(Exception.class);
+        assertThatThrownBy(() -> featureService.deleteFeature(command)).isInstanceOf(Exception.class);
 
         // And verify that KafkaTemplate was not invoked (since the transaction was rolled back)
         Mockito.verifyNoInteractions(kafkaTemplate);
@@ -414,13 +405,7 @@ class TransactionPhasesEventListenerTest {
 
         // Given: Create a feature successfully
         Commands.CreateFeatureCommand createCommand = new Commands.CreateFeatureCommand(
-                "intellij",
-                "IDEA-2024.2.3",
-                "Feature for Mixed Test",
-                "Description",
-                "assignee",
-                "creator"
-        );
+                "intellij", "IDEA-2024.2.3", "Feature for Mixed Test", "Description", "assignee", "creator");
         String createdFeatureCode = featureService.createFeature(createCommand);
 
         // When: Update the same feature successfully
@@ -431,19 +416,12 @@ class TransactionPhasesEventListenerTest {
                 FeatureStatus.IN_PROGRESS,
                 "IDEA-2024.2.3",
                 "assignee",
-                "updater"
-        );
+                "updater");
         featureService.updateFeature(updateCommand);
 
         // And: Attempt to create another feature with invalid data (should fail)
         Commands.CreateFeatureCommand failingCommand = new Commands.CreateFeatureCommand(
-                "nonexistent-product",
-                "IDEA-2024.2.3",
-                "Failing Feature",
-                "Description",
-                "assignee",
-                "creator"
-        );
+                "nonexistent-product", "IDEA-2024.2.3", "Failing Feature", "Description", "assignee", "creator");
 
         try {
             featureService.createFeature(failingCommand);

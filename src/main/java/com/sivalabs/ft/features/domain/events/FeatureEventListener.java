@@ -12,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 public class FeatureEventListener {
     private static final Logger logger = LoggerFactory.getLogger(FeatureEventListener.class);
-    
+
     private final EventPublisher eventPublisher;
 
     public FeatureEventListener(EventPublisher eventPublisher) {
@@ -21,23 +21,25 @@ public class FeatureEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleFeatureCreatedEvent(InternalFeatureCreatedEvent event) {
-        logger.info("Processing feature created event after transaction commit: {}", 
+        logger.info(
+                "Processing feature created event after transaction commit: {}",
                 event.feature().getCode());
         eventPublisher.publishFeatureCreatedEvent(event.feature());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleFeatureUpdatedEvent(InternalFeatureUpdatedEvent event) {
-        logger.info("Processing feature updated event after transaction commit: {}", 
+        logger.info(
+                "Processing feature updated event after transaction commit: {}",
                 event.feature().getCode());
         eventPublisher.publishFeatureUpdatedEvent(event.feature());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleFeatureDeletedEvent(InternalFeatureDeletedEvent event) {
-        logger.info("Processing feature deleted event after transaction commit: {}", 
+        logger.info(
+                "Processing feature deleted event after transaction commit: {}",
                 event.feature().getCode());
-        eventPublisher.publishFeatureDeletedEvent(
-                event.feature(), event.deletedBy(), event.deletedAt());
+        eventPublisher.publishFeatureDeletedEvent(event.feature(), event.deletedBy(), event.deletedAt());
     }
 }

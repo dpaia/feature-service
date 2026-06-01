@@ -147,7 +147,6 @@ public class FeatureService {
         // Publish internal event within the transaction
         // This will be processed by the TransactionalEventListener after the transaction commits
         Instant deletedAt = Instant.now();
-        applicationEventPublisher.publishEvent(
-                new InternalFeatureDeletedEvent(feature, cmd.deletedBy(), deletedAt));
+        applicationEventPublisher.publishEvent(new InternalFeatureDeletedEvent(feature, cmd.deletedBy(), deletedAt));
     }
 }

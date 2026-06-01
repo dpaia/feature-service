@@ -8,9 +8,6 @@ import java.time.Instant;
  * This event is published within the transaction and will be processed
  * by a TransactionalEventListener after the transaction commits.
  */
-public record InternalFeatureDeletedEvent(
-        Feature feature,
-        String deletedBy,
-        Instant deletedAt) {
+public record InternalFeatureDeletedEvent(Feature feature, String deletedBy, Instant deletedAt) {
     // Additional information about who deleted the feature and when
 }
