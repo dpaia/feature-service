@@ -44,20 +44,60 @@ def _prefix(name):
     return re.sub(r"\(.*\)$", "", name)
 
 
+def _normalize_name(name):
+    """Normalize legacy expected/JUnit names before compatibility matching."""
+    name = name.replace("\\", "/")
+    if "/" in name:
+        name = name.rsplit("/", 1)[-1]
+    if name.endswith(".java"):
+        name = name[:-5]
+    return name.replace("#", ".").replace("+", ".")
+
+
+def _class_key(name):
+    """Return a stable class key for class-level expected names."""
+    normalized = _prefix(_normalize_name(name))
+    parts = normalized.split(".")
+    for index, part in enumerate(parts):
+        if re.search(r"(Test|Tests|IT)$", part):
+            return ".".join(parts[: index + 1])
+    return normalized
+
+
+def _simple_class_key(name):
+    return _class_key(name).split(".")[-1]
+
+
 def _test_in(name, name_set):
     """Match by exact name, prefix (parameterized tests), or class-level prefix.
 
     Supports class-level expected names like 'com.example.FooTest' matching
     method-level actual names like 'com.example.FooTest.shouldDoSomething'.
+    Also accepts legacy issue metadata forms such as Class#method,
+    ClassName.java, and bare class names.
     """
-    if name in name_set:
+    normalized_name = _normalize_name(name)
+    normalized_set = {_normalize_name(n) for n in name_set}
+    if normalized_name in normalized_set:
         return True
-    pname = _prefix(name)
-    if pname in {_prefix(n) for n in name_set}:
+    pname = _prefix(normalized_name)
+    if pname in {_prefix(n) for n in normalized_set}:
+        return True
+    # Method-level legacy names may omit the package:
+    # 'FooTest.testA' should match 'pkg.FooTest.testA'.
+    if any(n.endswith("." + normalized_name) for n in normalized_set):
         return True
     # Class-level match: expected 'a.b.FooTest' matches 'a.b.FooTest.method'
-    class_prefix = name + "."
-    return any(n.startswith(class_prefix) for n in name_set)
+    class_key = _class_key(normalized_name)
+    is_class_level_expected = _prefix(normalized_name) == class_key
+    if not is_class_level_expected:
+        return False
+
+    class_prefix = class_key + "."
+    if any(n.startswith(class_prefix) for n in normalized_set):
+        return True
+    simple_class = _simple_class_key(normalized_name)
+    return any(_simple_class_key(n) == simple_class for n in normalized_set)
 
 
 def _evaluate_criterion(expected, eval_passed, baseline_passed, baseline_failed,

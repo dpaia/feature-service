@@ -5,7 +5,14 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
+    "fail_to_pass": [
+      "ReleaseFeaturePlanningIntegrationTests#shouldValidateEmptyPayloadStructure",
+      "ReleaseFeaturePlanningIntegrationTests#shouldValidateRequiredFieldsInAssignFeaturePayload",
+      "ReleaseFeaturePlanningIntegrationTests#shouldValidateDateFormatInAssignFeaturePayload",
+      "ReleaseFeaturePlanningIntegrationTests#shouldValidateDateFormatInUpdateFeaturePlanningPayload",
+      "ReleaseFeaturePlanningIntegrationTests#shouldValidateStatusEnumInUpdateFeaturePlanningPayload",
+      "ReleaseFeaturePlanningIntegrationTests#shouldHandleInvalidPlanningStatusFilter"
+    ],
     "pass_to_pass": []
   },
   "environment": {
