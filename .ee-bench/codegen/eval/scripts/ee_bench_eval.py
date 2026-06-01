@@ -83,6 +83,10 @@ def _test_in(name, name_set):
     pname = _prefix(normalized_name)
     if pname in {_prefix(n) for n in normalized_set}:
         return True
+    # Method-level legacy names may omit the package:
+    # 'FooTest.testA' should match 'pkg.FooTest.testA'.
+    if any(n.endswith("." + normalized_name) for n in normalized_set):
+        return True
     # Class-level match: expected 'a.b.FooTest' matches 'a.b.FooTest.method'
     class_key = _class_key(normalized_name)
     is_class_level_expected = _prefix(normalized_name) == class_key
