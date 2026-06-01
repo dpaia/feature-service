@@ -1,17 +1,23 @@
 package com.sivalabs.ft.features.domain.dtos;
 
-import com.sivalabs.ft.features.domain.models.ReleaseStatus;
+import com.sivalabs.ft.features.domain.models.MilestoneStatus;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.List;
 
-public record ReleaseDto(
+public record MilestoneDto(
         Long id,
         String code,
+        String name,
         String description,
-        ReleaseStatus status,
-        Instant releasedAt,
-        String milestoneCode,
+        Instant targetDate,
+        Instant actualDate,
+        MilestoneStatus status,
         String productCode,
+        String owner,
+        String notes,
+        Integer progress,
+        List<MilestoneReleaseDto> releases,
         String createdBy,
         Instant createdAt,
         String updatedBy,

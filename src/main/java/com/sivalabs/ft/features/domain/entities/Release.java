@@ -34,6 +34,10 @@ public class Release {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "milestone_id")
+    private Milestone milestone;
+
     @Size(max = 50) @NotNull @Column(name = "code", nullable = false, length = 50)
     private String code;
 
@@ -77,6 +81,14 @@ public class Release {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public Milestone getMilestone() {
+        return milestone;
+    }
+
+    public void setMilestone(Milestone milestone) {
+        this.milestone = milestone;
     }
 
     public String getCode() {
