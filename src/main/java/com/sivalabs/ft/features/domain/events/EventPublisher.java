@@ -2,10 +2,9 @@ package com.sivalabs.ft.features.domain.events;
 
 import com.sivalabs.ft.features.ApplicationProperties;
 import com.sivalabs.ft.features.domain.entities.Feature;
+import java.time.Instant;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
 
 @Component
 public class EventPublisher {
@@ -27,7 +26,7 @@ public class EventPublisher {
         // Simple role determination based on username
         // In a real application, this would use proper role management
         String creatorRole = determineRole(feature.getCreatedBy());
-        
+
         FeatureCreatedEvent event = new FeatureCreatedEvent(
                 feature.getId(),
                 feature.getCode(),
@@ -41,7 +40,7 @@ public class EventPublisher {
                 feature.getCreatedAt());
         kafkaTemplate.send(properties.events().newFeatures(), event);
     }
-    
+
     /**
      * Determines the role of a user based on their username.
      * This is a simplified implementation for demonstration purposes.

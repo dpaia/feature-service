@@ -1,16 +1,15 @@
 package com.sivalabs.ft.features.domain.events;
 
+import static org.mockito.Mockito.*;
+
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.Instant;
-
-import static org.mockito.Mockito.*;
 
 /**
  * Tests for the conditional event processing in FeatureEventListener.
@@ -39,8 +38,7 @@ class FeatureEventListenerTest {
                 "user1",
                 "admin",
                 "ADMIN",
-                Instant.now()
-        );
+                Instant.now());
 
         // Create an event with USER role
         new FeatureCreatedEvent(
@@ -53,8 +51,7 @@ class FeatureEventListenerTest {
                 "user1",
                 "user",
                 "USER",
-                Instant.now()
-        );
+                Instant.now());
     }
 
     /**
@@ -110,7 +107,7 @@ class FeatureEventListenerTest {
         // This would be implemented as an integration test in a real application
         // using the Spring application context to publish events and verify
         // that the listener is only called for admin events.
-        
+
         // For demonstration purposes, we'll just document the expected behavior:
         // 1. When an event with creatorRole="ADMIN" is published, the listener should process it
         // 2. When an event with creatorRole="USER" is published, the listener should not process it
