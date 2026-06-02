@@ -16,8 +16,9 @@ public class EventPublisher {
         this.properties = properties;
     }
 
-    public void publishFeatureCreatedEvent(Feature feature) {
+    public void publishFeatureCreatedEvent(String eventId, Feature feature) {
         FeatureCreatedEvent event = new FeatureCreatedEvent(
+                eventId,
                 feature.getId(),
                 feature.getCode(),
                 feature.getTitle(),
@@ -30,8 +31,9 @@ public class EventPublisher {
         kafkaTemplate.send(properties.events().newFeatures(), event);
     }
 
-    public void publishFeatureUpdatedEvent(Feature feature) {
+    public void publishFeatureUpdatedEvent(String eventId, Feature feature) {
         FeatureUpdatedEvent event = new FeatureUpdatedEvent(
+                eventId,
                 feature.getId(),
                 feature.getCode(),
                 feature.getTitle(),
@@ -46,8 +48,9 @@ public class EventPublisher {
         kafkaTemplate.send(properties.events().updatedFeatures(), event);
     }
 
-    public void publishFeatureDeletedEvent(Feature feature, String deletedBy, Instant deletedAt) {
+    public void publishFeatureDeletedEvent(String eventId, Feature feature, String deletedBy, Instant deletedAt) {
         FeatureDeletedEvent event = new FeatureDeletedEvent(
+                eventId,
                 feature.getId(),
                 feature.getCode(),
                 feature.getTitle(),
