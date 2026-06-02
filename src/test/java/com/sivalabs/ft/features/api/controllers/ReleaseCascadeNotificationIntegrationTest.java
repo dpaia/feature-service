@@ -1,6 +1,8 @@
 package com.sivalabs.ft.features.api.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sivalabs.ft.features.AbstractIT;
@@ -8,6 +10,9 @@ import com.sivalabs.ft.features.MockOAuth2UserContextFactory;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
 import com.sivalabs.ft.features.api.models.CreateReleasePayload;
+import com.sivalabs.ft.features.testsupport.MockJavaMailSenderConfig;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,9 +23,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -29,6 +36,7 @@ import org.springframework.test.context.jdbc.Sql;
  * Tests that notifications are created when release status changes to significant states
  */
 @Sql("/test-data.sql")
+@Import(MockJavaMailSenderConfig.class)
 class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
 
     @Autowired
@@ -36,6 +44,9 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JavaMailSender javaMailSender;
 
     private final MockOAuth2UserContextFactory contextFactory = new MockOAuth2UserContextFactory();
 
@@ -45,6 +56,8 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
         jdbcTemplate.execute("DELETE FROM notifications");
         jdbcTemplate.execute("DELETE FROM features WHERE code LIKE 'TEST-%'");
         jdbcTemplate.execute("DELETE FROM releases WHERE code LIKE 'TEST-%'");
+        reset(javaMailSender);
+        when(javaMailSender.createMimeMessage()).thenAnswer(inv -> new MimeMessage((Session) null));
     }
 
     @AfterEach
@@ -53,6 +66,20 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
         jdbcTemplate.execute("DELETE FROM notifications");
         jdbcTemplate.execute("DELETE FROM features WHERE code LIKE 'TEST-%'");
         jdbcTemplate.execute("DELETE FROM releases WHERE code LIKE 'TEST-%'");
+    }
+
+    private List<Map<String, Object>> getNotificationsForUser(String userId) {
+        return jdbcTemplate.queryForList(
+                "SELECT * FROM notifications WHERE recipient_user_id = ? ORDER BY created_at", userId);
+    }
+
+    private void verifyNotificationDeliveredForUser(String userId) {
+        List<Map<String, Object>> notifications = getNotificationsForUser(userId);
+        assertThat(notifications).hasSize(1);
+        Map<String, Object> notification = notifications.getFirst();
+        assertThat(notification.get("delivery_status")).isEqualTo("DELIVERED");
+        assertThat(notification.get("read")).isEqualTo(false);
+        assertThat(notification.get("recipient_email")).isNotNull();
     }
 
     private void setAuthenticationContext(String username) {
@@ -182,7 +209,7 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
             assertThat(notification.get("event_type")).isEqualTo("RELEASE_UPDATED");
             assertThat(notification.get("link")).isEqualTo("/releases/IDEA-TEST-REL-100");
             assertThat(notification.get("read")).isEqualTo(false);
-            assertThat(notification.get("delivery_status")).isEqualTo("PENDING");
+            assertThat(notification.get("delivery_status")).isEqualTo("DELIVERED");
 
             // Verify event details contain key information (format-agnostic)
             String eventDetails = (String) notification.get("event_details");
@@ -246,19 +273,11 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
                 .content(updatePayload)
                 .exchange();
 
-        // Then - Verify notifications created
-        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
-        assertThat(totalNotifications).isEqualTo(1); // only developer (releaseManager excluded as updater)
-
-        // Verify developer received notification
-        Integer developerNotifications = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "developer");
-        assertThat(developerNotifications).isEqualTo(1);
+        // Then - Verify developer received exactly one delivered notification
+        verifyNotificationDeliveredForUser("developer");
 
         // Verify releaseManager (updater) did NOT receive notification
-        Integer updaterNotifications = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "releaseManager");
-        assertThat(updaterNotifications).isEqualTo(0);
+        assertThat(getNotificationsForUser("releaseManager")).isEmpty();
     }
 
     @Test
@@ -326,9 +345,8 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
                 .content(updatePayload)
                 .exchange();
 
-        // Then - Verify notifications created
-        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
-        assertThat(totalNotifications).isEqualTo(1);
+        // Then - Verify developer received exactly one delivered notification
+        verifyNotificationDeliveredForUser("developer");
     }
 
     @Test
@@ -458,14 +476,8 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
                 .content(updatePayload)
                 .exchange();
 
-        // Then - Verify only 1 notification created (deduplicated)
-        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
-        assertThat(totalNotifications).isEqualTo(1);
-
-        // Verify developer gets exactly one notification (deduplicated across multiple features)
-        Integer developerNotifications = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "developer");
-        assertThat(developerNotifications).isEqualTo(1);
+        // Then - Verify developer gets exactly one delivered notification (deduplicated across multiple features)
+        verifyNotificationDeliveredForUser("developer");
     }
 
     @Test
@@ -632,12 +644,11 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
         // Then - Verify success and notifications created
         assertThat(result).hasStatus2xxSuccessful();
 
-        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
-        assertThat(totalNotifications).isEqualTo(1); // developer only (releaseManager excluded)
+        verifyNotificationDeliveredForUser("developer");
 
-        // Verify notification details
-        String eventDetails = jdbcTemplate.queryForObject(
-                "SELECT event_details FROM notifications WHERE recipient_user_id = ?", String.class, "developer");
+        // Verify notification contains RELEASED in event details
+        String eventDetails =
+                (String) getNotificationsForUser("developer").getFirst().get("event_details");
         assertThat(eventDetails).contains("RELEASED");
     }
 
@@ -833,12 +844,11 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
         // Then - Verify success and notifications created
         assertThat(result).hasStatus2xxSuccessful();
 
-        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
-        assertThat(totalNotifications).isEqualTo(1); // developer only (releaseManager excluded)
+        verifyNotificationDeliveredForUser("developer");
 
-        // Verify notification contains CANCELLED status
-        String eventDetails = jdbcTemplate.queryForObject(
-                "SELECT event_details FROM notifications WHERE recipient_user_id = ?", String.class, "developer");
+        // Verify notification contains CANCELLED in event details
+        String eventDetails =
+                (String) getNotificationsForUser("developer").getFirst().get("event_details");
         assertThat(eventDetails).contains("CANCELLED");
     }
 
@@ -898,22 +908,11 @@ class ReleaseCascadeNotificationIntegrationTest extends AbstractIT {
         // Then - Verify both creator and assignee receive notifications
         assertThat(result).hasStatus2xxSuccessful();
 
-        Integer totalNotifications = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM notifications", Integer.class);
-        assertThat(totalNotifications).isEqualTo(2); // creator + assignee
-
-        // Verify creator received notification
-        Integer creatorNotifications = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "creator");
-        assertThat(creatorNotifications).isEqualTo(1);
-
-        // Verify assignee received notification
-        Integer assigneeNotifications = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "assignee");
-        assertThat(assigneeNotifications).isEqualTo(1);
+        // Verify both creator and assignee received delivered notifications
+        verifyNotificationDeliveredForUser("creator");
+        verifyNotificationDeliveredForUser("assignee");
 
         // Verify releaseManager (updater) did NOT receive notification
-        Integer updaterNotifications = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ?", Integer.class, "releaseManager");
-        assertThat(updaterNotifications).isEqualTo(0);
+        assertThat(getNotificationsForUser("releaseManager")).isEmpty();
     }
 }

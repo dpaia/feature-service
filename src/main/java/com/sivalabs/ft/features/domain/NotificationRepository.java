@@ -34,6 +34,22 @@ interface NotificationRepository extends ListCrudRepository<Notification, UUID> 
     int markAsUnread(UUID id, String recipientUserId);
 
     /**
+     * Mark notification as delivered
+     */
+    @Modifying
+    @Query(
+            "UPDATE Notification n SET n.deliveryStatus = 'DELIVERED' WHERE n.id = :id AND n.recipientUserId = :recipientUserId")
+    int markAsDelivered(UUID id, String recipientUserId);
+
+    /**
+     * Mark notification as failed
+     */
+    @Modifying
+    @Query(
+            "UPDATE Notification n SET n.deliveryStatus = 'FAILED' WHERE n.id = :id AND n.recipientUserId = :recipientUserId")
+    int markAsFailed(UUID id, String recipientUserId);
+
+    /**
      * Mark notification as read by ID only (for tracking pixel - no recipient check).
      * Idempotent: only updates if not already read.
      */

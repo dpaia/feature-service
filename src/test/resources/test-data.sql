@@ -45,7 +45,13 @@ insert into users (username, email) values
 ('user1', 'user1@example.com'),
 ('user2', 'user2@example.com'),
 ('otheruser', 'otheruser@example.com'),
-('marcobehler', 'marcobehler@example.com');
+('marcobehler', 'marcobehler@example.com'),
+('developer', 'developer@example.com'),
+('releaseManager', 'releaseManager@example.com'),
+('productOwner', 'productOwner@example.com'),
+('userA', 'userA@example.com'),
+('userB', 'userB@example.com'),
+('userC', 'userC@example.com');
 
 insert into comments (id, feature_id, created_by, content) values
 (1, 1, 'user', 'This is a comment on feature IDEA-1'),
