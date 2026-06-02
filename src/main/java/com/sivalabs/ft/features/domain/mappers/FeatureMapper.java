@@ -5,7 +5,9 @@ import com.sivalabs.ft.features.domain.entities.Feature;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(
+        componentModel = "spring",
+        uses = {TagMapper.class})
 public interface FeatureMapper {
     @Mapping(target = "releaseCode", source = "release.code", defaultExpression = "java( null )")
     @Mapping(target = "isFavorite", ignore = true)

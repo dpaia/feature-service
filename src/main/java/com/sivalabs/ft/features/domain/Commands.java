@@ -3,6 +3,7 @@ package com.sivalabs.ft.features.domain;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
+import java.util.List;
 
 public class Commands {
     private Commands() {}
@@ -42,4 +43,16 @@ public class Commands {
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    /* Tag Commands */
+    public record CreateTagCommand(String name, String description, String createdBy) {}
+
+    public record UpdateTagCommand(Long id, String name, String description, String updatedBy) {}
+
+    public record DeleteTagCommand(Long id, String deletedBy) {}
+
+    /* Feature Tag Commands */
+    public record AssignTagsToFeaturesCommand(List<String> featureCodes, List<Long> tagIds, String updatedBy) {}
+
+    public record RemoveTagsFromFeaturesCommand(List<String> featureCodes, List<Long> tagIds, String updatedBy) {}
 }

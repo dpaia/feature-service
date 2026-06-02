@@ -1,3 +1,5 @@
+delete from feature_tags;
+delete from tags;
 delete from favorite_features;
 delete from comments;
 delete from features;
@@ -34,3 +36,15 @@ insert into comments (id, feature_id, created_by, content) values
 (1, 1, 'user', 'This is a comment on feature IDEA-1'),
 (2,  1, 'user', 'This is a comment on feature IDEA-2'),
 (3, 1, 'user', 'This is a comment on feature GO-3');
+
+
+insert into tags (id, name, description, created_by, created_at) values
+(1, 'bug', 'Bug fix', 'admin', '2024-03-01 00:00:00'),
+(2, 'enhancement', 'Feature enhancement', 'admin', '2024-03-01 00:00:00'),
+(3, 'documentation', 'Documentation update', 'admin', '2024-03-01 00:00:00'),
+(4, 'performance', 'Performance improvement', 'admin', '2024-03-01 00:00:00');
+
+insert into feature_tags (feature_id, tag_id) values
+(1, 2),
+(1, 4),
+(3, 1);

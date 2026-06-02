@@ -1,6 +1,8 @@
 package com.sivalabs.ft.features.api.controllers;
 
+import com.sivalabs.ft.features.api.models.AssignTagsToFeaturesPayload;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
+import com.sivalabs.ft.features.api.models.RemoveTagsFromFeaturesPayload;
 import com.sivalabs.ft.features.api.models.UpdateFeaturePayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.*;
@@ -8,6 +10,7 @@ import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
+import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -196,5 +199,49 @@ class FeatureController {
         var cmd = new DeleteFeatureCommand(code, username);
         featureService.deleteFeature(cmd);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/tags")
+    @Operation(
+            summary = "Assign tags to multiple features",
+            description = "Assign multiple tags to multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Feature or Tag not found")
+            })
+    ResponseEntity<Void> assignTagsToFeatures(@RequestBody @Valid AssignTagsToFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new Commands.AssignTagsToFeaturesCommand(payload.featureCodes(), payload.tagIds(), username);
+        try {
+            featureService.assignTagsToFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/tags")
+    @Operation(
+            summary = "Remove tags from multiple features",
+            description = "Remove given tags from multiple features",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Successful response"),
+                @ApiResponse(responseCode = "400", description = "Invalid request"),
+                @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "403", description = "Forbidden"),
+                @ApiResponse(responseCode = "404", description = "Feature or Tag not found")
+            })
+    ResponseEntity<Void> removeTagsToFeatures(@RequestBody @Valid RemoveTagsFromFeaturesPayload payload) {
+        var username = SecurityUtils.getCurrentUsername();
+        var cmd = new Commands.RemoveTagsFromFeaturesCommand(payload.featureCodes(), payload.tagIds(), username);
+        try {
+            featureService.removeTagsFromFeatures(cmd);
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
