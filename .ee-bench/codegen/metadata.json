@@ -5,9 +5,7 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [
-      "com.sivalabs.ft.features.api.controllers.DeveloperControllerTests"
-    ],
+    "fail_to_pass": [],
     "pass_to_pass": []
   },
   "environment": {
