@@ -6,7 +6,9 @@
   "build_system": "maven",
   "expected": {
     "fail_to_pass": [],
-    "pass_to_pass": []
+    "pass_to_pass": [
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerTests"
+    ]
   },
   "environment": {
     "project_root": "/repo",
