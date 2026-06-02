@@ -123,4 +123,74 @@ class FeatureControllerTests extends AbstractIT {
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldAssignCategoryToFeatures() {
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-1", "GO-3"],
+                "categoryId": 4
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        assertThat(mvc.get().uri("/api/features/{code}", "IDEA-1").exchange())
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.category.id")
+                .asNumber()
+                .isEqualTo(4);
+        assertThat(mvc.get().uri("/api/features/{code}", "GO-3").exchange())
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.category.id")
+                .asNumber()
+                .isEqualTo(4);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenAssigningNonExistentCategory() {
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-1"],
+                "categoryId": 999
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenAssigningCategoryToNonExistentFeature() {
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-999"],
+                "categoryId": 4
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
 }

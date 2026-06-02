@@ -3,6 +3,7 @@ package com.sivalabs.ft.features.domain;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
+import java.util.List;
 
 public class Commands {
     private Commands() {}
@@ -42,4 +43,7 @@ public class Commands {
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    /* Feature Category Commands */
+    public record AssignCategoryToFeaturesCommand(List<String> featureCodes, Long categoryId, String updatedBy) {}
 }
