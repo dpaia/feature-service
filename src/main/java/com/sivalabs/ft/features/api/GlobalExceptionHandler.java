@@ -8,6 +8,7 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,6 +38,15 @@ class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     ProblemDetail handle(BadRequestException e) {
         log.error("Bad Request", e);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ProblemDetail handle(MissingServletRequestParameterException e) {
+        log.error("Missing Request Parameter", e);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(BAD_REQUEST, e.getMessage());
         problemDetail.setTitle("Bad Request");
         problemDetail.setProperty("timestamp", Instant.now());
