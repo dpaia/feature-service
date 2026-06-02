@@ -15,6 +15,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -169,6 +171,18 @@ class EmailDeliveryFailureAdminApiTest extends AbstractIT {
         // Only today's failure should be returned, not the 2020 one
         assertThat(content).hasSize(1);
         assertThat(content.get(0).get("recipientEmail")).isEqualTo("user1@example.com");
+    }
+
+    @ParameterizedTest(name = "should reject malformed date query param: {0}")
+    @ValueSource(strings = {"invalid-date", "2026-13-01", "2026-02-30", "2026/01/12", "2026-01-12T00:00:00Z"})
+    @WithMockOAuth2User(
+            username = "admin",
+            roles = {"ADMIN"})
+    void shouldReturn400ForInvalidDateFormat(String invalidDate) throws Exception {
+        var response =
+                mvc.get().uri("/api/admin/email-failures?date=" + invalidDate).exchange();
+
+        assertThat(response).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     // ========== GET /api/admin/email-failures/{id} ==========

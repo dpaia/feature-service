@@ -37,6 +37,7 @@ class EmailDeliveryFailureController {
             responses = {
                 @ApiResponse(responseCode = "200", description = "Successful response"),
                 @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                @ApiResponse(responseCode = "400", description = "Invalid date format"),
                 @ApiResponse(responseCode = "403", description = "Forbidden - ADMIN role required")
             })
     ResponseEntity<Page<EmailDeliveryFailureDto>> getFailures(
