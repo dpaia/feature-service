@@ -6,11 +6,10 @@
   "build_system": "maven",
   "expected": {
     "fail_to_pass": [
-      "FeatureUsageControllerTests",
-      "AnonymousUsageTrackingTest",
-      "UsageTrackingIntegrationTest",
-      "FeatureUsageStreamingTest",
-      "FeatureUsageKafkaTopicTest"
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageAsyncBehaviorTest.shouldReturn202WithoutWaitingForDbPersistence",
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageKafkaTopicTest.shouldPublishMessageToKafkaTopicWhenUsageApiIsCalled",
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageStreamingTest.shouldPublishAndConsumeFeatureUsageEventViaKafka",
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageStreamingTest.shouldDeduplicateEventsWithSameEventId"
     ],
     "pass_to_pass": []
   },
