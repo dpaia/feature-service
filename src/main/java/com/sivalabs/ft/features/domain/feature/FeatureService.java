@@ -35,6 +35,7 @@ public class FeatureService {
         return featureRepository.findByCode(code);
     }
 
+    @Transactional
     public List<Feature> findFeatures(String releaseCode) {
         List<Feature> featureList = featureRepository.findByReleaseCode(releaseCode);
         return featureList;
