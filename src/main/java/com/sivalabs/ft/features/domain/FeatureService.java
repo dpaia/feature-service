@@ -9,10 +9,14 @@ import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
+import com.sivalabs.ft.features.domain.models.ChangeType;
+import com.sivalabs.ft.features.domain.models.EntityType;
+import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +33,7 @@ public class FeatureService {
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
     private final FeatureMapper featureMapper;
+    private final PlanningHistoryService planningHistoryService;
 
     FeatureService(
             FavoriteFeatureService favoriteFeatureService,
@@ -37,14 +42,16 @@ public class FeatureService {
             ProductRepository productRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
             EventPublisher eventPublisher,
-            FeatureMapper featureMapper) {
+            FeatureMapper featureMapper,
+            PlanningHistoryService planningHistoryService) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
         this.productRepository = productRepository;
-        this.eventPublisher = eventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
+        this.eventPublisher = eventPublisher;
         this.featureMapper = featureMapper;
+        this.planningHistoryService = planningHistoryService;
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +111,20 @@ public class FeatureService {
         feature.setAssignedTo(cmd.assignedTo());
         feature.setCreatedBy(cmd.createdBy());
         feature.setCreatedAt(Instant.now());
-        featureRepository.save(feature);
+        feature = featureRepository.save(feature);
+
+        // Record creation in planning history
+        planningHistoryService.recordChange(
+                EntityType.FEATURE,
+                feature.getCode(),
+                feature.getId(),
+                ChangeType.CREATED,
+                null,
+                null,
+                null,
+                null,
+                cmd.createdBy());
+
         eventPublisher.publishFeatureCreatedEvent(feature);
         return code;
     }
@@ -112,6 +132,21 @@ public class FeatureService {
     @Transactional
     public void updateFeature(UpdateFeatureCommand cmd) {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
+
+        // Capture old values for change tracking
+        String oldTitle = feature.getTitle();
+        String oldDescription = feature.getDescription();
+        FeatureStatus oldStatus = feature.getStatus();
+        String oldAssignedTo = feature.getAssignedTo();
+        String oldReleaseCode =
+                feature.getRelease() != null ? feature.getRelease().getCode() : null;
+        Instant oldPlannedCompletionAt = feature.getPlannedCompletionAt();
+        Instant oldActualCompletionAt = feature.getActualCompletionAt();
+        FeaturePlanningStatus oldPlanningStatus = feature.getFeaturePlanningStatus();
+        String oldFeatureOwner = feature.getFeatureOwner();
+        String oldBlockageReason = feature.getBlockageReason();
+
+        // Update feature
         feature.setTitle(cmd.title());
         feature.setDescription(cmd.description());
         if (cmd.releaseCode() != null) {
@@ -130,14 +165,126 @@ public class FeatureService {
         feature.setUpdatedBy(cmd.updatedBy());
         feature.setUpdatedAt(Instant.now());
         featureRepository.save(feature);
+
+        // Track changes in planning history
+        trackFieldChange(EntityType.FEATURE, feature.getCode(), "title", oldTitle, cmd.title(), cmd.updatedBy());
+
+        trackFieldChange(
+                EntityType.FEATURE,
+                feature.getCode(),
+                "description",
+                oldDescription,
+                cmd.description(),
+                cmd.updatedBy());
+
+        // Status change
+        if (oldStatus != cmd.status()) {
+            planningHistoryService.recordChange(
+                    EntityType.FEATURE,
+                    feature.getCode(),
+                    ChangeType.STATUS_CHANGED,
+                    "status",
+                    oldStatus != null ? oldStatus.toString() : null,
+                    cmd.status() != null ? cmd.status().toString() : null,
+                    cmd.updatedBy());
+        }
+
+        // Assignment change
+        if (!Objects.equals(oldAssignedTo, cmd.assignedTo())) {
+            planningHistoryService.recordChange(
+                    EntityType.FEATURE,
+                    feature.getCode(),
+                    ChangeType.ASSIGNED,
+                    "assignedTo",
+                    oldAssignedTo,
+                    cmd.assignedTo(),
+                    cmd.updatedBy());
+        }
+
+        // Release change (move)
+        if (!Objects.equals(oldReleaseCode, cmd.releaseCode())) {
+            planningHistoryService.recordChange(
+                    EntityType.FEATURE,
+                    feature.getCode(),
+                    ChangeType.MOVED,
+                    "release",
+                    oldReleaseCode,
+                    cmd.releaseCode(),
+                    cmd.updatedBy());
+        }
+
+        // Other planning fields
+        trackFieldChange(
+                EntityType.FEATURE,
+                feature.getCode(),
+                "plannedCompletionAt",
+                oldPlannedCompletionAt != null ? oldPlannedCompletionAt.toString() : null,
+                cmd.plannedCompletionAt() != null ? cmd.plannedCompletionAt().toString() : null,
+                cmd.updatedBy());
+
+        trackFieldChange(
+                EntityType.FEATURE,
+                feature.getCode(),
+                "actualCompletionAt",
+                oldActualCompletionAt != null ? oldActualCompletionAt.toString() : null,
+                cmd.actualCompletionAt() != null ? cmd.actualCompletionAt().toString() : null,
+                cmd.updatedBy());
+
+        if (oldPlanningStatus != cmd.featurePlanningStatus()) {
+            planningHistoryService.recordChange(
+                    EntityType.FEATURE,
+                    feature.getCode(),
+                    ChangeType.UPDATED,
+                    "featurePlanningStatus",
+                    oldPlanningStatus != null ? oldPlanningStatus.toString() : null,
+                    cmd.featurePlanningStatus() != null
+                            ? cmd.featurePlanningStatus().toString()
+                            : null,
+                    cmd.updatedBy());
+        }
+
+        trackFieldChange(
+                EntityType.FEATURE,
+                feature.getCode(),
+                "featureOwner",
+                oldFeatureOwner,
+                cmd.featureOwner(),
+                cmd.updatedBy());
+
+        trackFieldChange(
+                EntityType.FEATURE,
+                feature.getCode(),
+                "blockageReason",
+                oldBlockageReason,
+                cmd.blockageReason(),
+                cmd.updatedBy());
+
         eventPublisher.publishFeatureUpdatedEvent(feature);
     }
 
     @Transactional
     public void deleteFeature(DeleteFeatureCommand cmd) {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
+
+        // Record deletion in planning history
+        planningHistoryService.recordChange(
+                EntityType.FEATURE, feature.getCode(), ChangeType.DELETED, null, null, null, cmd.deletedBy());
+
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+    }
+
+    private void trackFieldChange(
+            EntityType entityType,
+            String entityCode,
+            String fieldName,
+            String oldValue,
+            String newValue,
+            String changedBy) {
+        if (!Objects.equals(oldValue, newValue)) {
+            planningHistoryService.recordChange(
+                    entityType, entityCode, ChangeType.UPDATED, fieldName, oldValue, newValue, changedBy);
+        }
     }
 }
