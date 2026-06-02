@@ -1,65 +1,47 @@
 package com.sivalabs.ft.features.api.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
 import com.sivalabs.ft.features.api.models.CreateProductPayload;
 import com.sivalabs.ft.features.api.models.UpdateFeaturePayload;
 import com.sivalabs.ft.features.domain.models.ActionType;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Integration tests to verify that usage events are automatically logged
  * to the feature_usage table when various API endpoints are called.
  *
- * These tests use direct SQL queries to verify database state without
- * using FeatureUsageRepository or FeatureUsageController.
+ * Uses Awaitility to wait for async Kafka-based event processing.
  */
-@WithMockOAuth2User(username = "testuser")
-class UsageTrackingIntegrationTest extends AbstractIT {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+@WithMockOAuth2User
+class UsageTrackingIntegrationTest extends FeatureUsageAbstractIT {
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        // Clean up feature_usage table before each test
-        jdbcTemplate.execute("DELETE FROM feature_usage");
+        cleanFeatureUsageTable();
     }
 
     @Test
-    void shouldLogUsageWhenViewingProduct() throws Exception {
+    void shouldLogUsageWhenViewingProduct() {
         // When: View a product
-        mockMvc.perform(get("/api/products/intellij")).andExpect(status().is2xxSuccessful());
+        var result = mvc.get().uri("/api/products/intellij").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged in database
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "intellij",
-                ActionType.PRODUCT_VIEWED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged in database (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.PRODUCT_VIEWED.name());
+            assertThat(e.get("product_code")).isEqualTo("intellij");
+        });
     }
 
     @Test
@@ -69,24 +51,22 @@ class UsageTrackingIntegrationTest extends AbstractIT {
                 "test-product", "TST", "Test Product", "Test Description", "https://example.com/test.png");
 
         // When: Create a product
-        mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isCreated());
+        var result = mvc.post()
+                .uri("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+        assertThat(result).hasStatus(201);
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "test-product",
-                ActionType.PRODUCT_CREATED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.PRODUCT_CREATED.name());
+            assertThat(e.get("product_code")).isEqualTo("test-product");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenUpdatingProduct() throws Exception {
+    void shouldLogUsageWhenUpdatingProduct() {
         // Given: Product update payload
         String payload =
                 """
@@ -99,36 +79,31 @@ class UsageTrackingIntegrationTest extends AbstractIT {
                 """;
 
         // When: Update an existing product
-        mockMvc.perform(put("/api/products/intellij")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().is2xxSuccessful());
+        var result = mvc.put()
+                .uri("/api/products/intellij")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "intellij",
-                ActionType.PRODUCT_UPDATED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.PRODUCT_UPDATED.name());
+            assertThat(e.get("product_code")).isEqualTo("intellij");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenViewingFeature() throws Exception {
+    void shouldLogUsageWhenViewingFeature() {
         // When: View a feature
-        mockMvc.perform(get("/api/features/IDEA-1")).andExpect(status().is2xxSuccessful());
+        var result = mvc.get().uri("/api/features/IDEA-1").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "IDEA-1",
-                ActionType.FEATURE_VIEWED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FEATURE_VIEWED.name());
+            assertThat(e.get("feature_code")).isEqualTo("IDEA-1");
+        });
     }
 
     @Test
@@ -138,20 +113,18 @@ class UsageTrackingIntegrationTest extends AbstractIT {
                 new CreateFeaturePayload("intellij", "New Test Feature", "Test Description", null, null);
 
         // When: Create a feature
-        mockMvc.perform(post("/api/features")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isCreated());
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+        assertThat(result).hasStatus(201);
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "intellij",
-                ActionType.FEATURE_CREATED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FEATURE_CREATED.name());
+            assertThat(e.get("product_code")).isEqualTo("intellij");
+        });
     }
 
     @Test
@@ -161,115 +134,96 @@ class UsageTrackingIntegrationTest extends AbstractIT {
                 new UpdateFeaturePayload("Updated Title", "Updated Description", null, null, FeatureStatus.IN_PROGRESS);
 
         // When: Update a feature
-        mockMvc.perform(put("/api/features/IDEA-1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().is2xxSuccessful());
+        var result = mvc.put()
+                .uri("/api/features/IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload))
+                .exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "IDEA-1",
-                ActionType.FEATURE_UPDATED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FEATURE_UPDATED.name());
+            assertThat(e.get("feature_code")).isEqualTo("IDEA-1");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenDeletingFeature() throws Exception {
+    void shouldLogUsageWhenDeletingFeature() {
         // When: Delete a feature without related records (GO-3 has no comments)
-        mockMvc.perform(delete("/api/features/GO-3")).andExpect(status().is2xxSuccessful());
+        var result = mvc.delete().uri("/api/features/GO-3").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "GO-3",
-                ActionType.FEATURE_DELETED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FEATURE_DELETED.name());
+            assertThat(e.get("feature_code")).isEqualTo("GO-3");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenListingFeaturesByProduct() throws Exception {
+    void shouldLogUsageWhenListingFeaturesByProduct() {
         // When: List features by product
-        mockMvc.perform(get("/api/features?productCode=intellij")).andExpect(status().is2xxSuccessful());
+        var result = mvc.get().uri("/api/features?productCode=intellij").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "intellij",
-                ActionType.FEATURES_LISTED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FEATURES_LISTED.name());
+            assertThat(e.get("product_code")).isEqualTo("intellij");
+        });
     }
 
     @Test
-    void shouldLogMultipleEventsForMultipleActions() throws Exception {
+    void shouldLogMultipleEventsForMultipleActions() {
         // When: Perform multiple actions
-        mockMvc.perform(get("/api/products/intellij")).andExpect(status().is2xxSuccessful());
-        mockMvc.perform(get("/api/features/IDEA-1")).andExpect(status().is2xxSuccessful());
-        mockMvc.perform(get("/api/features/IDEA-2")).andExpect(status().is2xxSuccessful());
+        assertThat(mvc.get().uri("/api/products/intellij").exchange()).hasStatus2xxSuccessful();
+        assertThat(mvc.get().uri("/api/features/IDEA-1").exchange()).hasStatus2xxSuccessful();
+        assertThat(mvc.get().uri("/api/features/IDEA-2").exchange()).hasStatus2xxSuccessful();
 
-        // Then: Verify all events were logged
-        Integer totalCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ?", Integer.class, "testuser");
-
-        assertThat(totalCount).isEqualTo(3);
+        // Then: Verify all events were logged (async via Kafka)
+        awaitFeatureUsageCount(3);
     }
 
     @Test
-    void shouldNotLogUsageForNonExistentFeature() throws Exception {
+    void shouldNotLogUsageForNonExistentFeature() {
         // When: Try to view non-existent feature
-        mockMvc.perform(get("/api/features/NON-EXISTENT")).andExpect(status().is4xxClientError());
+        var result = mvc.get().uri("/api/features/NON-EXISTENT").exchange();
+        assertThat(result).hasStatus4xxClientError();
 
-        // Then: Verify no usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ?", Integer.class, "testuser");
-
-        assertThat(count).isEqualTo(0);
+        // Then: Verify no usage event was logged during 2 seconds
+        verifyFeatureUsageCountStaysAt(0);
     }
 
     @Test
-    void shouldVerifyDatabaseSchemaForUsageTable() {
-        // Verify that feature_usage table has expected columns
-        List<Map<String, Object>> columns =
-                jdbcTemplate.queryForList("SELECT column_name, data_type FROM information_schema.columns "
-                        + "WHERE table_name = 'feature_usage' ORDER BY ordinal_position");
-
-        assertThat(columns).isNotEmpty();
-
-        // Verify key columns exist
-        List<String> columnNames =
-                columns.stream().map(col -> (String) col.get("column_name")).toList();
-
-        assertThat(columnNames)
-                .contains("id", "user_id", "feature_code", "product_code", "release_code", "action_type", "timestamp");
-    }
-
-    @Test
-    void shouldLogUsageWhenViewingRelease() throws Exception {
-        // When: View a release (using existing test data)
-        mockMvc.perform(get("/api/releases/IDEA-2023.3.8")).andExpect(status().is2xxSuccessful());
-
-        // Then: Verify usage event was logged with release_code
+    void shouldContainEventIdColumnForDeduplication() {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND release_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "IDEA-2023.3.8",
-                ActionType.RELEASE_VIEWED.name());
+                """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_name = 'feature_usage'
+                  AND column_name = 'event_id'
+                """,
+                Integer.class);
 
         assertThat(count).isEqualTo(1);
     }
 
     @Test
-    void shouldLogUsageWhenCreatingRelease() throws Exception {
+    void shouldLogUsageWhenViewingRelease() {
+        // When: View a release (using existing test data)
+        var result = mvc.get().uri("/api/releases/IDEA-2023.3.8").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
+
+        // Then: Verify usage event was logged with release_code (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.RELEASE_VIEWED.name());
+            assertThat(e.get("release_code")).isEqualTo("IDEA-2023.3.8");
+        });
+    }
+
+    @Test
+    void shouldLogUsageWhenCreatingRelease() {
         // Given: Release creation payload
         String payload =
                 """
@@ -281,25 +235,23 @@ class UsageTrackingIntegrationTest extends AbstractIT {
                 """;
 
         // When: Create a release
-        mockMvc.perform(post("/api/releases")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isCreated());
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(201);
 
-        // Then: Verify usage event was logged with release_code
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND product_code = ? AND release_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "intellij",
-                "IDEA-2025.1",
-                ActionType.RELEASE_CREATED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged with release_code (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.RELEASE_CREATED.name());
+            assertThat(e.get("product_code")).isEqualTo("intellij");
+            assertThat(e.get("release_code")).isEqualTo("IDEA-2025.1");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenAddingComment() throws Exception {
+    void shouldLogUsageWhenAddingComment() {
         // Given: Comment payload
         String payload =
                 """
@@ -310,58 +262,50 @@ class UsageTrackingIntegrationTest extends AbstractIT {
                 """;
 
         // When: Add a comment
-        mockMvc.perform(post("/api/comments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isCreated());
+        var result = mvc.post()
+                .uri("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(201);
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "IDEA-1",
-                ActionType.COMMENT_ADDED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.COMMENT_ADDED.name());
+            assertThat(e.get("feature_code")).isEqualTo("IDEA-1");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenAddingFavorite() throws Exception {
+    void shouldLogUsageWhenAddingFavorite() {
         // When: Add feature to favorites
-        mockMvc.perform(post("/api/features/IDEA-1/favorites")).andExpect(status().is2xxSuccessful());
+        var result = mvc.post().uri("/api/features/IDEA-1/favorites").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "IDEA-1",
-                ActionType.FAVORITE_ADDED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FAVORITE_ADDED.name());
+            assertThat(e.get("feature_code")).isEqualTo("IDEA-1");
+        });
     }
 
     @Test
-    void shouldLogUsageWhenRemovingFavorite() throws Exception {
+    void shouldLogUsageWhenRemovingFavorite() {
         // Given: Feature is already in favorites (from test-data.sql: IDEA-2 is favorited by 'user')
-        // First add it for testuser
-        mockMvc.perform(post("/api/features/GO-3/favorites")).andExpect(status().is2xxSuccessful());
+        assertThat(mvc.post().uri("/api/features/GO-3/favorites").exchange()).hasStatus2xxSuccessful();
 
         // Clean usage table to test only the removal
-        jdbcTemplate.execute("DELETE FROM feature_usage");
+        awaitFeatureUsageCount(1);
+        cleanFeatureUsageTable();
 
         // When: Remove feature from favorites
-        mockMvc.perform(delete("/api/features/GO-3/favorites")).andExpect(status().is2xxSuccessful());
+        var result = mvc.delete().uri("/api/features/GO-3/favorites").exchange();
+        assertThat(result).hasStatus2xxSuccessful();
 
-        // Then: Verify usage event was logged
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM feature_usage WHERE user_id = ? AND feature_code = ? AND action_type = ?",
-                Integer.class,
-                "testuser",
-                "GO-3",
-                ActionType.FAVORITE_REMOVED.name());
-
-        assertThat(count).isEqualTo(1);
+        // Then: Verify usage event was logged (async via Kafka)
+        awaitFeatureUsageCreated(e -> {
+            assertThat(e.get("action_type")).isEqualTo(ActionType.FAVORITE_REMOVED.name());
+            assertThat(e.get("feature_code")).isEqualTo("GO-3");
+        });
     }
 }

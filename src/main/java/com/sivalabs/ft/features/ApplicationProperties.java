@@ -5,7 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ft")
 public record ApplicationProperties(EventsProperties events, UsageTrackingProperties usageTracking) {
 
-    public record EventsProperties(String newFeatures, String updatedFeatures, String deletedFeatures) {}
+    public record EventsProperties(
+            String newFeatures, String updatedFeatures, String deletedFeatures, String featureUsage) {}
 
     public record UsageTrackingProperties(boolean enabled, boolean captureIp, boolean captureUserAgent) {}
 }

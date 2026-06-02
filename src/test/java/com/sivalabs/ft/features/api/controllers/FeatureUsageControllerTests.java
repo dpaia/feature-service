@@ -2,15 +2,12 @@ package com.sivalabs.ft.features.api.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Comprehensive tests for FeatureUsageController covering all requirements:
@@ -19,14 +16,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * - Proper test isolation with database cleanup
  * - API-based test data creation instead of direct repository access
  */
-class FeatureUsageControllerTests extends AbstractIT {
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+class FeatureUsageControllerTests extends FeatureUsageAbstractIT {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute("DELETE FROM feature_usage");
+        cleanFeatureUsageTable();
     }
 
     /**
@@ -126,11 +120,11 @@ class FeatureUsageControllerTests extends AbstractIT {
      * Tests only endpoints accessible to USER role
      */
     @Nested
-    @WithMockOAuth2User(roles = {"USER"})
+    @WithMockOAuth2User
     class AuthenticatedUserTests {
 
         @Test
-        void shouldCreateUsageEventWithCompleteDataAndReturn201() {
+        void shouldAcceptUsageEventWithCompleteDataAndReturn202() {
             var requestBody =
                     """
                     {
@@ -150,38 +144,25 @@ class FeatureUsageControllerTests extends AbstractIT {
                     .content(requestBody)
                     .exchange();
 
-            // Verify successful creation (flexible 2xx pattern)
-            assertThat(result).hasStatus2xxSuccessful();
+            assertThat(result).hasStatus(202);
+            assertThat(result.getMvcResult().getResponse().getContentAsByteArray())
+                    .isEmpty();
+            assertThat(result.getMvcResult().getResponse().getHeader("Location"))
+                    .isNull();
 
-            // Verify complete response structure
-            assertThat(result).bodyJson().extractingPath("$.id").isNotNull();
-            assertThat(result)
-                    .bodyJson()
-                    .extractingPath("$.actionType")
-                    .asString()
-                    .isEqualTo("FEATURE_VIEWED");
-            assertThat(result)
-                    .bodyJson()
-                    .extractingPath("$.featureCode")
-                    .asString()
-                    .isEqualTo("FEAT-001");
-            assertThat(result)
-                    .bodyJson()
-                    .extractingPath("$.productCode")
-                    .asString()
-                    .isEqualTo("PROD-001");
-            assertThat(result)
-                    .bodyJson()
-                    .extractingPath("$.userId")
-                    .asString()
-                    .isNotEmpty(); // UserId is anonymized due to GDPR settings
-            assertThat(result).bodyJson().extractingPath("$.timestamp").isNotNull();
-            assertThat(result)
-                    .bodyJson()
-                    .extractingPath("$.context")
-                    .asString()
-                    .contains("web")
-                    .contains("desktop");
+            awaitFeatureUsageCreated(e -> {
+                assertThat(e.get("event_id")).isNotNull();
+                assertThat(e.get("user_id")).isEqualTo("user");
+                assertThat(e.get("feature_code")).isEqualTo("FEAT-001");
+                assertThat(e.get("product_code")).isEqualTo("PROD-001");
+                assertThat(e.get("action_type")).isEqualTo("FEATURE_VIEWED");
+                assertThat(e.get("context"))
+                        .asString()
+                        .contains("source")
+                        .contains("web")
+                        .contains("device")
+                        .contains("desktop");
+            });
         }
 
         @Test
@@ -199,20 +180,19 @@ class FeatureUsageControllerTests extends AbstractIT {
                     .content(requestBody)
                     .exchange();
 
-            assertThat(result).hasStatus2xxSuccessful();
+            assertThat(result).hasStatus(202);
+            assertThat(result.getMvcResult().getResponse().getContentAsByteArray())
+                    .isEmpty();
+            assertThat(result.getMvcResult().getResponse().getHeader("Location"))
+                    .isNull();
 
-            // Verify all required fields are present even with minimal input
-            assertThat(result).bodyJson().extractingPath("$.id").isNotNull();
-            assertThat(result)
-                    .bodyJson()
-                    .extractingPath("$.actionType")
-                    .asString()
-                    .isEqualTo("FEATURE_CREATED");
-            assertThat(result).bodyJson().extractingPath("$.userId").asString().isNotEmpty();
-            assertThat(result).bodyJson().extractingPath("$.timestamp").isNotNull();
-            // Optional fields should be null
-            assertThat(result).bodyJson().extractingPath("$.featureCode").isNull();
-            assertThat(result).bodyJson().extractingPath("$.productCode").isNull();
+            awaitFeatureUsageCreated(e -> {
+                assertThat(e.get("event_id")).isNotNull();
+                assertThat(e.get("user_id")).isEqualTo("user");
+                assertThat(e.get("action_type")).isEqualTo("FEATURE_CREATED");
+                assertThat(e.get("feature_code")).isNull();
+                assertThat(e.get("product_code")).isNull();
+            });
         }
 
         @Test
@@ -274,9 +254,10 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetFeatureStatsWithPreciseValidation() {
             // Create exactly 3 events with different action types
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(3);
 
             var result = mvc.get().uri("/api/usage/feature/TEST-FEATURE/stats").exchange();
 
@@ -323,8 +304,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetProductStatsWithPreciseValidation() {
             // Create exactly 2 events for 2 different features
-            createUsageEventViaAPI("FEATURE_VIEWED", "FEAT-A", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "FEAT-B", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "FEAT-A", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "FEAT-B", "TEST-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get().uri("/api/usage/product/TEST-PRODUCT/stats").exchange();
 
@@ -365,7 +347,8 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetOverallStatsWithStructureValidation() {
             // Create test data
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(1);
 
             var result = mvc.get().uri("/api/usage/stats").exchange();
 
@@ -397,7 +380,8 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldHandleDateRangeFiltersCorrectly() {
             // Create an event
-            createUsageEventViaAPI("FEATURE_VIEWED", "DATE-FILTER-FEATURE", "DATE-FILTER-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "DATE-FILTER-FEATURE", "DATE-FILTER-PRODUCT");
+            awaitFeatureUsageCount(1);
 
             // Use a date range that includes the event
             Instant startDate = Instant.now().minusSeconds(3600); // 1 hour ago
@@ -544,9 +528,11 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetTopFeatures() {
             // Create test data with different usage counts to verify sorting
-            createUsageEventViaAPI("FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TOP-FEATURE-2", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT"); // Make FEATURE-1 more popular
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TOP-FEATURE-2", "TEST-PRODUCT");
+            // Make FEATURE-1 more popular
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TOP-FEATURE-1", "TEST-PRODUCT");
+            awaitFeatureUsageCount(3);
 
             var result = mvc.get().uri("/api/usage/top-features").exchange();
 
@@ -573,8 +559,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetTopUsers() {
             // Create test data (all events from same user due to @WithMockOAuth2User)
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE-1", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE-2", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE-1", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE-2", "TEST-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get().uri("/api/usage/top-users").exchange();
 
@@ -593,7 +580,8 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetTopFeaturesWithDateRangeFilter() {
             // Create test data
-            createUsageEventViaAPI("FEATURE_VIEWED", "DATE-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "DATE-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(1);
 
             Instant startDate = Instant.now().minusSeconds(3600); // 1 hour ago
             Instant endDate = Instant.now().plusSeconds(3600); // 1 hour from now
@@ -609,7 +597,8 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetTopUsersWithLimitParameter() {
             // Create test data
-            createUsageEventViaAPI("FEATURE_VIEWED", "LIMIT-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "LIMIT-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(1);
 
             var result = mvc.get().uri("/api/usage/top-users?limit=5").exchange();
 
@@ -623,8 +612,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetUserUsageWithPagination() {
             // Create test data for specific user (current authenticated user)
-            createUsageEventViaAPI("FEATURE_VIEWED", "USER-FEATURE-1", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "USER-FEATURE-2", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "USER-FEATURE-1", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "USER-FEATURE-2", "TEST-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             // Use the raw userId "user" which will be anonymized by the endpoint
             // The @WithMockOAuth2User annotation uses "user" as the default username
@@ -646,8 +636,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetFeatureUsageWithPagination() {
             // Create test data
-            createUsageEventViaAPI("FEATURE_VIEWED", "PAGINATED-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_UPDATED", "PAGINATED-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "PAGINATED-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_UPDATED", "PAGINATED-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get()
                     .uri("/api/usage/feature/PAGINATED-FEATURE?page=0&size=5")
@@ -676,8 +667,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetProductUsageWithPagination() {
             // Create test data
-            createUsageEventViaAPI("FEATURE_VIEWED", "FEAT-1", "PAGINATED-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "FEAT-2", "PAGINATED-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "FEAT-1", "PAGINATED-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "FEAT-2", "PAGINATED-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get()
                     .uri("/api/usage/product/PAGINATED-PRODUCT?page=0&size=5")
@@ -702,30 +694,6 @@ class FeatureUsageControllerTests extends AbstractIT {
                     .asString()
                     .isEqualTo("PAGINATED-PRODUCT");
         }
-
-        /**
-         * Helper method to create usage events via API instead of direct repository access.
-         */
-        private void createUsageEventViaAPI(String actionType, String featureCode, String productCode) {
-            var requestBody = String.format(
-                    """
-                    {
-                        "actionType": "%s",
-                        "featureCode": "%s",
-                        "productCode": "%s"
-                    }
-                    """,
-                    actionType, featureCode, productCode);
-
-            var result = mvc.post()
-                    .uri("/api/usage")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestBody)
-                    .exchange();
-
-            // Ensure the event was created successfully
-            assertThat(result).hasStatus2xxSuccessful();
-        }
     }
 
     /**
@@ -739,8 +707,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetFeatureEventsWithPreciseValidation() {
             // Create exactly 2 events
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get().uri("/api/usage/feature/TEST-FEATURE/events").exchange();
 
@@ -787,8 +756,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetProductEventsWithPreciseValidation() {
             // Create exactly 2 events for different features
-            createUsageEventViaAPI("FEATURE_VIEWED", "FEAT-1", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "FEAT-2", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "FEAT-1", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "FEAT-2", "TEST-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get().uri("/api/usage/product/TEST-PRODUCT/events").exchange();
 
@@ -823,9 +793,10 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetAllEventsWithFiltersAndPreciseValidation() {
             // Create 3 events: 2 FEATURE_VIEWED, 1 FEATURE_UPDATED
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
-            createUsageEventViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_UPDATED", "TEST-FEATURE", "TEST-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "TEST-FEATURE", "TEST-PRODUCT");
+            awaitFeatureUsageCount(3);
 
             // Filter by FEATURE_VIEWED only
             var result = mvc.get()
@@ -863,8 +834,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetAllUsageEventsWithMultipleFilters() {
             // Create test data
-            createUsageEventViaAPI("FEATURE_VIEWED", "MULTI-FEATURE", "MULTI-PRODUCT");
-            createUsageEventViaAPI("FEATURE_UPDATED", "MULTI-FEATURE", "MULTI-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "MULTI-FEATURE", "MULTI-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_UPDATED", "MULTI-FEATURE", "MULTI-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             var result = mvc.get()
                     .uri(
@@ -932,8 +904,9 @@ class FeatureUsageControllerTests extends AbstractIT {
         @Test
         void shouldGetAllEventsWithUserIdFilter() {
             // Create test data with specific user
-            createUsageEventViaAPI("FEATURE_VIEWED", "USER-FILTER-FEATURE", "USER-FILTER-PRODUCT");
-            createUsageEventViaAPI("FEATURE_UPDATED", "USER-FILTER-FEATURE", "USER-FILTER-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_VIEWED", "USER-FILTER-FEATURE", "USER-FILTER-PRODUCT");
+            createFeatureUsageViaAPI("FEATURE_UPDATED", "USER-FILTER-FEATURE", "USER-FILTER-PRODUCT");
+            awaitFeatureUsageCount(2);
 
             // Filter by userId (current authenticated user is "user")
             var result = mvc.get().uri("/api/usage/events?userId=user").exchange();
@@ -960,37 +933,13 @@ class FeatureUsageControllerTests extends AbstractIT {
                     .asString()
                     .isNotEmpty();
         }
-
-        /**
-         * Helper method to create usage events via API instead of direct repository access.
-         */
-        private void createUsageEventViaAPI(String actionType, String featureCode, String productCode) {
-            var requestBody = String.format(
-                    """
-                    {
-                        "actionType": "%s",
-                        "featureCode": "%s",
-                        "productCode": "%s"
-                    }
-                    """,
-                    actionType, featureCode, productCode);
-
-            var result = mvc.post()
-                    .uri("/api/usage")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestBody)
-                    .exchange();
-
-            // Ensure the event was created successfully
-            assertThat(result).hasStatus2xxSuccessful();
-        }
     }
 
     /**
      * Tests for forbidden access - regular users trying to access restricted endpoints
      */
     @Nested
-    @WithMockOAuth2User(roles = {"USER"})
+    @WithMockOAuth2User
     class ForbiddenAccessTests {
 
         @Test

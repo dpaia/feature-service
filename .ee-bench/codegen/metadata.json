@@ -5,7 +5,13 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
+    "fail_to_pass": [
+      "FeatureUsageControllerTests",
+      "AnonymousUsageTrackingTest",
+      "UsageTrackingIntegrationTest",
+      "FeatureUsageStreamingTest",
+      "FeatureUsageKafkaTopicTest"
+    ],
     "pass_to_pass": []
   },
   "environment": {
