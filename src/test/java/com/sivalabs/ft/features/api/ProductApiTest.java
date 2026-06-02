@@ -1,20 +1,18 @@
 package com.sivalabs.ft.features.api;
 
-import com.sivalabs.ft.features.TestcontainersConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-import java.util.Map;
-
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.sivalabs.ft.features.TestcontainersConfiguration;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
@@ -34,21 +32,20 @@ public class ProductApiTest {
 
     @Test
     void testCreateProduct() throws Exception {
-        String productJson = """
+        String productJson =
+                """
                     {
                         "code": "new-product",
                         "name": "New Product",
                         "description": "A newly created product",
                         "imageUrl": "http://example.com/image.png"
                     }
-                """.stripIndent();
+                """
+                        .stripIndent();
 
         mockMvc.perform(post("/api/products")
-                        .with(jwt().jwt(builder -> builder
-                                        .claim("preferred_username", "testuser")
-                                        .claim("realm_access", Map.of("roles", List.of("USER")))
-                                )
-                        )
+                        .with(jwt().jwt(builder -> builder.claim("preferred_username", "testuser")
+                                .claim("realm_access", Map.of("roles", List.of("USER")))))
                         .contentType("application/json")
                         .content(productJson))
                 .andExpect(status().isCreated())
@@ -58,40 +55,38 @@ public class ProductApiTest {
 
     @Test
     void testCreateProductUnauthorized() throws Exception {
-        String productJson = """
+        String productJson =
+                """
                     {
                         "code": "new-product",
                         "name": "New Product",
                         "description": "A newly created product",
                         "imageUrl": "http://example.com/image.png"
                     }
-                """.stripIndent();
+                """
+                        .stripIndent();
 
-        mockMvc.perform(post("/api/products")
-                        .contentType("application/json")
-                        .content(productJson))
+        mockMvc.perform(post("/api/products").contentType("application/json").content(productJson))
                 .andExpect(status().isUnauthorized());
     }
 
-
     @Test
     void testUpdateProduct() throws Exception {
-        String updatedProductJson = """
+        String updatedProductJson =
+                """
                     {
                         "name": "Updated Product",
                         "description": "This is an updated product description",
                         "imageUrl": "http://example.com/updated-image.png"
                     }
-                """.stripIndent();
+                """
+                        .stripIndent();
 
         String productCode = "intellij";
 
         mockMvc.perform(put("/api/products/{code}", productCode)
-                        .with(jwt().jwt(builder -> builder
-                                        .claim("preferred_username", "testuser")
-                                        .claim("realm_access", Map.of("roles", List.of("USER")))
-                                )
-                        )
+                        .with(jwt().jwt(builder -> builder.claim("preferred_username", "testuser")
+                                .claim("realm_access", Map.of("roles", List.of("USER")))))
                         .contentType("application/json")
                         .content(updatedProductJson))
                 .andExpect(status().isOk());
@@ -99,13 +94,15 @@ public class ProductApiTest {
 
     @Test
     void testUpdateProductUnauthorized() throws Exception {
-        String updatedProductJson = """
+        String updatedProductJson =
+                """
                     {
                         "name": "Updated Product",
                         "description": "This is an updated product description",
                         "imageUrl": "http://example.com/updated-image.png"
                     }
-                """.stripIndent();
+                """
+                        .stripIndent();
 
         String productCode = "intellij";
 
@@ -115,12 +112,10 @@ public class ProductApiTest {
                 .andExpect(status().isUnauthorized());
     }
 
-
     @Test
     void testGetNonExistingProduct() throws Exception {
         String nonExistingProductCode = "nonexistent-code";
-        mockMvc.perform(get("/api/products/{code}", nonExistingProductCode))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/products/{code}", nonExistingProductCode)).andExpect(status().isNotFound());
     }
 
     @Test
@@ -131,5 +126,4 @@ public class ProductApiTest {
                 .andExpect(jsonPath("$.code").value(productCode))
                 .andExpect(jsonPath("$.name").isNotEmpty());
     }
-
 }
