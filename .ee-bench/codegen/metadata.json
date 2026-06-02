@@ -6,13 +6,12 @@
   "build_system": "maven",
   "expected": {
     "fail_to_pass": [
-      "com.sivalabs.ft.features.api.controllers.RoleBasedAccessControlTests"
+      "com.sivalabs.ft.features.api.controllers.RoleBasedAccessControlTests$CreateRelease.shouldReturn403WhenUserRoleCreatesRelease",
+      "com.sivalabs.ft.features.api.controllers.RoleBasedAccessControlTests$DeleteRelease.shouldReturn403WhenProductManagerDeletesRelease",
+      "com.sivalabs.ft.features.api.controllers.RoleBasedAccessControlTests$CreateMilestone.shouldReturn403WhenUserRoleCreatesMilestone",
+      "com.sivalabs.ft.features.api.controllers.RoleBasedAccessControlTests$ProductManagerWorkflow.productManagerCanCreateAndUpdateReleaseButNotDelete"
     ],
-    "pass_to_pass": [
-      "com.sivalabs.ft.features.api.controllers.ReleaseFeaturePlanningIntegrationTests",
-      "com.sivalabs.ft.features.api.controllers.ReleaseControllerTests",
-      "com.sivalabs.ft.features.api.controllers.MilestoneControllerTests"
-    ]
+    "pass_to_pass": []
   },
   "environment": {
     "project_root": "/repo",
