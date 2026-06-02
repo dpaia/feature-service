@@ -4,6 +4,7 @@ import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
 
 public record FeatureCreatedEvent(
+        String eventId,
         Long id,
         String code,
         String title,

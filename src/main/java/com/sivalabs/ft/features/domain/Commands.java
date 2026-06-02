@@ -22,6 +22,7 @@ public class Commands {
 
     /* Feature Commands */
     public record CreateFeatureCommand(
+            String eventId,
             String productCode,
             String releaseCode,
             String title,
@@ -30,6 +31,7 @@ public class Commands {
             String createdBy) {}
 
     public record UpdateFeatureCommand(
+            String eventId,
             String code,
             String title,
             String description,
@@ -38,7 +40,7 @@ public class Commands {
             String assignedTo,
             String updatedBy) {}
 
-    public record DeleteFeatureCommand(String code, String deletedBy) {}
+    public record DeleteFeatureCommand(String eventId, String code, String deletedBy) {}
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
