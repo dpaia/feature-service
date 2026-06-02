@@ -17,7 +17,8 @@ interface ReleaseRepository extends ListCrudRepository<Release, Long> {
 
     boolean existsByCode(String code);
 
-    @Modifying
+    // Bulk update bypasses the persistence context; clear/flush avoids stale Milestone refs in memory.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Release r set r.milestone = null where r.milestone.code = :code")
     void unsetMilestone(String code);
 }

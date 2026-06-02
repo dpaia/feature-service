@@ -27,7 +27,8 @@ interface MilestoneRepository extends ListCrudRepository<Milestone, Long> {
 
     List<Milestone> findByProductCodeAndStatusAndOwner(String productCode, MilestoneStatus status, String owner);
 
-    @Modifying
+    // Bulk delete bypasses the persistence context; clear/flush prevents stale Milestone refs.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     void deleteByCode(String code);
 
     boolean existsByCode(String code);
