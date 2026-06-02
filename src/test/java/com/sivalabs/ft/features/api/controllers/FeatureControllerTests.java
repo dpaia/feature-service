@@ -26,6 +26,43 @@ class FeatureControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesFromReleaseAndParentReleases() {
+        createReleaseChainWithFeatures();
+
+        var result = mvc.get()
+                .uri("/api/features/all-features?releaseCode={code}", "IDEA-CHAIN-CHILD")
+                .exchange();
+
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(3);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldLimitFeaturesToRequestedParentRelease() {
+        createReleaseChainWithFeatures();
+
+        var result = mvc.get()
+                .uri(
+                        "/api/features/all-features?releaseCode={code}&fromParentRelease={parentCode}",
+                        "IDEA-CHAIN-CHILD",
+                        "IDEA-CHAIN-PARENT")
+                .exchange();
+
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(2);
+    }
+
+    @Test
     void shouldGetFeatureByCode() {
         String code = "IDEA-1";
         var result = mvc.get().uri("/api/features/{code}", code).exchange();
@@ -122,5 +159,56 @@ class FeatureControllerTests extends AbstractIT {
         // Verify deletion
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    private void createReleaseChainWithFeatures() {
+        createRelease("IDEA-CHAIN-ROOT", null);
+        createRelease("IDEA-CHAIN-PARENT", "IDEA-CHAIN-ROOT");
+        createRelease("IDEA-CHAIN-CHILD", "IDEA-CHAIN-PARENT");
+
+        createFeature("IDEA-CHAIN-ROOT", "Root release feature");
+        createFeature("IDEA-CHAIN-PARENT", "Parent release feature");
+        createFeature("IDEA-CHAIN-CHILD", "Child release feature");
+    }
+
+    private void createRelease(String releaseCode, String parentCode) {
+        String parentJson = parentCode == null ? "" : String.format(",%n    \"parentCode\": \"%s\"", parentCode);
+        var payload = String.format(
+                """
+            {
+                "productCode": "intellij",
+                "code": "%s"%s,
+                "description": "%s"
+            }
+            """,
+                releaseCode, parentJson, releaseCode);
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+    }
+
+    private void createFeature(String releaseCode, String title) {
+        var payload = String.format(
+                """
+            {
+                "productCode": "intellij",
+                "releaseCode": "%s",
+                "title": "%s",
+                "description": "%s",
+                "assignedTo": "siva"
+            }
+            """,
+                releaseCode, title, title);
+
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
     }
 }

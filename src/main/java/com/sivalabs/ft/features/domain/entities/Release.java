@@ -34,6 +34,10 @@ public class Release {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Release parent;
+
     @Size(max = 50) @NotNull @Column(name = "code", nullable = false, length = 50)
     private String code;
 
@@ -77,6 +81,14 @@ public class Release {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public Release getParent() {
+        return parent;
+    }
+
+    public void setParent(Release parent) {
+        this.parent = parent;
     }
 
     public String getCode() {

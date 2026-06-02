@@ -15,7 +15,8 @@ public class Commands {
             String code, String prefix, String name, String description, String imageUrl, String updatedBy) {}
 
     /* Release Commands */
-    public record CreateReleaseCommand(String productCode, String code, String description, String createdBy) {}
+    public record CreateReleaseCommand(
+            String productCode, String code, String parentCode, String description, String createdBy) {}
 
     public record UpdateReleaseCommand(
             String code, String description, ReleaseStatus status, Instant releasedAt, String updatedBy) {}

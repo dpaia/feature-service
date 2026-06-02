@@ -91,6 +91,29 @@ class FeatureController {
         return featureDtos;
     }
 
+    @GetMapping("/all-features")
+    @Operation(
+            summary = "Find features by release including parent releases",
+            description = "Find features by release including parent releases",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class))))
+            })
+    List<FeatureDto> getAllFeatures(
+            @RequestParam("releaseCode") String releaseCode,
+            @RequestParam(value = "fromParentRelease", required = false) String fromParentRelease) {
+        if (StringUtils.isBlank(releaseCode)) {
+            return List.of();
+        }
+        String username = SecurityUtils.getCurrentUsername();
+        return featureService.findFeaturesByReleaseAndParents(username, releaseCode, fromParentRelease);
+    }
+
     @GetMapping("/{code}")
     @Operation(
             summary = "Find feature by code",

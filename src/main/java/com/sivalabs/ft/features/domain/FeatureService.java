@@ -64,6 +64,26 @@ public class FeatureService {
     }
 
     @Transactional(readOnly = true)
+    public List<FeatureDto> findFeaturesByReleaseAndParents(
+            String username, String releaseCode, String fromParentReleaseCode) {
+        Optional<Release> releaseOptional = releaseRepository.findByCode(releaseCode);
+        if (releaseOptional.isEmpty()) {
+            return List.of();
+        }
+
+        List<Feature> features = new java.util.ArrayList<>();
+        Release currentRelease = releaseOptional.get();
+        while (currentRelease != null) {
+            features.addAll(featureRepository.findByReleaseCode(currentRelease.getCode()));
+            if (currentRelease.getCode().equals(fromParentReleaseCode)) {
+                break;
+            }
+            currentRelease = currentRelease.getParent();
+        }
+        return updateFavoriteStatus(features, username);
+    }
+
+    @Transactional(readOnly = true)
     public List<FeatureDto> findFeaturesByProduct(String username, String productCode) {
         List<Feature> features = featureRepository.findByProductCode(productCode);
         return updateFavoriteStatus(features, username);

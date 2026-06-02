@@ -4,9 +4,11 @@ import com.sivalabs.ft.features.domain.entities.Release;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.ListCrudRepository;
 
 interface ReleaseRepository extends ListCrudRepository<Release, Long> {
+    @Query("select r from Release r left join fetch r.parent where r.code = :code")
     Optional<Release> findByCode(String code);
 
     List<Release> findByProductCode(String productCode);

@@ -11,6 +11,7 @@ import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +60,10 @@ public class ReleaseService {
         }
         Release release = new Release();
         release.setProduct(product);
+        if (StringUtils.isNotBlank(cmd.parentCode())) {
+            Release parent = releaseRepository.findByCode(cmd.parentCode()).orElseThrow();
+            release.setParent(parent);
+        }
         release.setCode(code);
         release.setDescription(cmd.description());
         release.setStatus(ReleaseStatus.DRAFT);
