@@ -40,6 +40,10 @@ public class Feature {
     @Size(max = 255) @Column(name = "assigned_to")
     private String assignedTo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     @Size(max = 255) @NotNull @Column(name = "created_by", nullable = false)
     private String createdBy;
 
@@ -115,6 +119,14 @@ public class Feature {
 
     public void setAssignedTo(String assignedTo) {
         this.assignedTo = assignedTo;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     public String getCreatedBy() {
