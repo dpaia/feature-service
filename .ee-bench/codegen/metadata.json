@@ -5,8 +5,14 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
-    "pass_to_pass": []
+    "fail_to_pass": [
+      "com.sivalabs.ft.features.api.controllers.RoleBasedAccessControlTests"
+    ],
+    "pass_to_pass": [
+      "com.sivalabs.ft.features.api.controllers.ReleaseFeaturePlanningIntegrationTests",
+      "com.sivalabs.ft.features.api.controllers.ReleaseControllerTests",
+      "com.sivalabs.ft.features.api.controllers.MilestoneControllerTests"
+    ]
   },
   "environment": {
     "project_root": "/repo",

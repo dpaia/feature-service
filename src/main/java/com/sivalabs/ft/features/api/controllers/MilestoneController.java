@@ -97,7 +97,7 @@ class MilestoneController {
     @PostMapping("")
     @Operation(
             summary = "Create a new milestone",
-            description = "Create a new milestone",
+            description = "Create a new milestone. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(
                         responseCode = "201",
@@ -135,7 +135,7 @@ class MilestoneController {
     @PutMapping("/{code}")
     @Operation(
             summary = "Update an existing milestone",
-            description = "Update an existing milestone",
+            description = "Update an existing milestone. Requires PRODUCT_MANAGER or ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Successful response"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
@@ -161,7 +161,7 @@ class MilestoneController {
     @DeleteMapping("/{code}")
     @Operation(
             summary = "Delete an existing milestone",
-            description = "Delete an existing milestone",
+            description = "Delete an existing milestone. Requires ADMIN role.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Successful response"),
                 @ApiResponse(responseCode = "400", description = "Invalid request"),
