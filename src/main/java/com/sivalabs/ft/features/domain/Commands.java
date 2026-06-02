@@ -42,4 +42,12 @@ public class Commands {
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    /* Category Commands */
+    public record CreateCategoryCommand(String name, String description, Long parentCategoryId, String createdBy) {}
+
+    public record UpdateCategoryCommand(
+            Long id, String name, String description, Long parentCategoryId, String updatedBy) {}
+
+    public record DeleteCategoryCommand(Long id, String deletedBy) {}
 }
