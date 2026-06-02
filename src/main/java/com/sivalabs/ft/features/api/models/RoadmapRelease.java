@@ -1,14 +1,19 @@
 package com.sivalabs.ft.features.api.models;
 
-import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
 
-public record UpdateReleasePayload(
+public record RoadmapRelease(
+        Long id,
+        String code,
         String description,
-        ReleaseStatus status,
+        String status,
         Instant releasedAt,
         Instant plannedStartDate,
         Instant plannedReleaseDate,
         Instant actualReleaseDate,
         String owner,
-        String notes) {}
+        String notes,
+        String createdBy,
+        Instant createdAt,
+        String updatedBy,
+        Instant updatedAt) {}

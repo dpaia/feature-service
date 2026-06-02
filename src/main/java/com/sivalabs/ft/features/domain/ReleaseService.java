@@ -62,6 +62,10 @@ public class ReleaseService {
         release.setCode(code);
         release.setDescription(cmd.description());
         release.setStatus(ReleaseStatus.DRAFT);
+        release.setPlannedStartDate(cmd.plannedStartDate());
+        release.setPlannedReleaseDate(cmd.plannedReleaseDate());
+        release.setOwner(cmd.owner());
+        release.setNotes(cmd.notes());
         release.setCreatedBy(cmd.createdBy());
         release.setCreatedAt(Instant.now());
         releaseRepository.save(release);
@@ -74,6 +78,11 @@ public class ReleaseService {
         release.setDescription(cmd.description());
         release.setStatus(cmd.status());
         release.setReleasedAt(cmd.releasedAt());
+        release.setPlannedStartDate(cmd.plannedStartDate());
+        release.setPlannedReleaseDate(cmd.plannedReleaseDate());
+        release.setActualReleaseDate(cmd.actualReleaseDate());
+        release.setOwner(cmd.owner());
+        release.setNotes(cmd.notes());
         release.setUpdatedBy(cmd.updatedBy());
         release.setUpdatedAt(Instant.now());
         releaseRepository.save(release);
