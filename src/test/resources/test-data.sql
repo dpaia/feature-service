@@ -18,7 +18,8 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 (3, 2, 'GO-2024.2.3', 'GoLand 2024.2.4', 'RELEASED', 'admin','2024-02-15'),
 (4, 3, 'WEB-2024.2.3', 'WebStorm 2024.2.4', 'RELEASED', 'admin','2024-02-20'),
 (5, 4, 'PY-2024.2.3', 'PyCharm 2024.2.4', 'RELEASED', 'admin','2024-02-20'),
-(6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16')
+(6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16'),
+(7, 1, 'IDEA-2025.1-DRAFT', 'IntelliJ IDEA 2025.1 Draft', 'DRAFT', 'admin','2024-12-01')
 ;
 
 insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values

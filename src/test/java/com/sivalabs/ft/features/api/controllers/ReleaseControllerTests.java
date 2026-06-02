@@ -21,7 +21,7 @@ class ReleaseControllerTests extends AbstractIT {
                 .bodyJson()
                 .extractingPath("$.size()")
                 .asNumber()
-                .isEqualTo(2);
+                .isEqualTo(3);
     }
 
     @Test
