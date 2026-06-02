@@ -1,3 +1,4 @@
+delete from favorite_features;
 delete from features;
 delete from releases;
 delete from products;
@@ -24,3 +25,6 @@ insert into features (id, product_id, release_id, code, title, description, stat
 (2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14'),
 (3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14')
 ;
+
+insert into favorite_features (id, feature_id, user_id) values
+(1, 2, 'user');
