@@ -5,10 +5,10 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
-    "pass_to_pass": [
+    "fail_to_pass": [
       "com.sivalabs.ft.features.api.controllers.FeatureControllerTests"
-    ]
+    ],
+    "pass_to_pass": []
   },
   "environment": {
     "project_root": "/repo",
