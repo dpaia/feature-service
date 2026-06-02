@@ -197,4 +197,28 @@ class FeatureController {
         featureService.deleteFeature(cmd);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/all-features")
+    @Operation(
+            summary = "Find features by release including parent releases",
+            description =
+                    "Find features by release including all parent releases, with optional parent release restriction",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class))))
+            })
+    List<FeatureDto> getAllFeatures(
+            @RequestParam(value = "releaseCode") String releaseCode,
+            @RequestParam(value = "fromParentRelease", required = false) String fromParentRelease) {
+        if (StringUtils.isBlank(releaseCode)) {
+            return List.of();
+        }
+        String username = SecurityUtils.getCurrentUsername();
+        return featureService.findFeaturesByReleaseAndParents(username, releaseCode, fromParentRelease);
+    }
 }

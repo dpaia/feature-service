@@ -14,6 +14,24 @@ interface FeatureRepository extends ListCrudRepository<Feature, Long> {
     @Query("select f from Feature f left join fetch f.release where f.release.code = :releaseCode")
     List<Feature> findByReleaseCode(String releaseCode);
 
+    @Query(
+            value =
+                    """
+            WITH RECURSIVE release_hierarchy AS (
+                SELECT r.id, r.parent_id
+                FROM releases r
+                WHERE r.code = :releaseCode
+                UNION ALL
+                SELECT parent.id, parent.parent_id
+                FROM releases parent
+                JOIN release_hierarchy child ON parent.id = child.parent_id
+            )
+            SELECT f.* FROM features f
+            JOIN release_hierarchy rh ON f.release_id = rh.id
+            """,
+            nativeQuery = true)
+    List<Feature> findByReleaseCodeWithParents(String releaseCode);
+
     @Query("select f from Feature f left join fetch f.release where f.product.code = :productCode")
     List<Feature> findByProductCode(String productCode);
 

@@ -64,6 +64,13 @@ public class ReleaseService {
         release.setStatus(ReleaseStatus.DRAFT);
         release.setCreatedBy(cmd.createdBy());
         release.setCreatedAt(Instant.now());
+        if (cmd.parentCode() != null && !cmd.parentCode().isBlank()) {
+            Release parent = releaseRepository
+                    .findByCode(cmd.parentCode())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Parent release with code " + cmd.parentCode() + " not found"));
+            release.setParent(parent);
+        }
         releaseRepository.save(release);
         return code;
     }
@@ -76,6 +83,19 @@ public class ReleaseService {
         release.setReleasedAt(cmd.releasedAt());
         release.setUpdatedBy(cmd.updatedBy());
         release.setUpdatedAt(Instant.now());
+        if (cmd.parentCode() != null) {
+            if (cmd.parentCode().isBlank()) {
+                release.setParent(null);
+            } else if (cmd.code().equals(cmd.parentCode())) {
+                throw new IllegalArgumentException("A release cannot be its own parent");
+            } else {
+                Release parent = releaseRepository
+                        .findByCode(cmd.parentCode())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Parent release with code " + cmd.parentCode() + " not found"));
+                release.setParent(parent);
+            }
+        }
         releaseRepository.save(release);
     }
 

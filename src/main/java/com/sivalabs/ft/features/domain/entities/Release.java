@@ -60,6 +60,13 @@ public class Release {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Release parent;
+
+    @OneToMany(mappedBy = "parent")
+    private Set<Release> children = new LinkedHashSet<>();
+
     @OneToMany(mappedBy = "release")
     private Set<Feature> features = new LinkedHashSet<>();
 
@@ -141,6 +148,22 @@ public class Release {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Release getParent() {
+        return parent;
+    }
+
+    public void setParent(Release parent) {
+        this.parent = parent;
+    }
+
+    public Set<Release> getChildren() {
+        return children;
+    }
+
+    public void setChildren(Set<Release> children) {
+        this.children = children;
     }
 
     public Set<Feature> getFeatures() {

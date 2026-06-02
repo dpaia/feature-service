@@ -123,4 +123,67 @@ class FeatureControllerTests extends AbstractIT {
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesFromReleaseAndParentReleasesWithNativeQuery() {
+        createRelease("IDEA-2026.1", null);
+        createRelease("IDEA-2026.1.1", "IDEA-2026.1");
+        createFeature("IDEA-2026.1", "Parent release feature");
+        createFeature("IDEA-2026.1.1", "Child release feature");
+
+        var result = mvc.get()
+                .uri("/api/features/all-features?releaseCode={code}", "IDEA-2026.1.1")
+                .exchange();
+
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.size()")
+                .asNumber()
+                .isEqualTo(2);
+    }
+
+    private void createRelease(String code, String parentCode) {
+        var parentField = parentCode == null ? "" : ", \"parentCode\": \"%s\"".formatted(parentCode);
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "code": "%s",
+                "description": "%s"%s
+            }
+            """
+                        .formatted(code, code, parentField);
+
+        var result = mvc.post()
+                .uri("/api/releases")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+    }
+
+    private void createFeature(String releaseCode, String title) {
+        var payload =
+                """
+            {
+                "productCode": "intellij",
+                "releaseCode": "%s",
+                "title": "%s",
+                "description": "%s description",
+                "assignedTo": "user"
+            }
+            """
+                        .formatted(releaseCode, title, title);
+
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+    }
 }

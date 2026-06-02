@@ -7,6 +7,7 @@ import java.time.Instant;
 public record ReleaseDto(
         Long id,
         String code,
+        String parentCode,
         String description,
         ReleaseStatus status,
         Instant releasedAt,
