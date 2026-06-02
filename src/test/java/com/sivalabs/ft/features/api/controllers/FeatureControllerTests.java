@@ -123,4 +123,63 @@ class FeatureControllerTests extends AbstractIT {
         var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldRemoveCategoryFromFeatures() {
+        assertThat(mvc.get().uri("/api/features/{code}", "IDEA-1").exchange())
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.category.id")
+                .asNumber()
+                .isEqualTo(1);
+        assertThat(mvc.get().uri("/api/features/{code}", "GO-3").exchange())
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.category.id")
+                .asNumber()
+                .isEqualTo(3);
+
+        var payload =
+                """
+            {
+                "featureCodes": ["IDEA-1", "GO-3"]
+            }
+            """;
+
+        var result = mvc.delete()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        assertThat(mvc.get().uri("/api/features/{code}", "IDEA-1").exchange())
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.category")
+                .isNull();
+        assertThat(mvc.get().uri("/api/features/{code}", "GO-3").exchange())
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.category")
+                .isNull();
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenRemovingCategoryFromNonExistentFeature() {
+        var payload = """
+            {
+                "featureCodes": ["IDEA-999"]
+            }
+            """;
+
+        var result = mvc.delete()
+                .uri("/api/features/category")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
 }

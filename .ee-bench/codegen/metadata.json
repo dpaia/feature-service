@@ -5,7 +5,10 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
+    "fail_to_pass": [
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerTests#shouldRemoveCategoryFromFeatures",
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerTests#shouldReturn404WhenRemovingCategoryFromNonExistentFeature"
+    ],
     "pass_to_pass": []
   },
   "environment": {

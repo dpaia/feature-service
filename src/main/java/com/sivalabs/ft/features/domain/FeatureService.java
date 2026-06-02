@@ -2,12 +2,14 @@ package com.sivalabs.ft.features.domain;
 
 import com.sivalabs.ft.features.domain.Commands.CreateFeatureCommand;
 import com.sivalabs.ft.features.domain.Commands.DeleteFeatureCommand;
+import com.sivalabs.ft.features.domain.Commands.RemoveCategoryFromFeaturesCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateFeatureCommand;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.entities.Feature;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
+import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
@@ -134,5 +136,19 @@ public class FeatureService {
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+    }
+
+    @Transactional
+    public void removeCategoryFromFeatures(RemoveCategoryFromFeaturesCommand cmd) {
+        for (String featureCode : cmd.featureCodes()) {
+            Feature feature = featureRepository
+                    .findByCode(featureCode)
+                    .orElseThrow(() -> new ResourceNotFoundException("Feature not found with code: " + featureCode));
+            feature.setCategory(null);
+            feature.setUpdatedBy(cmd.updatedBy());
+            feature.setUpdatedAt(Instant.now());
+            featureRepository.save(feature);
+            eventPublisher.publishFeatureUpdatedEvent(feature);
+        }
     }
 }
