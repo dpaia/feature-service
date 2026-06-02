@@ -31,3 +31,12 @@ $ ./mvnw spotless:apply
 # Once the dependent services (PostgreSQL, Keycloak, etc) are started, 
 # you can run/debug FeatureServiceApplication.java from your IDE.
 ```
+
+## Feature Event Async Processing
+
+Feature-created application events are delivered through a dedicated
+`ThreadPoolTaskExecutor`. Tune the executor with `ft.async.core-pool-size`,
+`ft.async.max-pool-size`, `ft.async.queue-capacity`, and
+`ft.async.thread-name-prefix`. Listener logs include the processing thread name,
+which can be used to confirm that feature event handling runs outside the
+request thread.
