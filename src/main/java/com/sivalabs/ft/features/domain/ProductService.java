@@ -1,6 +1,5 @@
 package com.sivalabs.ft.features.domain;
 
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -40,7 +39,7 @@ public class ProductService {
     public void updateProduct(UpdateProductCommand cmd) {
         var product = productRepository
                 .findByCode(cmd.code())
-                .orElseThrow(() -> new EntityNotFoundException("Product %s not found".formatted(cmd)));
+                .orElseThrow(() -> new ResourceNotFoundException("Product %s not found".formatted(cmd)));
         product.setName(cmd.name());
         product.setDescription(cmd.description());
         product.setImageUrl(cmd.imageUrl());

@@ -1,18 +1,20 @@
 package com.sivalabs.ft.features.domain;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sivalabs.ft.features.TestcontainersConfiguration;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.jdbc.Sql;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-public class ProductServiceTest {
+@Sql(scripts = {"/test-data.sql"})
+class ProductServiceTest {
 
     @Autowired
     private ProductService productService;
@@ -23,15 +25,17 @@ public class ProductServiceTest {
     @Test
     void testFindProductByCode() {
         Optional<Product> result = productService.findProductByCode("intellij");
-        assertTrue(result.isPresent(), "Product with code 'intellij' should be present");
-        assertEquals("intellij", result.get().getCode(), "Product code does not match the expected value");
+        assertThat(result).as("Product with code 'intellij' should be present").isPresent();
+        assertThat(result.get().getCode())
+                .as("Product code does not match the expected value")
+                .isEqualTo("intellij");
     }
 
     @Test
     void testFindAllProducts() {
         var products = productService.findAllProducts();
-        assertNotNull(products, "The product list should not be null");
-        assertFalse(products.isEmpty(), "There must be sample data in the database");
+        assertThat(products).as("The product list should not be null").isNotNull();
+        assertThat(products).as("The product list should not be empty").isNotEmpty();
     }
 
     @Test
@@ -39,15 +43,17 @@ public class ProductServiceTest {
         var command = new CreateProductCommand("new-code", "New Product", "Description", "image-url", "user");
         long prev = productRepository.findAll().size();
         Long productId = productService.createProduct(command);
-        assertNotNull(productId, "Product ID should not be null after creation");
+        assertThat(productId).as("Product ID should not be null after creation").isNotNull();
         var createdProduct = productRepository
                 .findById(productId)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
-        assertEquals(command.code(), createdProduct.getCode(), "Product code should match the command");
-        assertEquals(
-                prev + 1,
-                productRepository.findAll().size(),
-                "Product repository size should increase by 1 after creation");
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        assertThat(createdProduct.getCode())
+                .as("Product code should match the command")
+                .isEqualTo(command.code());
+
+        assertThat(productRepository.findAll().size())
+                .as("Product repository size should increase by 1 after creation")
+                .isEqualTo(prev + 1);
     }
 
     @Test
@@ -58,20 +64,11 @@ public class ProductServiceTest {
         productService.updateProduct(updateCommand);
         var updatedProduct = productRepository
                 .findByCode(productCode)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
-        assertEquals(updateCommand.name(), updatedProduct.getName(), "Product name should match the updated value");
-        assertEquals(
-                updateCommand.description(),
-                updatedProduct.getDescription(),
-                "Product description should match the updated value");
-        assertEquals(
-                updateCommand.imageUrl(),
-                updatedProduct.getImageUrl(),
-                "Product image URL should match the updated value");
-        assertEquals(
-                updateCommand.updatedBy(),
-                updatedProduct.getUpdatedBy(),
-                "Product updatedBy should match the updater's value");
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        assertThat(updatedProduct)
+                .usingRecursiveComparison()
+                .comparingOnlyFields("name", "description", "imageUrl", "updatedBy")
+                .isEqualTo(updateCommand);
     }
 
     @Test
@@ -79,8 +76,9 @@ public class ProductServiceTest {
         String nonExistentCode = "non-existent";
         var updateCommand =
                 new UpdateProductCommand(nonExistentCode, "Some Name", "Some Description", "some-image-url", "user");
-        EntityNotFoundException exception =
-                assertThrows(EntityNotFoundException.class, () -> productService.updateProduct(updateCommand));
-        assertTrue(exception.getMessage().contains(updateCommand.code()), "Error message must contain product code");
+        assertThatThrownBy(() -> productService.updateProduct(updateCommand))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .as("Error message must contain product code")
+                .hasMessageContaining(updateCommand.code());
     }
 }
