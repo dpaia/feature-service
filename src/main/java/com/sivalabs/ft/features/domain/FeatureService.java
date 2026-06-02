@@ -29,8 +29,12 @@ public class FeatureService {
         return featureRepository.findByCode(code);
     }
 
-    public List<Feature> findFeatures(String releaseCode) {
+    public List<Feature> findFeaturesByRelease(String releaseCode) {
         return featureRepository.findByReleaseCode(releaseCode);
+    }
+
+    public List<Feature> findFeaturesByProduct(String productCode) {
+        return featureRepository.findByProductCode(productCode);
     }
 
     public boolean isFeatureExists(String code) {

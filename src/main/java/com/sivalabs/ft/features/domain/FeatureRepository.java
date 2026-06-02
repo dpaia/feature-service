@@ -11,6 +11,8 @@ interface FeatureRepository extends ListCrudRepository<Feature, Long> {
 
     List<Feature> findByReleaseCode(String releaseCode);
 
+    List<Feature> findByProductCode(String productCode);
+
     @Modifying
     void deleteByCode(String code);
 

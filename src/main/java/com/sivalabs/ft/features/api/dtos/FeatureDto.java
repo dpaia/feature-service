@@ -1,5 +1,6 @@
 package com.sivalabs.ft.features.api.dtos;
 
+import com.sivalabs.ft.features.domain.FeatureStatus;
 import java.io.Serializable;
 import java.time.Instant;
 
@@ -8,7 +9,7 @@ public record FeatureDto(
         String code,
         String title,
         String description,
-        String status,
+        FeatureStatus status,
         String assignedTo,
         String createdBy,
         Instant createdAt,

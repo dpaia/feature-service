@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -45,8 +46,8 @@ class FeatureController {
 
     @GetMapping("")
     @Operation(
-            summary = "Find features by product release",
-            description = "Find features by product release",
+            summary = "Find features by product or release",
+            description = "Find features by product or release",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -56,10 +57,24 @@ class FeatureController {
                                         mediaType = "application/json",
                                         array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class))))
             })
-    List<FeatureDto> getFeatures(@RequestParam("releaseCode") String releaseCode) {
-        return featureService.findFeatures(releaseCode).stream()
-                .map(featureMapper::toDto)
-                .toList();
+    List<FeatureDto> getFeatures(
+            @RequestParam(value = "productCode", required = false) String productCode,
+            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
+        // Only one of productCode or releaseCode should be provided
+        if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
+                || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
+            // TODO: Return 400 Bad Request
+            return List.of();
+        }
+        if (StringUtils.isNotBlank(productCode)) {
+            return featureService.findFeaturesByProduct(productCode).stream()
+                    .map(featureMapper::toDto)
+                    .toList();
+        } else {
+            return featureService.findFeaturesByRelease(releaseCode).stream()
+                    .map(featureMapper::toDto)
+                    .toList();
+        }
     }
 
     @GetMapping("/{code}")

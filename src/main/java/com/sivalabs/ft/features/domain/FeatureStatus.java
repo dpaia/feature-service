@@ -2,7 +2,7 @@ package com.sivalabs.ft.features.domain;
 
 public enum FeatureStatus {
     NEW,
-    IN_DEVELOPMENT,
+    IN_PROGRESS,
     ON_HOLD,
     RELEASED
 }

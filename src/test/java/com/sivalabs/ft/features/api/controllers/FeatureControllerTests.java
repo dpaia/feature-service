@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.dtos.FeatureDto;
+import com.sivalabs.ft.features.domain.FeatureStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -81,7 +82,7 @@ class FeatureControllerTests extends AbstractIT {
                 "title": "Updated Feature",
                 "description": "Updated description",
                 "assignedTo": "jane.doe",
-                "status": "IN_DEVELOPMENT"
+                "status": "IN_PROGRESS"
             }
             """;
 
@@ -101,7 +102,7 @@ class FeatureControllerTests extends AbstractIT {
                     assertThat(dto.title()).isEqualTo("Updated Feature");
                     assertThat(dto.description()).isEqualTo("Updated description");
                     assertThat(dto.assignedTo()).isEqualTo("jane.doe");
-                    assertThat(dto.status()).isEqualTo("IN_DEVELOPMENT");
+                    assertThat(dto.status()).isEqualTo(FeatureStatus.IN_PROGRESS);
                 });
     }
 
