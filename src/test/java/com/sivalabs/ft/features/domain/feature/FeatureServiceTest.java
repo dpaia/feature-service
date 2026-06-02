@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @Import(DatabaseConfiguration.class)
@@ -24,10 +25,10 @@ import org.springframework.test.context.TestPropertySource;
 class FeatureServiceTest {
 
     @Autowired
-    FeatureService featureService;
+    private FeatureService featureService;
 
-    @Autowired
-    EventPublisher eventPublisher;
+    @MockitoBean
+    private EventPublisher eventPublisher;
 
     @BeforeEach
     void resetMocks() {
