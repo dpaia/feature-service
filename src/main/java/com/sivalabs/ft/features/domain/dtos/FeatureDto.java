@@ -1,6 +1,7 @@
 package com.sivalabs.ft.features.domain.dtos;
 
 import com.sivalabs.ft.features.domain.models.FeaturePlanningStatus;
+import com.sivalabs.ft.features.domain.models.FeaturePriority;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.io.Serializable;
 import java.time.Instant;
@@ -24,7 +25,8 @@ public record FeatureDto(
         FeaturePlanningStatus planningStatus,
         String featureOwner,
         String notes,
-        String blockageReason)
+        String blockageReason,
+        FeaturePriority priority)
         implements Serializable {
 
     public FeatureDto makeFavorite(boolean favorite) {
@@ -45,6 +47,7 @@ public record FeatureDto(
                 planningStatus,
                 featureOwner,
                 notes,
-                blockageReason);
+                blockageReason,
+                priority);
     }
 }
