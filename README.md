@@ -8,7 +8,7 @@ The feature-service microservice manages products, releases and features.
 * Maven, JUnit 5, Testcontainers
 
 ## Prerequisites
-* JDK 21 or later
+* JDK 24 or later
 * Docker ([installation instructions](https://docs.docker.com/engine/install/))
 * [IntelliJ IDEA](https://www.jetbrains.com/idea/)
 * PostgreSQL and Keycloak 

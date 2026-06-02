@@ -26,14 +26,17 @@ public class NotificationEmailService {
     private final JavaMailSender mailSender;
     private final ApplicationProperties applicationProperties;
     private final NotificationRepository notificationRepository;
+    private final EmailDeliveryFailureService emailDeliveryFailureService;
 
     public NotificationEmailService(
             JavaMailSender mailSender,
             ApplicationProperties applicationProperties,
-            NotificationRepository notificationRepository) {
+            NotificationRepository notificationRepository,
+            EmailDeliveryFailureService emailDeliveryFailureService) {
         this.mailSender = mailSender;
         this.applicationProperties = applicationProperties;
         this.notificationRepository = notificationRepository;
+        this.emailDeliveryFailureService = emailDeliveryFailureService;
     }
 
     /**
@@ -69,6 +72,7 @@ public class NotificationEmailService {
 
         } catch (Exception e) {
             logEmailFailure(notification, e);
+            persistEmailFailure(notification, e);
             updateDeliveryStatusToFailed(notification);
         }
     }
@@ -148,5 +152,18 @@ public class NotificationEmailService {
                 Instant.now(),
                 e.getMessage(),
                 e);
+    }
+
+    private void persistEmailFailure(Notification notification, Exception e) {
+        try {
+            emailDeliveryFailureService.logFailure(
+                    notification.getId(),
+                    notification.getRecipientEmail(),
+                    notification.getEventType().name(),
+                    e.getMessage());
+        } catch (Exception ex) {
+            // Must not affect the flow - commit-time exceptions from REQUIRES_NEW can escape
+            log.warn("Failed to persist email delivery failure: {}", ex.getMessage());
+        }
     }
 }
