@@ -1,7 +1,9 @@
+delete from notifications;
 delete from favorite_features;
 delete from comments;
 delete from features;
 delete from releases;
+delete from users;
 delete from products;
 
 insert into products (id, code, prefix, name, description, image_url, disabled, created_by, created_at) values
@@ -34,3 +36,13 @@ insert into comments (id, feature_id, created_by, content) values
 (1, 1, 'user', 'This is a comment on feature IDEA-1'),
 (2,  1, 'user', 'This is a comment on feature IDEA-2'),
 (3, 1, 'user', 'This is a comment on feature GO-3');
+
+insert into users (id, username, email) values
+(1, 'admin', 'admin@example.com'),
+(2, 'user', 'user@example.com'),
+(3, 'alice', 'alice@example.com'),
+(4, 'bob', 'bob@example.com'),
+(5, 'marcobehler', 'marcobehler@example.com'),
+(6, 'daniiltsarev', 'daniiltsarev@example.com'),
+(7, 'antonarhipov', 'antonarhipov@example.com'),
+(8, 'andreybelyaev', 'andreybelyaev@example.com');

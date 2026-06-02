@@ -5,8 +5,10 @@ import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
 import com.sivalabs.ft.features.domain.entities.Product;
 import com.sivalabs.ft.features.domain.entities.Release;
+import com.sivalabs.ft.features.domain.entities.User;
 import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.ReleaseMapper;
+import com.sivalabs.ft.features.domain.models.NotificationEventType;
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import java.time.Instant;
 import java.util.List;
@@ -21,16 +23,22 @@ public class ReleaseService {
     private final ProductRepository productRepository;
     private final FeatureRepository featureRepository;
     private final ReleaseMapper releaseMapper;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     ReleaseService(
             ReleaseRepository releaseRepository,
             ProductRepository productRepository,
             FeatureRepository featureRepository,
-            ReleaseMapper releaseMapper) {
+            ReleaseMapper releaseMapper,
+            NotificationService notificationService,
+            UserRepository userRepository) {
         this.releaseRepository = releaseRepository;
         this.productRepository = productRepository;
         this.featureRepository = featureRepository;
         this.releaseMapper = releaseMapper;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +73,7 @@ public class ReleaseService {
         release.setCreatedBy(cmd.createdBy());
         release.setCreatedAt(Instant.now());
         releaseRepository.save(release);
+        createReleaseNotifications(release, cmd.createdBy());
         return code;
     }
 
@@ -86,5 +95,20 @@ public class ReleaseService {
         }
         featureRepository.unsetRelease(code);
         releaseRepository.deleteByCode(code);
+    }
+
+    private void createReleaseNotifications(Release release, String actor) {
+        for (User user : userRepository.findAll()) {
+            if (user.getUsername().equals(actor)) {
+                continue;
+            }
+            notificationService.createNotification(
+                    user.getUsername(),
+                    user.getEmail(),
+                    NotificationEventType.RELEASE_CREATED,
+                    "Summary: Release %s was created. Actor: %s. Link: /api/releases/%s"
+                            .formatted(release.getCode(), actor, release.getCode()),
+                    "/api/releases/" + release.getCode());
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.sivalabs.ft.features.domain.entities.Release;
 import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import com.sivalabs.ft.features.domain.models.NotificationEventType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,9 @@ public class FeatureService {
     private final FavoriteFeatureRepository favoriteFeatureRepository;
     private final EventPublisher eventPublisher;
     private final FeatureMapper featureMapper;
+    private final NotificationService notificationService;
+    private final NotificationRecipientService notificationRecipientService;
+    private final UserRepository userRepository;
 
     FeatureService(
             FavoriteFeatureService favoriteFeatureService,
@@ -37,7 +41,10 @@ public class FeatureService {
             ProductRepository productRepository,
             FavoriteFeatureRepository favoriteFeatureRepository,
             EventPublisher eventPublisher,
-            FeatureMapper featureMapper) {
+            FeatureMapper featureMapper,
+            NotificationService notificationService,
+            NotificationRecipientService notificationRecipientService,
+            UserRepository userRepository) {
         this.favoriteFeatureService = favoriteFeatureService;
         this.releaseRepository = releaseRepository;
         this.featureRepository = featureRepository;
@@ -45,6 +52,9 @@ public class FeatureService {
         this.eventPublisher = eventPublisher;
         this.favoriteFeatureRepository = favoriteFeatureRepository;
         this.featureMapper = featureMapper;
+        this.notificationService = notificationService;
+        this.notificationRecipientService = notificationRecipientService;
+        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -106,6 +116,7 @@ public class FeatureService {
         feature.setCreatedAt(Instant.now());
         featureRepository.save(feature);
         eventPublisher.publishFeatureCreatedEvent(feature);
+        createFeatureNotifications(feature, cmd.createdBy(), NotificationEventType.FEATURE_CREATED);
         return code;
     }
 
@@ -134,5 +145,22 @@ public class FeatureService {
         favoriteFeatureRepository.deleteByFeatureCode(cmd.code());
         featureRepository.deleteByCode(cmd.code());
         eventPublisher.publishFeatureDeletedEvent(feature, cmd.deletedBy(), Instant.now());
+    }
+
+    private void createFeatureNotifications(
+            Feature feature, String actor, NotificationEventType notificationEventType) {
+        var featureDto = featureMapper.toDto(feature);
+        var recipients = notificationRecipientService.getFeatureNotificationRecipients(featureDto, actor);
+        for (String recipient : recipients) {
+            userRepository
+                    .findByUsername(recipient)
+                    .ifPresent(user -> notificationService.createNotification(
+                            recipient,
+                            user.getEmail(),
+                            notificationEventType,
+                            "Summary: Feature %s was created. Actor: %s. Link: /api/features/%s"
+                                    .formatted(feature.getCode(), actor, feature.getCode()),
+                            "/api/features/" + feature.getCode()));
+        }
     }
 }
