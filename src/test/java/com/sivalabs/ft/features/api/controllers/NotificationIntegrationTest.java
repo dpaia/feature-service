@@ -9,6 +9,7 @@ import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.MockOAuth2UserContextFactory;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.api.models.CreateFeaturePayload;
+import com.sivalabs.ft.features.testsupport.MockJavaMailSenderConfig;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,6 +29,7 @@ import org.springframework.test.context.jdbc.Sql;
  * Tests that notifications are created synchronously when features are created/updated/deleted
  */
 @Sql("/test-data.sql")
+@Import(MockJavaMailSenderConfig.class)
 class NotificationIntegrationTest extends AbstractIT {
 
     @Autowired
@@ -159,12 +162,12 @@ class NotificationIntegrationTest extends AbstractIT {
     @Test
     void shouldMarkNotificationAsRead() throws Exception {
         // Given - Create a feature as creator, assigned to assignee
-        setAuthenticationContext("creator");
         CreateFeaturePayload payload =
                 new CreateFeaturePayload("intellij", "Read Test Feature", "Test read functionality", null, "assignee");
 
         mvc.post()
                 .uri("/api/features")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "creator")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(payload))
                 .exchange();
@@ -202,12 +205,12 @@ class NotificationIntegrationTest extends AbstractIT {
     @Test
     void shouldMarkNotificationAsUnread() throws Exception {
         // Given - Create a feature as creator, assigned to assignee
-        setAuthenticationContext("creator");
         CreateFeaturePayload payload = new CreateFeaturePayload(
                 "intellij", "Unread Test Feature", "Test unread functionality", null, "assignee");
 
         mvc.post()
                 .uri("/api/features")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "creator")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(payload))
                 .exchange();
@@ -264,6 +267,150 @@ class NotificationIntegrationTest extends AbstractIT {
                 Integer.class,
                 notificationId);
         assertThat(unreadCount).isEqualTo(1);
+    }
+
+    @Test
+    void shouldFilterNotificationsByStatus() throws Exception {
+        // Given - Create two notifications for assignee
+        CreateFeaturePayload payload1 =
+                new CreateFeaturePayload("intellij", "Filter Feature 1", "Test filter 1", null, "assignee");
+        CreateFeaturePayload payload2 =
+                new CreateFeaturePayload("intellij", "Filter Feature 2", "Test filter 2", null, "assignee");
+
+        mvc.post()
+                .uri("/api/features")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "creator")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload1))
+                .exchange();
+        mvc.post()
+                .uri("/api/features")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "creator")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload2))
+                .exchange();
+
+        // Mark one as read
+        UUID notificationId = jdbcTemplate.queryForObject(
+                "SELECT id FROM notifications WHERE recipient_user_id = ? ORDER BY created_at DESC LIMIT 1",
+                UUID.class,
+                "assignee");
+
+        mvc.put()
+                .uri("/api/notifications/{id}/read", notificationId)
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "assignee")))
+                .exchange();
+
+        // When - filter read
+        var readResponse = mvc.get()
+                .uri("/api/notifications?status=read")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "assignee")))
+                .exchange();
+        assertThat(readResponse).hasStatus2xxSuccessful();
+
+        Map<String, Object> readPage =
+                objectMapper.readValue(readResponse.getResponse().getContentAsString(), new TypeReference<>() {});
+        List<Map<String, Object>> readNotifications = (List<Map<String, Object>>) readPage.get("content");
+
+        assertThat(readNotifications).hasSize(1);
+        assertThat(readNotifications.get(0).get("read")).isEqualTo(true);
+
+        // When - filter unread
+        var unreadResponse = mvc.get()
+                .uri("/api/notifications?status=unread")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "assignee")))
+                .exchange();
+        assertThat(unreadResponse).hasStatus2xxSuccessful();
+
+        Map<String, Object> unreadPage =
+                objectMapper.readValue(unreadResponse.getResponse().getContentAsString(), new TypeReference<>() {});
+        List<Map<String, Object>> unreadNotifications = (List<Map<String, Object>>) unreadPage.get("content");
+
+        assertThat(unreadNotifications).hasSize(1);
+        assertThat(unreadNotifications.get(0).get("read")).isEqualTo(false);
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidStatusFilter() throws Exception {
+        var response = mvc.get()
+                .uri("/api/notifications?status=invalid")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "assignee")))
+                .exchange();
+
+        assertThat(response).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void shouldMarkAllNotificationsAsRead() throws Exception {
+        // Given - Create two notifications for assignee
+        CreateFeaturePayload payload1 =
+                new CreateFeaturePayload("intellij", "Mark All 1", "Test mark all 1", null, "assignee");
+        CreateFeaturePayload payload2 =
+                new CreateFeaturePayload("intellij", "Mark All 2", "Test mark all 2", null, "assignee");
+
+        mvc.post()
+                .uri("/api/features")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "creator")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload1))
+                .exchange();
+        mvc.post()
+                .uri("/api/features")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "creator")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload2))
+                .exchange();
+
+        // Capture notification ids before mark-all-read (to compare read_at timestamps).
+        List<UUID> notificationIds = jdbcTemplate.queryForList(
+                "SELECT id FROM notifications WHERE recipient_user_id = ? ORDER BY created_at DESC",
+                UUID.class,
+                "assignee");
+        assertThat(notificationIds).hasSize(2);
+
+        // When - mark all as read
+        var response = mvc.patch()
+                .uri("/api/notifications/mark-all-read")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "assignee")))
+                .exchange();
+
+        assertThat(response).hasStatus2xxSuccessful();
+
+        Map<String, Object> body =
+                objectMapper.readValue(response.getResponse().getContentAsString(), new TypeReference<>() {});
+        assertThat(body.get("updated")).isEqualTo(2);
+
+        Integer unreadCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ? AND read = false",
+                Integer.class,
+                "assignee");
+        assertThat(unreadCount).isEqualTo(0);
+
+        // All notifications should share the same read_at timestamp for a mark-all-read update.
+        List<java.time.Instant> readAts = jdbcTemplate.queryForList(
+                "SELECT read_at FROM notifications WHERE id IN (?, ?) ORDER BY read_at ASC",
+                java.time.Instant.class,
+                notificationIds.get(0),
+                notificationIds.get(1));
+        assertThat(readAts).hasSize(2);
+        assertThat(readAts.get(0)).isNotNull();
+        assertThat(readAts.get(0)).isEqualTo(readAts.get(1));
+
+        // When - mark all again (idempotent)
+        var response2 = mvc.patch()
+                .uri("/api/notifications/mark-all-read")
+                .with(jwt().jwt(jwt -> jwt.claim("preferred_username", "assignee")))
+                .exchange();
+
+        Map<String, Object> body2 =
+                objectMapper.readValue(response2.getResponse().getContentAsString(), new TypeReference<>() {});
+        assertThat(body2.get("updated")).isEqualTo(0);
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenMarkAllReadWithoutAuth() {
+        var response = mvc.patch().uri("/api/notifications/mark-all-read").exchange();
+        assertThat(response).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 
     @Test

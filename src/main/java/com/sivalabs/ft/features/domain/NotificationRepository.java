@@ -19,6 +19,14 @@ public interface NotificationRepository extends ListCrudRepository<Notification,
     Page<Notification> findByRecipientUserIdOrderByCreatedAtDesc(String recipientUserId, Pageable pageable);
 
     /**
+     * Find notifications by recipient and read state
+     */
+    @Query(
+            "SELECT n FROM Notification n WHERE n.recipientUserId = :recipientUserId AND n.read = :read ORDER BY n.createdAt DESC")
+    Page<Notification> findByRecipientUserIdAndReadOrderByCreatedAtDesc(
+            String recipientUserId, Boolean read, Pageable pageable);
+
+    /**
      * Mark notification as read
      */
     @Modifying
@@ -35,9 +43,23 @@ public interface NotificationRepository extends ListCrudRepository<Notification,
     int markAsUnread(UUID id, String recipientUserId);
 
     /**
+     * Mark all notifications as read for a user
+     */
+    @Modifying
+    @Query(
+            "UPDATE Notification n SET n.read = true, n.readAt = :readAt WHERE n.recipientUserId = :recipientUserId AND n.read = false")
+    int markAllAsRead(String recipientUserId, Instant readAt);
+
+    /**
      * Update delivery status (used for FAILED status when email sending fails)
      */
     @Modifying
     @Query("UPDATE Notification n SET n.deliveryStatus = :deliveryStatus WHERE n.id = :id")
     int updateDeliveryStatus(UUID id, DeliveryStatus deliveryStatus);
+
+    /**
+     * Count unread notifications for a user
+     */
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.recipientUserId = :recipientUserId AND n.read = false")
+    long countUnread(String recipientUserId);
 }
