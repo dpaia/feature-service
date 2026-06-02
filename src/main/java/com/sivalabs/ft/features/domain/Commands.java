@@ -42,4 +42,11 @@ public class Commands {
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    /* Tag Commands */
+    public record CreateTagCommand(String name, String description, String createdBy) {}
+
+    public record UpdateTagCommand(Long id, String name, String description, String updatedBy) {}
+
+    public record DeleteTagCommand(Long id, String deletedBy) {}
 }
