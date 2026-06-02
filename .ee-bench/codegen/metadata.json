@@ -6,7 +6,9 @@
   "build_system": "maven",
   "expected": {
     "fail_to_pass": [
-      "com.sivalabs.ft.features.api.controllers.FeatureUsageControllerTests"
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageControllerTests$AuthenticatedUserTests.shouldCreateUsageEventWithCompleteDataAndReturn201",
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageControllerTests$AdminTests.shouldGetAllEventsWithFiltersAndPreciseValidation",
+      "com.sivalabs.ft.features.api.controllers.FeatureUsageControllerTests$ForbiddenAccessTests.shouldReturn403ForUserAccessingAllEvents"
     ],
     "pass_to_pass": []
   },
