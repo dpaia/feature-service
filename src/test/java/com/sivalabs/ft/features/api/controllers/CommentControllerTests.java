@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 class CommentControllerTests extends AbstractIT {
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(username = "user", roles = "FT_USER")
     void shouldAddComment() {
         var payload =
                 """
@@ -32,6 +32,26 @@ class CommentControllerTests extends AbstractIT {
 
     @Test
     @WithMockOAuth2User(username = "user")
+    void shouldRejectCommentCreationWithoutRequiredRole() {
+        var payload =
+                """
+                {
+                    "featureCode": "IDEA-1",
+                    "content": "This is a test comment"
+                }
+                """;
+
+        var result = mvc.post()
+                .uri("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user", roles = "FT_USER")
     void shouldReturn400WhenFeatureNotFound() {
         var payload =
                 """
@@ -51,6 +71,14 @@ class CommentControllerTests extends AbstractIT {
     }
 
     @Test
+    void shouldRequireAuthenticationForReadingComments() {
+        var result = mvc.get().uri("/api/comments?featureCode={code}", "IDEA-1").exchange();
+
+        assertThat(result).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
     void shouldGetCommentsByFeatureCode() {
         var result = mvc.get().uri("/api/comments?featureCode={code}", "IDEA-1").exchange();
 
@@ -64,6 +92,7 @@ class CommentControllerTests extends AbstractIT {
     }
 
     @Test
+    @WithMockOAuth2User(username = "user")
     void shouldGetCommentsWithPagination() {
         var result = mvc.get()
                 .uri("/api/comments?featureCode={code}&page=0&size=5", "IDEA-1")
@@ -73,7 +102,7 @@ class CommentControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(username = "user", roles = "FT_USER")
     void shouldRemoveComment() {
 
         // Then remove it
@@ -83,7 +112,7 @@ class CommentControllerTests extends AbstractIT {
     }
 
     @Test
-    @WithMockOAuth2User(username = "user")
+    @WithMockOAuth2User(username = "user", roles = "FT_USER")
     void shouldReturn400WhenRemovingNonExistentComment() {
         var result = mvc.delete().uri("/api/comments/{commentId}", 999).exchange();
 
