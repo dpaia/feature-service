@@ -41,6 +41,23 @@ public class CommentService {
     }
 
     @Transactional
+    public Long addReply(Commands.AddReplyCommand command) {
+        var parentComment = commentRepository
+                .findById(command.parentCommentId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Comment with id %s not found.".formatted(command.parentCommentId())));
+
+        Comment reply = new Comment();
+        reply.setContent(command.content());
+        reply.setFeature(parentComment.getFeature());
+        reply.setCreatedBy(command.createdBy());
+        reply.setCreatedAt(Instant.now());
+        parentComment.addReply(reply);
+        Comment savedReply = commentRepository.save(reply);
+        return savedReply.getId();
+    }
+
+    @Transactional
     public void removeComment(Long commentId, String userId) {
         int count = commentRepository.deleteComment(commentId, userId);
         if (count != 1) {
@@ -53,5 +70,17 @@ public class CommentService {
         PageRequest pageRequest = PageRequest.of(page, size);
         List<Comment> comments = commentRepository.findCommentsByFeatureCode(featureCode, pageRequest);
         return comments.stream().map(commentMapper::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentDto> findCommentsByFeature(String featureCode) {
+        return findCommentsByFeatureCode(featureCode, 0, Integer.MAX_VALUE);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentDto> findRepliesByParentId(Long parentCommentId) {
+        return commentRepository.findByParentCommentId(parentCommentId).stream()
+                .map(commentMapper::toDto)
+                .toList();
     }
 }

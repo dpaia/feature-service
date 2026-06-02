@@ -42,4 +42,6 @@ public class Commands {
 
     /* Comment Commands */
     public record CreateCommentCommand(String featureCode, String content, String createdBy) {}
+
+    public record AddReplyCommand(Long parentCommentId, String content, String createdBy) {}
 }

@@ -3,6 +3,8 @@ package com.sivalabs.ft.features.domain.entities;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
@@ -24,6 +26,13 @@ public class Comment {
 
     @Column(name = "content", nullable = false)
     private String content;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
+
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL)
+    private List<Comment> replies = new ArrayList<>();
 
     @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
@@ -68,6 +77,32 @@ public class Comment {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Comment getParentComment() {
+        return parentComment;
+    }
+
+    public void setParentComment(Comment parentComment) {
+        this.parentComment = parentComment;
+    }
+
+    public List<Comment> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<Comment> replies) {
+        this.replies = replies;
+    }
+
+    public void addReply(Comment reply) {
+        replies.add(reply);
+        reply.setParentComment(this);
+    }
+
+    public void removeReply(Comment reply) {
+        replies.remove(reply);
+        reply.setParentComment(null);
     }
 
     public Instant getCreatedAt() {

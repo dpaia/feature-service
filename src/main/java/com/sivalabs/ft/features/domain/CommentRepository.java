@@ -17,4 +17,6 @@ interface CommentRepository extends JpaRepository<Comment, Long> {
             select c from Comment c where c.feature.code = :featureCode
             """)
     List<Comment> findCommentsByFeatureCode(String featureCode, PageRequest pageRequest);
+
+    List<Comment> findByParentCommentId(Long parentCommentId);
 }
