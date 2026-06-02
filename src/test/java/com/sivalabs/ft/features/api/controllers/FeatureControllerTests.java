@@ -6,6 +6,7 @@ import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,6 +39,44 @@ class FeatureControllerTests extends AbstractIT {
     void shouldReturn404WhenFeatureNotFound() {
         var result = mvc.get().uri("/api/features/{code}", "INVALID_CODE").exchange();
         assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldGetFeaturesByCategoryIds() {
+        var result = mvc.get().uri("/api/features?categoryIds={ids}", "1,3").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features).hasSize(2);
+                    assertThat(features.stream().map(FeatureDto::code).toList())
+                            .containsExactlyInAnyOrder("IDEA-1", "GO-3");
+                });
+    }
+
+    @Test
+    void shouldGetFeaturesByCategoryAndTagIds() {
+        var result = mvc.get()
+                .uri("/api/features?categoryIds={categoryIds}&tagIds={tagIds}", "1", "1")
+                .exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features).hasSize(3);
+                    assertThat(features.stream().map(FeatureDto::code).toList())
+                            .containsExactlyInAnyOrder("IDEA-1", "IDEA-2", "GO-3");
+                });
+    }
+
+    @Test
+    void shouldReturn400WhenProductAndCategoryFiltersAreCombined() {
+        var result = mvc.get()
+                .uri("/api/features?productCode={productCode}&categoryIds={categoryIds}", "intellij", "1")
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     @Test

@@ -63,21 +63,27 @@ class FeatureController {
                                         mediaType = "application/json",
                                         array = @ArraySchema(schema = @Schema(implementation = FeatureDto.class))))
             })
-    List<FeatureDto> getFeatures(
+    ResponseEntity<List<FeatureDto>> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
-            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
-        // Only one of productCode or releaseCode should be provided
-        if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
-                || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
-            // TODO: Return 400 Bad Request
-            return List.of();
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
+            @RequestParam(value = "tagIds", required = false) List<Long> tagIds) {
+        boolean hasProductCode = StringUtils.isNotBlank(productCode);
+        boolean hasReleaseCode = StringUtils.isNotBlank(releaseCode);
+        boolean hasCategoryOrTagIds =
+                (categoryIds != null && !categoryIds.isEmpty()) || (tagIds != null && !tagIds.isEmpty());
+        int filterCount = (hasProductCode ? 1 : 0) + (hasReleaseCode ? 1 : 0) + (hasCategoryOrTagIds ? 1 : 0);
+        if (filterCount != 1) {
+            return ResponseEntity.badRequest().build();
         }
         String username = SecurityUtils.getCurrentUsername();
         List<FeatureDto> featureDtos;
-        if (StringUtils.isNotBlank(productCode)) {
+        if (hasProductCode) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-        } else {
+        } else if (hasReleaseCode) {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
+        } else {
+            featureDtos = featureService.findFeaturesByCategoriesOrTags(username, categoryIds, tagIds);
         }
 
         if (username != null && !featureDtos.isEmpty()) {
@@ -88,7 +94,7 @@ class FeatureController {
                     .map(featureDto -> featureDto.makeFavorite(favoriteFeatures.get(featureDto.code())))
                     .toList();
         }
-        return featureDtos;
+        return ResponseEntity.ok(featureDtos);
     }
 
     @GetMapping("/{code}")
