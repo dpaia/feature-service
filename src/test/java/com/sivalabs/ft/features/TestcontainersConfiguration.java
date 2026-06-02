@@ -4,6 +4,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
@@ -19,6 +20,9 @@ public class TestcontainersConfiguration {
     @Container
     static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
 
+    @Container
+    static RabbitMQContainer rabbitmq = new RabbitMQContainer(DockerImageName.parse("rabbitmq:4.0-alpine"));
+
     @Bean
     @ServiceConnection
     PostgreSQLContainer<?> postgresContainer() {
@@ -29,5 +33,11 @@ public class TestcontainersConfiguration {
     @ServiceConnection
     KafkaContainer kafkaContainer() {
         return kafka;
+    }
+
+    @Bean
+    @ServiceConnection
+    RabbitMQContainer rabbitContainer() {
+        return rabbitmq;
     }
 }
