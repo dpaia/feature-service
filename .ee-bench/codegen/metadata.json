@@ -5,7 +5,10 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
+    "fail_to_pass": [
+      "com.sivalabs.ft.features.integration.CustomMulticasterContinueOnErrorTest",
+      "com.sivalabs.ft.features.integration.FeatureEventKafkaIntegrationTest"
+    ],
     "pass_to_pass": []
   },
   "environment": {
