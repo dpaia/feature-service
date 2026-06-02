@@ -6,7 +6,11 @@
   "build_system": "maven",
   "expected": {
     "fail_to_pass": [
-      "EmailDeliveryFailureAdminApiTest#shouldReturn400ForInvalidDateFormat"
+      "com.sivalabs.ft.features.api.controllers.EmailDeliveryFailureAdminApiTest.shouldReturn400ForInvalidDateFormat(String)[1]",
+      "com.sivalabs.ft.features.api.controllers.EmailDeliveryFailureAdminApiTest.shouldReturn400ForInvalidDateFormat(String)[2]",
+      "com.sivalabs.ft.features.api.controllers.EmailDeliveryFailureAdminApiTest.shouldReturn400ForInvalidDateFormat(String)[3]",
+      "com.sivalabs.ft.features.api.controllers.EmailDeliveryFailureAdminApiTest.shouldReturn400ForInvalidDateFormat(String)[4]",
+      "com.sivalabs.ft.features.api.controllers.EmailDeliveryFailureAdminApiTest.shouldReturn400ForInvalidDateFormat(String)[5]"
     ],
     "pass_to_pass": []
   },
