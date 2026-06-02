@@ -1,5 +1,6 @@
 package com.sivalabs.ft.features.api.controllers;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sivalabs.ft.features.AbstractIT;
@@ -14,7 +15,9 @@ class FeatureControllerTests extends AbstractIT {
 
     @Test
     void shouldGetFeaturesByReleaseCode() {
-        var result = mvc.get().uri("/api/features?releaseCode={code}", "IJ-2023.3.8");
+        var result = mvc.get()
+                .uri("/api/features?releaseCode={code}", "IDEA-2023.3.8")
+                .exchange();
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
@@ -25,8 +28,8 @@ class FeatureControllerTests extends AbstractIT {
 
     @Test
     void shouldGetFeatureByCode() {
-        String code = "IJ-10001";
-        var result = mvc.get().uri("/api/features/{code}", code);
+        String code = "IDEA-1";
+        var result = mvc.get().uri("/api/features/{code}", code).exchange();
         assertThat(result).hasStatusOk().bodyJson().convertTo(FeatureDto.class).satisfies(dto -> {
             assertThat(dto.code()).isEqualTo(code);
         });
@@ -34,7 +37,7 @@ class FeatureControllerTests extends AbstractIT {
 
     @Test
     void shouldReturn404WhenFeatureNotFound() {
-        var result = mvc.get().uri("/api/features/{code}", "INVALID_CODE");
+        var result = mvc.get().uri("/api/features/{code}", "INVALID_CODE").exchange();
         assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
     }
 
@@ -45,8 +48,7 @@ class FeatureControllerTests extends AbstractIT {
                 """
             {
                 "productCode": "intellij",
-                "releaseCode": "IJ-2023.3.8",
-                "code": "IJ-999999",
+                "releaseCode": "IDEA-2023.3.8",
                 "title": "New Feature",
                 "description": "New feature description",
                 "assignedTo": "john.doe"
@@ -56,17 +58,22 @@ class FeatureControllerTests extends AbstractIT {
         var result = mvc.post()
                 .uri("/api/features")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(payload);
+                .content(payload)
+                .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
+        String location = result.getMvcResult().getResponse().getHeader("Location");
 
         // Verify creation
-        var getResult = mvc.get().uri("/api/features/{code}", "IJ-999999");
+        assertThat(location).isNotNull();
+        var code = location.substring(location.lastIndexOf("/") + 1);
+
+        var getResult = mvc.get().uri(location).exchange();
         assertThat(getResult)
                 .hasStatusOk()
                 .bodyJson()
                 .convertTo(FeatureDto.class)
                 .satisfies(dto -> {
-                    assertThat(dto.code()).isEqualTo("IJ-999999");
+                    assertThat(dto.code()).isEqualTo(code);
                     assertThat(dto.title()).isEqualTo("New Feature");
                     assertThat(dto.description()).isEqualTo("New feature description");
                     assertThat(dto.assignedTo()).isEqualTo("john.doe");
@@ -87,13 +94,14 @@ class FeatureControllerTests extends AbstractIT {
             """;
 
         var result = mvc.put()
-                .uri("/api/features/{code}", "IJ-10001")
+                .uri("/api/features/{code}", "IDEA-1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(payload);
+                .content(payload)
+                .exchange();
         assertThat(result).hasStatusOk();
 
         // Verify the update
-        var updatedFeature = mvc.get().uri("/api/features/{code}", "IJ-10001");
+        var updatedFeature = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
         assertThat(updatedFeature)
                 .hasStatusOk()
                 .bodyJson()
@@ -109,11 +117,11 @@ class FeatureControllerTests extends AbstractIT {
     @Test
     @WithMockOAuth2User(username = "user")
     void shouldDeleteFeature() {
-        var result = mvc.delete().uri("/api/features/{code}", "IJ-10002");
+        var result = mvc.delete().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(result).hasStatusOk();
 
         // Verify deletion
-        var getResult = mvc.get().uri("/api/features/{code}", "IJ-10002");
+        var getResult = mvc.get().uri("/api/features/{code}", "IDEA-2").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
 }

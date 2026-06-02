@@ -14,7 +14,8 @@ class ReleaseControllerTests extends AbstractIT {
 
     @Test
     void shouldGetReleasesByProductCode() {
-        var result = mvc.get().uri("/api/releases?productCode={code}", "intellij");
+        var result =
+                mvc.get().uri("/api/releases?productCode={code}", "intellij").exchange();
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
@@ -25,8 +26,8 @@ class ReleaseControllerTests extends AbstractIT {
 
     @Test
     void shouldGetReleaseByCode() {
-        String code = "IJ-2023.3.8";
-        var result = mvc.get().uri("/api/releases/{code}", code);
+        String code = "IDEA-2023.3.8";
+        var result = mvc.get().uri("/api/releases/{code}", code).exchange();
         assertThat(result).hasStatusOk().bodyJson().convertTo(ReleaseDto.class).satisfies(dto -> {
             assertThat(dto.code()).isEqualTo(code);
         });
@@ -34,7 +35,7 @@ class ReleaseControllerTests extends AbstractIT {
 
     @Test
     void shouldReturn404WhenReleaseNotFound() {
-        var result = mvc.get().uri("/api/releases/{code}", "INVALID_CODE");
+        var result = mvc.get().uri("/api/releases/{code}", "INVALID_CODE").exchange();
         assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
     }
 
@@ -45,7 +46,7 @@ class ReleaseControllerTests extends AbstractIT {
                 """
             {
                 "productCode": "intellij",
-                "code": "intellij-2025.1",
+                "code": "IDEA-2025.1",
                 "description": "IntelliJ IDEA 2025.1"
             }
             """;
@@ -53,7 +54,8 @@ class ReleaseControllerTests extends AbstractIT {
         var result = mvc.post()
                 .uri("/api/releases")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(payload);
+                .content(payload)
+                .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
     }
 
@@ -70,13 +72,15 @@ class ReleaseControllerTests extends AbstractIT {
             """;
 
         var result = mvc.put()
-                .uri("/api/releases/{code}", "IJ-2023.3.8")
+                .uri("/api/releases/{code}", "IDEA-2023.3.8")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(payload);
+                .content(payload)
+                .exchange();
         assertThat(result).hasStatusOk();
 
         // Verify the update
-        var updatedRelease = mvc.get().uri("/api/releases/{code}", "IJ-2023.3.8");
+        var updatedRelease =
+                mvc.get().uri("/api/releases/{code}", "IDEA-2023.3.8").exchange();
         assertThat(updatedRelease)
                 .hasStatusOk()
                 .bodyJson()
@@ -91,11 +95,11 @@ class ReleaseControllerTests extends AbstractIT {
     @Test
     @WithMockOAuth2User(username = "user")
     void shouldDeleteRelease() {
-        var result = mvc.delete().uri("/api/releases/{code}", "RI-2024.2.6");
+        var result = mvc.delete().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(result).hasStatusOk();
 
         // Verify deletion
-        var getResult = mvc.get().uri("/api/releases/{code}", "RI-2024.2.6");
+        var getResult = mvc.get().uri("/api/releases/{code}", "RIDER-2024.2.6").exchange();
         assertThat(getResult).hasStatus(HttpStatus.NOT_FOUND);
     }
 }

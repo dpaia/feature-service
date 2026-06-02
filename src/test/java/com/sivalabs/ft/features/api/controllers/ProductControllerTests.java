@@ -13,7 +13,7 @@ class ProductControllerTests extends AbstractIT {
 
     @Test
     void shouldGetAllProducts() {
-        var result = mvc.get().uri("/api/products");
+        var result = mvc.get().uri("/api/products").exchange();
         assertThat(result)
                 .hasStatusOk()
                 .bodyJson()
@@ -33,7 +33,7 @@ class ProductControllerTests extends AbstractIT {
                 "https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA.png",
                 false,
                 "admin");
-        var actual = mvc.get().uri("/api/products/{code}", "intellij");
+        var actual = mvc.get().uri("/api/products/{code}", "intellij").exchange();
         assertThat(actual)
                 .hasStatusOk()
                 .bodyJson()
@@ -45,7 +45,7 @@ class ProductControllerTests extends AbstractIT {
 
     @Test
     void shouldReturn404WhenProductNotFound() {
-        var actual = mvc.get().uri("/api/products/{code}", "INVALID_CODE");
+        var actual = mvc.get().uri("/api/products/{code}", "INVALID_CODE").exchange();
         assertThat(actual).hasStatus(HttpStatus.NOT_FOUND);
     }
 
@@ -66,7 +66,8 @@ class ProductControllerTests extends AbstractIT {
         var result = mvc.post()
                 .uri("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(payload);
+                .content(payload)
+                .exchange();
         assertThat(result).hasStatus(HttpStatus.CREATED);
     }
 
@@ -76,6 +77,7 @@ class ProductControllerTests extends AbstractIT {
         var payload =
                 """
             {
+                "prefix": "IDEA",
                 "name": "IntelliJ IDEA Ultimate",
                 "description": "Best IDE for Java",
                 "imageUrl": "https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_Ultimate.png"
@@ -85,7 +87,8 @@ class ProductControllerTests extends AbstractIT {
         var result = mvc.put()
                 .uri("/api/products/{code}", "intellij")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(payload);
+                .content(payload)
+                .exchange();
         assertThat(result).hasStatusOk();
 
         // Verify the update
@@ -98,7 +101,7 @@ class ProductControllerTests extends AbstractIT {
                 "https://resources.jetbrains.com/storage/products/company/brand/logos/IntelliJ_IDEA_Ultimate.png",
                 false,
                 "admin");
-        var actual = mvc.get().uri("/api/products/{code}", "intellij");
+        var actual = mvc.get().uri("/api/products/{code}", "intellij").exchange();
         assertThat(actual)
                 .hasStatusOk()
                 .bodyJson()
