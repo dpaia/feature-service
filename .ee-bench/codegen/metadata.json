@@ -10,6 +10,11 @@
     ],
     "pass_to_pass": []
   },
+  "patch": {
+    "source_patterns": [
+      "src/test/java/com/sivalabs/ft/features/domain/feature/FeatureServiceTest.java"
+    ]
+  },
   "environment": {
     "project_root": "/repo",
     "docker": {
