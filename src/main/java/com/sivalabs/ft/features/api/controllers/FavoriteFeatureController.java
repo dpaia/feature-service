@@ -2,6 +2,8 @@ package com.sivalabs.ft.features.api.controllers;
 
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.FavoriteFeatureService;
+import com.sivalabs.ft.features.domain.FeatureUsageService;
+import com.sivalabs.ft.features.domain.models.ActionType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 class FavoriteFeatureController {
 
     private final FavoriteFeatureService favoriteFeatureService;
+    private final FeatureUsageService featureUsageService;
 
-    FavoriteFeatureController(FavoriteFeatureService favoriteFeatureService) {
+    FavoriteFeatureController(FavoriteFeatureService favoriteFeatureService, FeatureUsageService featureUsageService) {
         this.favoriteFeatureService = favoriteFeatureService;
+        this.featureUsageService = featureUsageService;
     }
 
     @PostMapping
@@ -32,6 +36,11 @@ class FavoriteFeatureController {
     ResponseEntity<Void> addFavoriteFeature(@PathVariable String featureCode) {
         var username = SecurityUtils.getCurrentUsername();
         favoriteFeatureService.addFavoriteFeature(username, featureCode);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, featureCode, null, ActionType.FAVORITE_ADDED);
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -46,6 +55,11 @@ class FavoriteFeatureController {
     ResponseEntity<Void> removeFavoriteFeature(@PathVariable String featureCode) {
         var username = SecurityUtils.getCurrentUsername();
         favoriteFeatureService.removeFavoriteFeature(username, featureCode);
+
+        if (username != null) {
+            featureUsageService.logUsage(username, featureCode, null, ActionType.FAVORITE_REMOVED);
+        }
+
         return ResponseEntity.noContent().build();
     }
 }
