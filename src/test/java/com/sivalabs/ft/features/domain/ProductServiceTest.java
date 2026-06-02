@@ -3,7 +3,7 @@ package com.sivalabs.ft.features.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.sivalabs.ft.features.TestcontainersConfiguration;
+import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.domain.Commands.CreateProductCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateProductCommand;
 import com.sivalabs.ft.features.domain.dtos.ProductDto;
@@ -11,14 +11,8 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.jdbc.Sql;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Sql(scripts = {"/test-data.sql"})
-class ProductServiceTest {
+class ProductServiceTest extends AbstractIT {
 
     @Autowired
     private ProductService productService;

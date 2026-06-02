@@ -5,8 +5,19 @@
   "jvm_version": "24",
   "build_system": "maven",
   "expected": {
-    "fail_to_pass": [],
-    "pass_to_pass": []
+    "fail_to_pass": [
+      "com.sivalabs.ft.features.domain.events.FeatureEventListenerTest"
+    ],
+    "pass_to_pass": [
+      "com.sivalabs.ft.features.FeatureServiceApplicationTests",
+      "com.sivalabs.ft.features.api.controllers.CommentControllerTests",
+      "com.sivalabs.ft.features.api.controllers.FeatureControllerTests",
+      "com.sivalabs.ft.features.api.controllers.ReleaseControllerTests",
+      "com.sivalabs.ft.features.api.controllers.ProductControllerTests",
+      "com.sivalabs.ft.features.api.controllers.FavoriteFeatureControllerTests",
+      "com.sivalabs.ft.features.domain.ProductServiceTest",
+      "com.sivalabs.ft.features.domain.ProductRepositoryTest"
+    ]
   },
   "environment": {
     "project_root": "/repo",
