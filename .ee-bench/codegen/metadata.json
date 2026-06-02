@@ -12,6 +12,16 @@
     ],
     "pass_to_pass": []
   },
+  "patch": {
+    "source_patterns": [
+      "src/test/resources/test-data.sql"
+    ],
+    "test_patterns": [
+      "src/test/java/com/sivalabs/ft/features/api/controllers/FeatureControllerTests.java",
+      "src/test/java/com/sivalabs/ft/features/api/controllers/ProductControllerTests.java",
+      "src/test/java/com/sivalabs/ft/features/api/controllers/ReleaseControllerTests.java"
+    ]
+  },
   "environment": {
     "project_root": "/repo",
     "docker": {
