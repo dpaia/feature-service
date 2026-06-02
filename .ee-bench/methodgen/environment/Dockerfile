@@ -1,0 +1,27 @@
+FROM eclipse-temurin:{{ instance.jvm_version }}
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    wget \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --break-system-packages tree-sitter tree-sitter-java
+
+RUN git clone https://github.com/dpaia/feature-service.git /repo
+WORKDIR /repo
+RUN git checkout {{ instance.base_commit }}
+
+# Make mvnw executable and pre-fetch dependencies
+RUN chmod +x ./mvnw && \
+    ./mvnw dependency:go-offline -q
+
+LABEL ee-bench.type="methodgen"
+LABEL ee-bench.version="1.0"
+RUN rm -rf /repo/.ee-bench/ 2>/dev/null || true
