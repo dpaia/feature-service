@@ -69,6 +69,12 @@ public class FeatureService {
         return updateFavoriteStatus(features, username);
     }
 
+    @Transactional(readOnly = true)
+    public List<FeatureDto> findFeaturesByTags(String username, List<Long> tagIds) {
+        List<Feature> features = featureRepository.findByTagIds(tagIds);
+        return updateFavoriteStatus(features, username);
+    }
+
     private List<FeatureDto> updateFavoriteStatus(List<Feature> features, String username) {
         if (username == null || features.isEmpty()) {
             return features.stream().map(featureMapper::toDto).toList();

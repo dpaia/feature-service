@@ -65,19 +65,24 @@ class FeatureController {
             })
     List<FeatureDto> getFeatures(
             @RequestParam(value = "productCode", required = false) String productCode,
-            @RequestParam(value = "releaseCode", required = false) String releaseCode) {
-        // Only one of productCode or releaseCode should be provided
-        if ((StringUtils.isBlank(productCode) && StringUtils.isBlank(releaseCode))
-                || (StringUtils.isNotBlank(productCode) && StringUtils.isNotBlank(releaseCode))) {
+            @RequestParam(value = "releaseCode", required = false) String releaseCode,
+            @RequestParam(value = "tagIds", required = false) List<Long> tagIds) {
+        boolean hasProductCode = StringUtils.isNotBlank(productCode);
+        boolean hasReleaseCode = StringUtils.isNotBlank(releaseCode);
+        boolean hasTagIds = tagIds != null && !tagIds.isEmpty();
+        int filterCount = (hasProductCode ? 1 : 0) + (hasReleaseCode ? 1 : 0) + (hasTagIds ? 1 : 0);
+        if (filterCount != 1) {
             // TODO: Return 400 Bad Request
             return List.of();
         }
         String username = SecurityUtils.getCurrentUsername();
         List<FeatureDto> featureDtos;
-        if (StringUtils.isNotBlank(productCode)) {
+        if (hasProductCode) {
             featureDtos = featureService.findFeaturesByProduct(username, productCode);
-        } else {
+        } else if (hasReleaseCode) {
             featureDtos = featureService.findFeaturesByRelease(username, releaseCode);
+        } else {
+            featureDtos = featureService.findFeaturesByTags(username, tagIds);
         }
 
         if (username != null && !featureDtos.isEmpty()) {

@@ -6,6 +6,7 @@ import com.sivalabs.ft.features.AbstractIT;
 import com.sivalabs.ft.features.WithMockOAuth2User;
 import com.sivalabs.ft.features.domain.dtos.FeatureDto;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -38,6 +39,21 @@ class FeatureControllerTests extends AbstractIT {
     void shouldReturn404WhenFeatureNotFound() {
         var result = mvc.get().uri("/api/features/{code}", "INVALID_CODE").exchange();
         assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetFeaturesByTags() {
+        var result = mvc.get().uri("/api/features?tagIds={tagIds}", "1,2").exchange();
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(InstanceOfAssertFactories.list(FeatureDto.class))
+                .satisfies(features -> {
+                    assertThat(features).hasSize(3);
+                    assertThat(features.stream().map(FeatureDto::code).toList())
+                            .containsExactlyInAnyOrder("IDEA-1", "IDEA-2", "GO-3");
+                });
     }
 
     @Test
