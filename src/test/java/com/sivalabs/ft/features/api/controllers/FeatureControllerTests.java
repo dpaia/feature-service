@@ -1,5 +1,6 @@
 package com.sivalabs.ft.features.api.controllers;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sivalabs.ft.features.AbstractIT;
