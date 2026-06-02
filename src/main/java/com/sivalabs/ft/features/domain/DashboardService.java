@@ -258,8 +258,13 @@ public class DashboardService {
     }
 
     private double calculateFeaturesPerWeek(List<Feature> features, Release release) {
-        long businessWeeksElapsed = calculateBusinessWeeksElapsed(release.getCreatedAt());
-        if (businessWeeksElapsed < 2) {
+        final Instant startDate = release.getCreatedAt();
+        final Instant endDate = (release.getStatus() == ReleaseStatus.RELEASED && release.getReleasedAt() != null)
+                ? release.getReleasedAt()
+                : Instant.now();
+
+        final double businessWeeksElapsed = calculateBusinessWeeksElapsed(startDate, endDate);
+        if (businessWeeksElapsed < 2.0) {
             return 0.0; // Requires at least 2 weeks of data
         }
 
@@ -318,14 +323,14 @@ public class DashboardService {
         return estimatedEndDate.atStartOfDay(ZoneOffset.UTC).toInstant();
     }
 
-    private long calculateBusinessWeeksElapsed(Instant startDate) {
-        long businessDaysElapsed = calculateBusinessDaysElapsed(startDate);
-        return businessDaysElapsed / 5;
+    private double calculateBusinessWeeksElapsed(Instant startDate, Instant endDate) {
+        long businessDaysElapsed = calculateBusinessDaysElapsed(startDate, endDate);
+        return businessDaysElapsed / 5.0;
     }
 
-    private long calculateBusinessDaysElapsed(Instant startDate) {
+    private long calculateBusinessDaysElapsed(Instant startDate, Instant endDate) {
         LocalDate start = startDate.atZone(ZoneOffset.UTC).toLocalDate();
-        LocalDate end = Instant.now().atZone(ZoneOffset.UTC).toLocalDate();
+        LocalDate end = endDate.atZone(ZoneOffset.UTC).toLocalDate();
 
         long businessDays = 0;
         LocalDate current = start;
