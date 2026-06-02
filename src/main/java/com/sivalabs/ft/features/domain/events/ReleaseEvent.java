@@ -1,10 +1,9 @@
-package com.sivalabs.ft.features.domain.dtos;
+package com.sivalabs.ft.features.domain.events;
 
 import com.sivalabs.ft.features.domain.models.ReleaseStatus;
-import java.io.Serializable;
 import java.time.Instant;
 
-public record ReleaseDto(
+public record ReleaseEvent(
         Long id,
         String code,
         String description,
@@ -15,5 +14,5 @@ public record ReleaseDto(
         String createdBy,
         Instant createdAt,
         String updatedBy,
-        Instant updatedAt)
-        implements Serializable {}
+        Instant updatedAt,
+        String eventType) {}
