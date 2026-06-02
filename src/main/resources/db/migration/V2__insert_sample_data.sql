@@ -6,13 +6,13 @@ insert into products (id, code, prefix, name, description, image_url, disabled, 
 (5, 'rider','RIDER','Rider', 'JetBrains IDE for .NET', 'https://resources.jetbrains.com/storage/products/company/brand/logos/Rider.png',false, 'admin','2024-03-01 00:00:00')
 ;
 
-insert into releases (id, product_id, code, description, status, created_by, created_at) values
-(1, 1, 'IDEA-2025.1', 'IntelliJ IDEA 2025.1', 'RELEASED', 'admin','2025-04-14'),
-(2, 1, 'IDEA-2025.2', 'IntelliJ IDEA 2025.2', 'DRAFT', 'admin','2024-02-25'),
-(3, 2, 'GO-2025.1', 'GoLand 2025.1', 'RELEASED', 'admin','2024-02-15'),
-(4, 3, 'WEB-2025.1', 'WebStorm 2025.1', 'RELEASED', 'admin','2024-02-20'),
-(5, 4, 'PY-2025.1', 'PyCharm 2025.1', 'RELEASED', 'admin','2024-02-20'),
-(6, 5, 'RIDER-2025.1', 'Rider 2025.1', 'RELEASED', 'admin','2024-02-16')
+insert into releases (id, product_id, code, description, status, released_at, planned_start_date, planned_release_date, actual_release_date, owner, notes, created_by, created_at) values
+(1, 1, 'IDEA-2025.1', 'IntelliJ IDEA 2025.1', 'RELEASED', '2025-04-14', '2024-12-01', '2025-04-14', '2025-04-14', 'john.doe', 'Major release with new features', 'admin','2025-04-14'),
+(2, 1, 'IDEA-2025.2', 'IntelliJ IDEA 2025.2', 'PLANNED', null, '2025-05-01', '2025-08-15', null, 'jane.smith', 'Next major release in development', 'admin','2024-02-25'),
+(3, 2, 'GO-2025.1', 'GoLand 2025.1', 'RELEASED', '2024-02-15', '2023-11-01', '2024-02-15', '2024-02-15', 'bob.wilson', 'Go language support improvements', 'admin','2024-02-15'),
+(4, 3, 'WEB-2025.1', 'WebStorm 2025.1', 'RELEASED', '2024-02-20', '2023-11-15', '2024-02-20', '2024-02-20', 'alice.brown', 'Enhanced web development tools', 'admin','2024-02-20'),
+(5, 4, 'PY-2025.1', 'PyCharm 2025.1', 'RELEASED', '2024-02-20', '2023-11-10', '2024-02-20', '2024-02-20', 'charlie.davis', 'Python development enhancements', 'admin','2024-02-20'),
+(6, 5, 'RIDER-2025.1', 'Rider 2025.1', 'RELEASED', '2024-02-16', '2023-11-05', '2024-02-16', '2024-02-16', 'diana.miller', '.NET development improvements', 'admin','2024-02-16')
 ;
 
 insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values

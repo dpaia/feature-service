@@ -1,22 +1,23 @@
 package com.sivalabs.ft.features.api.controllers;
 
 import com.sivalabs.ft.features.api.models.CreateReleasePayload;
+import com.sivalabs.ft.features.api.models.PagedResult;
 import com.sivalabs.ft.features.api.models.UpdateReleasePayload;
 import com.sivalabs.ft.features.api.utils.SecurityUtils;
 import com.sivalabs.ft.features.domain.Commands.CreateReleaseCommand;
 import com.sivalabs.ft.features.domain.Commands.UpdateReleaseCommand;
 import com.sivalabs.ft.features.domain.ReleaseService;
 import com.sivalabs.ft.features.domain.dtos.ReleaseDto;
+import com.sivalabs.ft.features.domain.models.ReleaseStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -44,8 +45,24 @@ class ReleaseController {
 
     @GetMapping("")
     @Operation(
-            summary = "Find releases by product code",
-            description = "Find releases by product code",
+            summary = "Find releases with optional filters and pagination",
+            description = "Find releases with optional filters (productCode, status, owner, date range) and pagination",
+            responses = {@ApiResponse(responseCode = "200", description = "Successful response")})
+    PagedResult<ReleaseDto> getReleases(
+            @RequestParam(required = false) String productCode,
+            @RequestParam(required = false) ReleaseStatus status,
+            @RequestParam(required = false) String owner,
+            @RequestParam(required = false) Instant startDate,
+            @RequestParam(required = false) Instant endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return releaseService.findReleases(productCode, status, owner, startDate, endDate, page, size);
+    }
+
+    @GetMapping("/overdue")
+    @Operation(
+            summary = "Find overdue releases",
+            description = "Returns releases past plannedReleaseDate that are not completed",
             responses = {
                 @ApiResponse(
                         responseCode = "200",
@@ -53,10 +70,93 @@ class ReleaseController {
                         content =
                                 @Content(
                                         mediaType = "application/json",
-                                        array = @ArraySchema(schema = @Schema(implementation = ReleaseDto.class))))
+                                        schema = @Schema(implementation = PagedResult.class)))
             })
-    List<ReleaseDto> getProductReleases(@RequestParam("productCode") String productCode) {
-        return releaseService.findReleasesByProductCode(productCode);
+    PagedResult<ReleaseDto> getOverdueReleases(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        return releaseService.findOverdueReleases(page, size);
+    }
+
+    @GetMapping("/at-risk")
+    @Operation(
+            summary = "Find at-risk releases",
+            description = "Returns releases approaching their deadline within the given days threshold",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PagedResult.class)))
+            })
+    PagedResult<ReleaseDto> getAtRiskReleases(
+            @RequestParam(name = "daysThreshold", defaultValue = "7") int daysThreshold,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        return releaseService.findAtRiskReleases(daysThreshold, page, size);
+    }
+
+    @GetMapping("/by-status")
+    @Operation(
+            summary = "Find releases by status",
+            description = "Returns releases filtered by the given status",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PagedResult.class)))
+            })
+    PagedResult<ReleaseDto> getReleasesByStatus(
+            @RequestParam(name = "status") ReleaseStatus status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        return releaseService.findReleasesByStatus(status, page, size);
+    }
+
+    @GetMapping("/by-owner")
+    @Operation(
+            summary = "Find releases by owner",
+            description = "Returns releases filtered by the given owner",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PagedResult.class)))
+            })
+    PagedResult<ReleaseDto> getReleasesByOwner(
+            @RequestParam(name = "owner") String owner,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        return releaseService.findReleasesByOwner(owner, page, size);
+    }
+
+    @GetMapping("/by-date-range")
+    @Operation(
+            summary = "Find releases by date range",
+            description = "Returns releases with plannedReleaseDate within the given range",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Successful response",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = PagedResult.class)))
+            })
+    PagedResult<ReleaseDto> getReleasesByDateRange(
+            @RequestParam(name = "startDate") Instant startDate,
+            @RequestParam(name = "endDate") Instant endDate,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        return releaseService.findReleasesByDateRange(startDate, endDate, page, size);
     }
 
     @GetMapping("/{code}")
@@ -99,7 +199,15 @@ class ReleaseController {
             })
     ResponseEntity<Void> createRelease(@RequestBody @Valid CreateReleasePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
-        var cmd = new CreateReleaseCommand(payload.productCode(), payload.code(), payload.description(), username);
+        var cmd = new CreateReleaseCommand(
+                payload.productCode(),
+                payload.code(),
+                payload.description(),
+                payload.plannedStartDate(),
+                payload.plannedReleaseDate(),
+                payload.owner(),
+                payload.notes(),
+                username);
         String code = releaseService.createRelease(cmd);
         log.info("Created release with code {}", code);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -121,8 +229,17 @@ class ReleaseController {
             })
     void updateRelease(@PathVariable String code, @RequestBody UpdateReleasePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
-        var cmd =
-                new UpdateReleaseCommand(code, payload.description(), payload.status(), payload.releasedAt(), username);
+        var cmd = new UpdateReleaseCommand(
+                code,
+                payload.description(),
+                payload.status(),
+                payload.releasedAt(),
+                payload.plannedStartDate(),
+                payload.plannedReleaseDate(),
+                payload.actualReleaseDate(),
+                payload.owner(),
+                payload.notes(),
+                username);
         releaseService.updateRelease(cmd);
     }
 
