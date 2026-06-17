@@ -1,0 +1,83 @@
+{
+  "sessionId": "rev-gold-developer-access-control",
+  "meta": {
+    "createdBy": "gold",
+    "origin": "external"
+  },
+  "version": 2,
+  "createdAt": "2026-06-17T00:00:00Z",
+  "activatedAt": "2026-06-17T00:00:00Z",
+  "updatedAt": "2026-06-17T00:00:00Z",
+  "status": "completed",
+  "subState": "idle",
+  "completionReason": "review complete",
+  "root": "/repo",
+  "interactive": false,
+  "constraints": {
+    "pacing": "batch"
+  },
+  "scope": [
+    {
+      "type": "uncommitted",
+      "id": "s1",
+      "paths": [
+        "src/main/java/com/sivalabs/ft/features/api/controllers/DeveloperController.java",
+        "src/main/java/com/sivalabs/ft/features/config/SecurityConfig.java",
+        "src/main/java/com/sivalabs/ft/features/domain/DeveloperRepository.java",
+        "src/main/java/com/sivalabs/ft/features/domain/DeveloperService.java",
+        "src/main/java/com/sivalabs/ft/features/domain/dtos/DeveloperDto.java",
+        "src/main/java/com/sivalabs/ft/features/domain/entities/Developer.java",
+        "src/main/java/com/sivalabs/ft/features/domain/entities/Feature.java",
+        "src/main/java/com/sivalabs/ft/features/domain/mappers/DeveloperMapper.java",
+        "src/main/resources/db/migration/V5__create_developers_table.sql",
+        "src/main/resources/db/migration/V6__add_developer_to_feature.sql"
+      ]
+    }
+  ],
+  "turns": [
+    {
+      "id": "turn-1",
+      "start": "2026-06-17T00:00:00Z",
+      "end": "2026-06-17T00:00:00Z",
+      "author": {
+        "type": "agent",
+        "id": "cli:claude-code/idea-review",
+        "name": "Claude Code · idea-review"
+      },
+      "notes": "Reviewed the Developer feature (controller, service, repository, mapper, entity wiring, V5/V6 migrations, SecurityConfig). One critical access-control defect: the SecurityConfig rule makes every /api/developers/** endpoint publicly accessible."
+    }
+  ],
+  "findings": [
+    {
+      "id": "f1",
+      "status": "open",
+      "timestamp": "2026-06-17T00:00:00Z",
+      "turnId": "turn-1",
+      "author": {
+        "type": "agent",
+        "id": "cli:claude-code/idea-review",
+        "name": "Claude Code · idea-review"
+      },
+      "anchor": {
+        "type": "code",
+        "file": "src/main/java/com/sivalabs/ft/features/config/SecurityConfig.java",
+        "code": "                        .requestMatchers(\"/api/developers/**\")\n                        .permitAll()",
+        "before": "                        .permitAll()",
+        "after": "                        .anyRequest()"
+      },
+      "text": "Broken access control: the single `.requestMatchers(\"/api/developers/**\").permitAll()` rule makes ALL developer endpoints public, including the mutating POST/PUT/DELETE operations exposed by DeveloperController. The feature is supposed to restrict the Developer controller, so creating, updating, and deleting developers is now reachable by any unauthenticated caller. Only GET should be public; the write operations must require ADMIN (e.g. keep a `.requestMatchers(HttpMethod.GET, \"/api/developers/**\").permitAll()` followed by `.requestMatchers(\"/api/developers/**\").hasRole(\"ADMIN\")`).",
+      "severity": "critical",
+      "source": "idea-review",
+      "fixes": [
+        {
+          "id": "f1-restrict-writes",
+          "label": "Restrict developer writes to ADMIN",
+          "type": "prompt",
+          "prompt": "In SecurityConfig replace the blanket `.requestMatchers(\"/api/developers/**\").permitAll()` with a GET-only public rule plus an ADMIN requirement for the rest: `.requestMatchers(HttpMethod.GET, \"/api/developers/**\").permitAll()` then `.requestMatchers(\"/api/developers/**\").hasRole(\"ADMIN\")`, so POST/PUT/DELETE on developers require the ADMIN role."
+        }
+      ],
+      "entries": []
+    }
+  ],
+  "title": "Developer feature access control review"
+}
