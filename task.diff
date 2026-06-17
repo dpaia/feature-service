@@ -1,0 +1,308 @@
+diff --git a/src/main/java/com/sivalabs/ft/features/api/controllers/DeveloperController.java b/src/main/java/com/sivalabs/ft/features/api/controllers/DeveloperController.java
+new file mode 100644
+index 0000000..4c9f699
+--- /dev/null
++++ b/src/main/java/com/sivalabs/ft/features/api/controllers/DeveloperController.java
+@@ -0,0 +1,60 @@
++package com.sivalabs.ft.features.api.controllers;
++
++import com.sivalabs.ft.features.domain.DeveloperService;
++import com.sivalabs.ft.features.domain.dtos.DeveloperDto;
++import jakarta.validation.Valid;
++import java.net.URI;
++import java.util.List;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.*;
++import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
++
++@RestController
++@RequestMapping("/api/developers")
++public class DeveloperController {
++    private final DeveloperService developerService;
++
++    public DeveloperController(DeveloperService developerService) {
++        this.developerService = developerService;
++    }
++
++    @GetMapping
++    public List<DeveloperDto> getAllDevelopers() {
++        return developerService.getAllDevelopers();
++    }
++
++    @GetMapping("/{id}")
++    public ResponseEntity<DeveloperDto> getDeveloperById(@PathVariable Long id) {
++        return developerService
++                .getDeveloperById(id)
++                .map(ResponseEntity::ok)
++                .orElse(ResponseEntity.notFound().build());
++    }
++
++    @PostMapping("")
++    public ResponseEntity<DeveloperDto> createDeveloper(@RequestBody @Valid DeveloperDto developerDto) {
++        DeveloperDto createdDeveloper = developerService.createDeveloper(developerDto);
++        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
++                .path("/{id}")
++                .buildAndExpand(createdDeveloper.id())
++                .toUri();
++        return ResponseEntity.created(location).body(createdDeveloper);
++    }
++
++    @PutMapping("/{id}")
++    public ResponseEntity<DeveloperDto> updateDeveloper(
++            @PathVariable Long id, @RequestBody @Valid DeveloperDto developerDto) {
++        return developerService
++                .updateDeveloper(id, developerDto)
++                .map(ResponseEntity::ok)
++                .orElse(ResponseEntity.notFound().build());
++    }
++
++    @DeleteMapping("/{id}")
++    public ResponseEntity<Void> deleteDeveloper(@PathVariable Long id) {
++        boolean deleted = developerService.deleteDeveloper(id);
++        return deleted
++                ? ResponseEntity.noContent().build()
++                : ResponseEntity.notFound().build();
++    }
++}
+diff --git a/src/main/java/com/sivalabs/ft/features/config/SecurityConfig.java b/src/main/java/com/sivalabs/ft/features/config/SecurityConfig.java
+index 37621f3..23e5204 100644
+--- a/src/main/java/com/sivalabs/ft/features/config/SecurityConfig.java
++++ b/src/main/java/com/sivalabs/ft/features/config/SecurityConfig.java
+@@ -34,6 +34,8 @@ class SecurityConfig {
+                         .permitAll()
+                         .requestMatchers(HttpMethod.GET, "/api/comments/**")
+                         .permitAll()
++                        .requestMatchers("/api/developers/**")
++                        .permitAll()
+                         .anyRequest()
+                         .authenticated())
+                 .sessionManagement(c -> c.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+diff --git a/src/main/java/com/sivalabs/ft/features/domain/DeveloperRepository.java b/src/main/java/com/sivalabs/ft/features/domain/DeveloperRepository.java
+new file mode 100644
+index 0000000..9af1a1a
+--- /dev/null
++++ b/src/main/java/com/sivalabs/ft/features/domain/DeveloperRepository.java
+@@ -0,0 +1,6 @@
++package com.sivalabs.ft.features.domain;
++
++import com.sivalabs.ft.features.domain.entities.Developer;
++import org.springframework.data.repository.ListCrudRepository;
++
++public interface DeveloperRepository extends ListCrudRepository<Developer, Long> {}
+diff --git a/src/main/java/com/sivalabs/ft/features/domain/DeveloperService.java b/src/main/java/com/sivalabs/ft/features/domain/DeveloperService.java
+new file mode 100644
+index 0000000..219a26e
+--- /dev/null
++++ b/src/main/java/com/sivalabs/ft/features/domain/DeveloperService.java
+@@ -0,0 +1,60 @@
++package com.sivalabs.ft.features.domain;
++
++import com.sivalabs.ft.features.domain.dtos.DeveloperDto;
++import com.sivalabs.ft.features.domain.entities.Developer;
++import com.sivalabs.ft.features.domain.mappers.DeveloperMapper;
++import java.util.List;
++import java.util.Optional;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++
++@Service
++public class DeveloperService {
++    private final DeveloperRepository developerRepository;
++    private final DeveloperMapper developerMapper;
++
++    public DeveloperService(DeveloperRepository developerRepository, DeveloperMapper developerMapper) {
++        this.developerRepository = developerRepository;
++        this.developerMapper = developerMapper;
++    }
++
++    @Transactional(readOnly = true)
++    public List<DeveloperDto> getAllDevelopers() {
++        return developerRepository.findAll().stream()
++                .map(developerMapper::toDto)
++                .toList();
++    }
++
++    @Transactional(readOnly = true)
++    public Optional<DeveloperDto> getDeveloperById(Long id) {
++        return developerRepository.findById(id).map(developerMapper::toDto);
++    }
++
++    @Transactional
++    public DeveloperDto createDeveloper(DeveloperDto developerDto) {
++        Developer developer = developerMapper.toEntity(developerDto);
++        developer.setId(null);
++        Developer savedDeveloper = developerRepository.save(developer);
++        return developerMapper.toDto(savedDeveloper);
++    }
++
++    @Transactional
++    public Optional<DeveloperDto> updateDeveloper(Long id, DeveloperDto developerDto) {
++        if (!developerRepository.existsById(id)) {
++            return Optional.empty();
++        }
++        Developer developer = developerMapper.toEntity(developerDto);
++        developer.setId(id);
++        Developer updatedDeveloper = developerRepository.save(developer);
++        return Optional.of(developerMapper.toDto(updatedDeveloper));
++    }
++
++    @Transactional
++    public boolean deleteDeveloper(Long id) {
++        if (!developerRepository.existsById(id)) {
++            return false;
++        }
++        developerRepository.deleteById(id);
++        return true;
++    }
++}
+diff --git a/src/main/java/com/sivalabs/ft/features/domain/dtos/DeveloperDto.java b/src/main/java/com/sivalabs/ft/features/domain/dtos/DeveloperDto.java
+new file mode 100644
+index 0000000..7bb25e6
+--- /dev/null
++++ b/src/main/java/com/sivalabs/ft/features/domain/dtos/DeveloperDto.java
+@@ -0,0 +1,5 @@
++package com.sivalabs.ft.features.domain.dtos;
++
++import java.io.Serializable;
++
++public record DeveloperDto(Long id, String name, String emailAddress) implements Serializable {}
+diff --git a/src/main/java/com/sivalabs/ft/features/domain/entities/Developer.java b/src/main/java/com/sivalabs/ft/features/domain/entities/Developer.java
+new file mode 100644
+index 0000000..566fc25
+--- /dev/null
++++ b/src/main/java/com/sivalabs/ft/features/domain/entities/Developer.java
+@@ -0,0 +1,45 @@
++package com.sivalabs.ft.features.domain.entities;
++
++import jakarta.persistence.*;
++import jakarta.validation.constraints.NotNull;
++import jakarta.validation.constraints.Size;
++
++@Entity
++@Table(name = "developers")
++public class Developer {
++    @Id
++    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "developers_id_gen")
++    @SequenceGenerator(name = "developers_id_gen", sequenceName = "developer_id_seq")
++    @Column(name = "id", nullable = false)
++    private Long id;
++
++    @Size(max = 255) @NotNull @Column(name = "name", nullable = false)
++    private String name;
++
++    @Size(max = 255) @Column(name = "email_address", unique = true)
++    private String emailAddress;
++
++    public Long getId() {
++        return id;
++    }
++
++    public void setId(Long id) {
++        this.id = id;
++    }
++
++    public String getName() {
++        return name;
++    }
++
++    public void setName(String name) {
++        this.name = name;
++    }
++
++    public String getEmailAddress() {
++        return emailAddress;
++    }
++
++    public void setEmailAddress(String emailAddress) {
++        this.emailAddress = emailAddress;
++    }
++}
+diff --git a/src/main/java/com/sivalabs/ft/features/domain/entities/Feature.java b/src/main/java/com/sivalabs/ft/features/domain/entities/Feature.java
+index ed6e163..8be4b54 100644
+--- a/src/main/java/com/sivalabs/ft/features/domain/entities/Feature.java
++++ b/src/main/java/com/sivalabs/ft/features/domain/entities/Feature.java
+@@ -37,6 +37,10 @@ public class Feature {
+     @Enumerated(EnumType.STRING)
+     private FeatureStatus status;
+ 
++    @ManyToOne(fetch = FetchType.LAZY)
++    @JoinColumn(name = "developer_id")
++    private Developer developer;
++
+     @Size(max = 255) @Column(name = "assigned_to")
+     private String assignedTo;
+ 
+@@ -117,6 +121,14 @@ public class Feature {
+         this.assignedTo = assignedTo;
+     }
+ 
++    public Developer getDeveloper() {
++        return developer;
++    }
++
++    public void setDeveloper(Developer developer) {
++        this.developer = developer;
++    }
++
+     public String getCreatedBy() {
+         return createdBy;
+     }
+diff --git a/src/main/java/com/sivalabs/ft/features/domain/mappers/DeveloperMapper.java b/src/main/java/com/sivalabs/ft/features/domain/mappers/DeveloperMapper.java
+new file mode 100644
+index 0000000..1002e90
+--- /dev/null
++++ b/src/main/java/com/sivalabs/ft/features/domain/mappers/DeveloperMapper.java
+@@ -0,0 +1,12 @@
++package com.sivalabs.ft.features.domain.mappers;
++
++import com.sivalabs.ft.features.domain.dtos.DeveloperDto;
++import com.sivalabs.ft.features.domain.entities.Developer;
++import org.mapstruct.Mapper;
++
++@Mapper(componentModel = "spring")
++public interface DeveloperMapper {
++    DeveloperDto toDto(Developer developer);
++
++    Developer toEntity(DeveloperDto developerDto);
++}
+diff --git a/src/main/resources/db/migration/V5__create_developers_table.sql b/src/main/resources/db/migration/V5__create_developers_table.sql
+new file mode 100644
+index 0000000..dfdf297
+--- /dev/null
++++ b/src/main/resources/db/migration/V5__create_developers_table.sql
+@@ -0,0 +1,10 @@
++-- Create developers table with sequence
++create sequence developer_id_seq start with 100 increment by 50;
++
++create table developers
++(
++    id            bigint       not null default nextval('developer_id_seq'),
++    name          varchar(255) not null,
++    email_address varchar(255) unique,
++    primary key (id)
++);
+\ No newline at end of file
+diff --git a/src/main/resources/db/migration/V6__add_developer_to_feature.sql b/src/main/resources/db/migration/V6__add_developer_to_feature.sql
+new file mode 100644
+index 0000000..17992dd
+--- /dev/null
++++ b/src/main/resources/db/migration/V6__add_developer_to_feature.sql
+@@ -0,0 +1,17 @@
++-- Insert developers from existing assignedTo values
++INSERT INTO developers (id, name, email_address)
++SELECT nextval('developer_id_seq'), assigned_to, null
++FROM (SELECT DISTINCT assigned_to FROM features WHERE assigned_to IS NOT NULL) AS distinct_developers;
++
++-- Add developer_id column to features table
++ALTER TABLE features ADD COLUMN developer_id bigint;
++
++-- Update developer_id in features based on assigned_to values
++UPDATE features f
++SET developer_id = d.id
++    FROM developers d
++WHERE f.assigned_to = d.name;
++
++-- Add foreign key constraint
++ALTER TABLE features
++    ADD CONSTRAINT fk_features_developer_id FOREIGN KEY (developer_id) REFERENCES developers (id);
+\ No newline at end of file
