@@ -11,4 +11,5 @@ public record CommentDto(
         Instant createdAt,
         Long parentId,
         int depth,
-        List<CommentDto> replies) {}
+        List<CommentDto> replies,
+        int nestedCommentsCount) {}

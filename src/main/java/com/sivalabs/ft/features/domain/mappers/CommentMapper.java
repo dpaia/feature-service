@@ -10,5 +10,6 @@ public interface CommentMapper {
     @Mapping(target = "featureCode", source = "feature.code", defaultExpression = "java( null )")
     @Mapping(target = "parentId", source = "parentComment.id", defaultExpression = "java( null )")
     @Mapping(target = "replies", ignore = true)
+    @Mapping(target = "nestedCommentsCount", ignore = true)
     CommentDto toDto(Comment comment);
 }

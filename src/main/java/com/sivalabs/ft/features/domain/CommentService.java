@@ -94,6 +94,9 @@ public class CommentService {
         List<CommentDto> replies = childrenByParentId.getOrDefault(comment.getId(), List.of()).stream()
                 .map(reply -> buildCommentTree(reply, childrenByParentId))
                 .toList();
+        int nestedCommentsCount = replies.stream()
+                .mapToInt(reply -> 1 + reply.nestedCommentsCount())
+                .sum();
         CommentDto dto = commentMapper.toDto(comment);
         return new CommentDto(
                 dto.id(),
@@ -103,6 +106,7 @@ public class CommentService {
                 dto.createdAt(),
                 dto.parentId(),
                 dto.depth(),
-                replies);
+                replies,
+                nestedCommentsCount);
     }
 }
