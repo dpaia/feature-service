@@ -9,6 +9,8 @@ import org.hibernate.annotations.ColumnDefault;
 @Table(name = "comments")
 public class Comment {
 
+    public static final int MAX_DEPTH = 3;
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "comment_id_gen")
     @SequenceGenerator(name = "comment_id_gen", sequenceName = "comment_id_seq")
@@ -19,11 +21,19 @@ public class Comment {
     @JoinColumn(name = "feature_id", nullable = false)
     private Feature feature;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "parent_id")
+    private Comment parentComment;
+
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
     @Column(name = "content", nullable = false)
     private String content;
+
+    @NotNull @ColumnDefault("0")
+    @Column(name = "depth", nullable = false)
+    private int depth;
 
     @NotNull @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false)
@@ -36,6 +46,7 @@ public class Comment {
         this.createdBy = createdBy;
         this.content = content;
         this.createdAt = Instant.now();
+        this.depth = 0;
     }
 
     public Long getId() {
@@ -52,6 +63,22 @@ public class Comment {
 
     public void setFeature(Feature feature) {
         this.feature = feature;
+    }
+
+    public Comment getParentComment() {
+        return parentComment;
+    }
+
+    public void setParentComment(Comment parentComment) {
+        this.parentComment = parentComment;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public void setDepth(int depth) {
+        this.depth = depth;
     }
 
     public String getCreatedBy() {

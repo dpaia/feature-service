@@ -89,4 +89,122 @@ class CommentControllerTests extends AbstractIT {
 
         assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReplyToComment() {
+        var payload =
+                """
+                {
+                    "featureCode": "IDEA-1",
+                    "content": "This is a reply",
+                    "parentCommentId": 2
+                }
+                """;
+
+        var result = mvc.post()
+                .uri("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn404WhenReplyingToNonExistentComment() {
+        var payload =
+                """
+                {
+                    "featureCode": "IDEA-1",
+                    "content": "This is a reply",
+                    "parentCommentId": 999
+                }
+                """;
+
+        var result = mvc.post()
+                .uri("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldAllowRepliesUpToThreeLevelsDeepAndRejectBeyond() {
+        Long parentId = 2L;
+        // reply levels 1, 2 and 3 should succeed
+        for (int level = 1; level <= 3; level++) {
+            parentId = addReply(parentId, "Reply at level " + level);
+        }
+
+        // a 4th nested level should be rejected
+        var payload =
+                """
+                {
+                    "featureCode": "IDEA-1",
+                    "content": "This reply exceeds the allowed depth",
+                    "parentCommentId": %d
+                }
+                """
+                        .formatted(parentId);
+
+        var result = mvc.post()
+                .uri("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldReturn400WhenRemovingCommentWithReplies() {
+        addReply(3L, "A reply to comment 3");
+
+        var result = mvc.delete().uri("/api/comments/{commentId}", 3).exchange();
+
+        assertThat(result).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldGetCommentsAsNestedThreads() {
+        addReply(1L, "A reply to comment 1");
+
+        var result = mvc.get().uri("/api/comments?featureCode={code}", "IDEA-1").exchange();
+
+        assertThat(result)
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$[?(@.id == 1)].replies[0].content")
+                .asList()
+                .contains("A reply to comment 1");
+    }
+
+    private Long addReply(Long parentCommentId, String content) {
+        var payload =
+                """
+                {
+                    "featureCode": "IDEA-1",
+                    "content": "%s",
+                    "parentCommentId": %d
+                }
+                """
+                        .formatted(content, parentCommentId);
+
+        var result = mvc.post()
+                .uri("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+        String location = result.getMvcResult().getResponse().getHeader("Location");
+        return Long.valueOf(location.substring(location.lastIndexOf('/') + 1));
+    }
 }

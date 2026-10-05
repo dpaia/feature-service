@@ -7,7 +7,8 @@ import com.sivalabs.ft.features.domain.exceptions.ResourceNotFoundException;
 import com.sivalabs.ft.features.domain.mappers.CommentMapper;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.data.domain.PageRequest;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,9 +32,28 @@ public class CommentService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Feature with code %s not found.".formatted(command.featureCode())));
 
+        Comment parentComment = null;
+        int depth = 0;
+        if (command.parentCommentId() != null) {
+            parentComment = commentRepository
+                    .findById(command.parentCommentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Comment with id %d not found.".formatted(command.parentCommentId())));
+            if (!parentComment.getFeature().getCode().equals(command.featureCode())) {
+                throw new BadRequestException("Parent comment does not belong to the given feature");
+            }
+            depth = parentComment.getDepth() + 1;
+            if (depth > Comment.MAX_DEPTH) {
+                throw new BadRequestException("Cannot reply to this comment, maximum thread depth of %d reached"
+                        .formatted(Comment.MAX_DEPTH));
+            }
+        }
+
         Comment comment = new Comment();
         comment.setContent(command.content());
         comment.setFeature(feature);
+        comment.setParentComment(parentComment);
+        comment.setDepth(depth);
         comment.setCreatedBy(command.createdBy());
         comment.setCreatedAt(Instant.now());
         commentRepository.save(comment);
@@ -42,6 +62,9 @@ public class CommentService {
 
     @Transactional
     public void removeComment(Long commentId, String userId) {
+        if (commentRepository.countByParentCommentId(commentId) > 0) {
+            throw new BadRequestException("Cannot remove a comment that has replies");
+        }
         int count = commentRepository.deleteComment(commentId, userId);
         if (count != 1) {
             throw new BadRequestException("comment not found");
@@ -50,8 +73,36 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<CommentDto> findCommentsByFeatureCode(String featureCode, int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, size);
-        List<Comment> comments = commentRepository.findCommentsByFeatureCode(featureCode, pageRequest);
-        return comments.stream().map(commentMapper::toDto).toList();
+        List<Comment> comments = commentRepository.findCommentsByFeatureCode(featureCode);
+
+        Map<Long, List<Comment>> childrenByParentId = comments.stream()
+                .filter(c -> c.getParentComment() != null)
+                .collect(Collectors.groupingBy(c -> c.getParentComment().getId()));
+
+        List<Comment> rootComments =
+                comments.stream().filter(c -> c.getParentComment() == null).toList();
+
+        int fromIndex = Math.min(page * size, rootComments.size());
+        int toIndex = Math.min(fromIndex + size, rootComments.size());
+
+        return rootComments.subList(fromIndex, toIndex).stream()
+                .map(comment -> buildCommentTree(comment, childrenByParentId))
+                .toList();
+    }
+
+    private CommentDto buildCommentTree(Comment comment, Map<Long, List<Comment>> childrenByParentId) {
+        List<CommentDto> replies = childrenByParentId.getOrDefault(comment.getId(), List.of()).stream()
+                .map(reply -> buildCommentTree(reply, childrenByParentId))
+                .toList();
+        CommentDto dto = commentMapper.toDto(comment);
+        return new CommentDto(
+                dto.id(),
+                dto.featureCode(),
+                dto.content(),
+                dto.createdBy(),
+                dto.createdAt(),
+                dto.parentCommentId(),
+                dto.depth(),
+                replies);
     }
 }
