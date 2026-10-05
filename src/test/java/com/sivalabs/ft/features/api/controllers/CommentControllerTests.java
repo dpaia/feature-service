@@ -98,7 +98,7 @@ class CommentControllerTests extends AbstractIT {
                 {
                     "featureCode": "IDEA-1",
                     "content": "This is a reply",
-                    "parentCommentId": 2
+                    "parentId": 2
                 }
                 """;
 
@@ -119,7 +119,7 @@ class CommentControllerTests extends AbstractIT {
                 {
                     "featureCode": "IDEA-1",
                     "content": "This is a reply",
-                    "parentCommentId": 999
+                    "parentId": 999
                 }
                 """;
 
@@ -147,7 +147,7 @@ class CommentControllerTests extends AbstractIT {
                 {
                     "featureCode": "IDEA-1",
                     "content": "This reply exceeds the allowed depth",
-                    "parentCommentId": %d
+                    "parentId": %d
                 }
                 """
                         .formatted(parentId);
@@ -186,16 +186,16 @@ class CommentControllerTests extends AbstractIT {
                 .contains("A reply to comment 1");
     }
 
-    private Long addReply(Long parentCommentId, String content) {
+    private Long addReply(Long parentId, String content) {
         var payload =
                 """
                 {
                     "featureCode": "IDEA-1",
                     "content": "%s",
-                    "parentCommentId": %d
+                    "parentId": %d
                 }
                 """
-                        .formatted(content, parentCommentId);
+                        .formatted(content, parentId);
 
         var result = mvc.post()
                 .uri("/api/comments")

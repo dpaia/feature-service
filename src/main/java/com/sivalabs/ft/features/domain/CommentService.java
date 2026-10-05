@@ -34,11 +34,11 @@ public class CommentService {
 
         Comment parentComment = null;
         int depth = 0;
-        if (command.parentCommentId() != null) {
+        if (command.parentId() != null) {
             parentComment = commentRepository
-                    .findById(command.parentCommentId())
+                    .findById(command.parentId())
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            "Comment with id %d not found.".formatted(command.parentCommentId())));
+                            "Comment with id %d not found.".formatted(command.parentId())));
             if (!parentComment.getFeature().getCode().equals(command.featureCode())) {
                 throw new BadRequestException("Parent comment does not belong to the given feature");
             }
@@ -101,7 +101,7 @@ public class CommentService {
                 dto.content(),
                 dto.createdBy(),
                 dto.createdAt(),
-                dto.parentCommentId(),
+                dto.parentId(),
                 dto.depth(),
                 replies);
     }

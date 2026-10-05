@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
     @Mapping(target = "featureCode", source = "feature.code", defaultExpression = "java( null )")
-    @Mapping(target = "parentCommentId", source = "parentComment.id", defaultExpression = "java( null )")
+    @Mapping(target = "parentId", source = "parentComment.id", defaultExpression = "java( null )")
     @Mapping(target = "replies", ignore = true)
     CommentDto toDto(Comment comment);
 }

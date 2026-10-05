@@ -9,6 +9,6 @@ public record CommentDto(
         String content,
         String createdBy,
         Instant createdAt,
-        Long parentCommentId,
+        Long parentId,
         int depth,
         List<CommentDto> replies) {}

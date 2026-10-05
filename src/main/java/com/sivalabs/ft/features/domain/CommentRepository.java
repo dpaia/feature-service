@@ -12,7 +12,7 @@ interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("delete from Comment c where c.createdBy = :userId and c.id = :commentId")
     int deleteComment(Long commentId, String userId);
 
-    long countByParentCommentId(Long parentCommentId);
+    long countByParentCommentId(Long parentId);
 
     @Query(
             """

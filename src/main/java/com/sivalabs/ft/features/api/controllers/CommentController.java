@@ -46,10 +46,7 @@ class CommentController {
     ResponseEntity<String> addComment(@RequestBody @Valid AddCommentPayload addCommentPayload) {
         String username = SecurityUtils.getCurrentUsername();
         var command = new CreateCommentCommand(
-                addCommentPayload.featureCode(),
-                addCommentPayload.content(),
-                addCommentPayload.parentCommentId(),
-                username);
+                addCommentPayload.featureCode(), addCommentPayload.content(), addCommentPayload.parentId(), username);
         var commentId = commentService.createComment(command);
 
         log.info("Comment added with id: {}", commentId);
