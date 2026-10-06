@@ -140,7 +140,7 @@ class FeatureController {
     ResponseEntity<Void> createFeature(@RequestBody @Valid CreateFeaturePayload payload) {
         var username = SecurityUtils.getCurrentUsername();
         var cmd = new CreateFeatureCommand(
-                payload.productCode(),
+                payload.productCodes(),
                 payload.releaseCode(),
                 payload.title(),
                 payload.description(),
@@ -172,6 +172,7 @@ class FeatureController {
                 payload.title(),
                 payload.description(),
                 payload.status(),
+                payload.productCodes(),
                 payload.releaseCode(),
                 payload.assignedTo(),
                 username);

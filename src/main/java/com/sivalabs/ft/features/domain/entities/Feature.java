@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
@@ -16,9 +18,12 @@ public class Feature {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "feature_products",
+            joinColumns = @JoinColumn(name = "feature_id"),
+            inverseJoinColumns = @JoinColumn(name = "product_id"))
+    private Set<Product> products = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "release_id")
@@ -61,12 +66,12 @@ public class Feature {
         this.id = id;
     }
 
-    public Product getProduct() {
-        return product;
+    public Set<Product> getProducts() {
+        return products;
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setProducts(Set<Product> products) {
+        this.products = products;
     }
 
     public Release getRelease() {

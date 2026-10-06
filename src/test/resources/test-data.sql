@@ -1,5 +1,6 @@
 delete from favorite_features;
 delete from comments;
+delete from feature_products;
 delete from features;
 delete from releases;
 delete from products;
@@ -21,10 +22,16 @@ insert into releases (id, product_id, code, description, status, created_by, cre
 (6, 5, 'RIDER-2024.2.6', 'Rider 2024.2.6', 'RELEASED', 'admin','2024-02-16')
 ;
 
-insert into features (id, product_id, release_id, code, title, description, status, created_by, assigned_to, created_at) values
-(1, 1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24'),
-(2, 1, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14'),
-(3, 2, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14')
+insert into features (id, release_id, code, title, description, status, created_by, assigned_to, created_at) values
+(1, 1, 'IDEA-1', 'Redesign Structure Tool Window', 'Redesign Structure Tool Window to show logical structure', 'NEW', 'siva', 'marcobehler', '2024-02-24'),
+(2, 1, 'IDEA-2', 'SDJ Repository Method AutoCompletion', 'Spring Data JPA Repository Method AutoCompletion as you type', 'NEW', 'daniiltsarev', 'siva', '2024-03-14'),
+(3, null, 'GO-3', 'Make Go to Type and Go to Symbol dumb aware', 'Make Go to Type and Go to Symbol dumb aware', 'IN_PROGRESS', 'antonarhipov', 'andreybelyaev', '2024-01-14')
+;
+
+insert into feature_products (feature_id, product_id) values
+(1, 1),
+(2, 1),
+(3, 2)
 ;
 
 insert into favorite_features (id, feature_id, user_id) values

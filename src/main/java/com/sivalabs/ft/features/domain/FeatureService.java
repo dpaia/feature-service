@@ -11,6 +11,7 @@ import com.sivalabs.ft.features.domain.events.EventPublisher;
 import com.sivalabs.ft.features.domain.mappers.FeatureMapper;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -91,11 +92,14 @@ public class FeatureService {
 
     @Transactional
     public String createFeature(CreateFeatureCommand cmd) {
-        Product product = productRepository.findByCode(cmd.productCode()).orElseThrow();
+        Set<Product> products = cmd.productCodes().stream()
+                .map(productCode -> productRepository.findByCode(productCode).orElseThrow())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Product primaryProduct = products.iterator().next();
         Release release = releaseRepository.findByCode(cmd.releaseCode()).orElse(null);
-        String code = product.getPrefix() + FEATURE_SEPARATOR + featureRepository.getNextFeatureId();
+        String code = primaryProduct.getPrefix() + FEATURE_SEPARATOR + featureRepository.getNextFeatureId();
         var feature = new Feature();
-        feature.setProduct(product);
+        feature.setProducts(products);
         feature.setRelease(release);
         feature.setCode(code);
         feature.setTitle(cmd.title());
@@ -114,6 +118,13 @@ public class FeatureService {
         Feature feature = featureRepository.findByCode(cmd.code()).orElseThrow();
         feature.setTitle(cmd.title());
         feature.setDescription(cmd.description());
+        if (cmd.productCodes() != null && !cmd.productCodes().isEmpty()) {
+            Set<Product> products = cmd.productCodes().stream()
+                    .map(productCode ->
+                            productRepository.findByCode(productCode).orElseThrow())
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            feature.setProducts(products);
+        }
         if (cmd.releaseCode() != null) {
             Release release = releaseRepository.findByCode(cmd.releaseCode()).orElse(null);
             feature.setRelease(release);

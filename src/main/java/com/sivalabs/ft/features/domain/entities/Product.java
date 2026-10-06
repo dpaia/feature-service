@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -60,6 +61,9 @@ public class Product {
 
     @OneToMany(mappedBy = "product")
     private Set<Release> releases = new LinkedHashSet<>();
+
+    @ManyToMany(mappedBy = "products")
+    private Set<Feature> features = new LinkedHashSet<>();
 
     @PrePersist
     public void prePersist() {
@@ -169,5 +173,13 @@ public class Product {
 
     public void setReleases(Set<Release> releases) {
         this.releases = releases;
+    }
+
+    public Set<Feature> getFeatures() {
+        return features;
+    }
+
+    public void setFeatures(Set<Feature> features) {
+        this.features = features;
     }
 }

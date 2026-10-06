@@ -46,7 +46,7 @@ class FeatureControllerTests extends AbstractIT {
         var payload =
                 """
             {
-                "productCode": "intellij",
+                "productCodes": ["intellij"],
                 "releaseCode": "IDEA-2023.3.8",
                 "title": "New Feature",
                 "description": "New feature description",
@@ -76,6 +76,69 @@ class FeatureControllerTests extends AbstractIT {
                     assertThat(dto.title()).isEqualTo("New Feature");
                     assertThat(dto.description()).isEqualTo("New feature description");
                     assertThat(dto.assignedTo()).isEqualTo("john.doe");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldCreateFeatureWithMultipleProducts() {
+        var payload =
+                """
+            {
+                "productCodes": ["intellij", "goland"],
+                "title": "Multi Product Feature",
+                "description": "Feature linked to multiple products",
+                "assignedTo": "john.doe"
+            }
+            """;
+
+        var result = mvc.post()
+                .uri("/api/features")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatus(HttpStatus.CREATED);
+        String location = result.getMvcResult().getResponse().getHeader("Location");
+        assertThat(location).isNotNull();
+
+        var getResult = mvc.get().uri(location).exchange();
+        assertThat(getResult)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(FeatureDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.productCodes()).containsExactlyInAnyOrder("intellij", "goland");
+                });
+    }
+
+    @Test
+    @WithMockOAuth2User(username = "user")
+    void shouldUpdateFeatureProducts() {
+        var payload =
+                """
+            {
+                "title": "Updated Feature",
+                "description": "Updated description",
+                "productCodes": ["intellij", "goland"],
+                "assignedTo": "jane.doe",
+                "status": "IN_PROGRESS"
+            }
+            """;
+
+        var result = mvc.put()
+                .uri("/api/features/{code}", "IDEA-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+                .exchange();
+        assertThat(result).hasStatusOk();
+
+        var updatedFeature = mvc.get().uri("/api/features/{code}", "IDEA-1").exchange();
+        assertThat(updatedFeature)
+                .hasStatusOk()
+                .bodyJson()
+                .convertTo(FeatureDto.class)
+                .satisfies(dto -> {
+                    assertThat(dto.productCodes()).containsExactlyInAnyOrder("intellij", "goland");
                 });
     }
 

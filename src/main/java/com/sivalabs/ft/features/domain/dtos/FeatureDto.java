@@ -3,6 +3,7 @@ package com.sivalabs.ft.features.domain.dtos;
 import com.sivalabs.ft.features.domain.models.FeatureStatus;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.List;
 
 public record FeatureDto(
         Long id,
@@ -10,6 +11,7 @@ public record FeatureDto(
         String title,
         String description,
         FeatureStatus status,
+        List<String> productCodes,
         String releaseCode,
         boolean isFavorite,
         String assignedTo,
@@ -26,6 +28,7 @@ public record FeatureDto(
                 title,
                 description,
                 status,
+                productCodes,
                 releaseCode,
                 favorite,
                 assignedTo,
